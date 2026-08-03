@@ -1,34 +1,60 @@
-# Database
+# Authentication
 
-Takineo uses PostgreSQL hosted by Neon and Prisma ORM for
-type-safe database access and migration management.
+Takineo uses Better Auth with Prisma and PostgreSQL.
 
-## Connections
+## Supported methods
 
-The application uses two PostgreSQL connection strings.
+The initial authentication foundation supports:
 
-### `DATABASE_URL`
+- Email and password registration
+- Email and password login
+- Persistent database sessions
+- Sign out
+- Server-side session validation
 
-A pooled Neon connection used by the running Next.js application.
+## Core database models
 
-The hostname normally contains `-pooler`.
+Better Auth owns the following models:
 
-### `DIRECT_URL`
+- `User`
+- `Account`
+- `Session`
+- `Verification`
 
-A direct Neon connection used by Prisma CLI and database migrations.
+Application-specific role and profile data must be added through
+separate models and relations. Authentication tables should not be
+used as a substitute for teacher or student domain models.
 
-The hostname does not contain `-pooler`.
+## Environment variables
 
-## Local environment
+Required local variables:
 
-Create `.env` from `.env.example` and provide real development
-database connection strings.
+- `BETTER_AUTH_URL`
+- `BETTER_AUTH_SECRET`
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `NEXT_PUBLIC_APP_URL`
 
-Never commit `.env` or database credentials.
+Never commit real secrets or database connection strings.
 
-## Prisma commands
+## Routes
 
-Format the schema:
+- `/sign-up`
+- `/sign-in`
+- `/dashboard`
+- `/api/auth/[...all]`
 
-```bash
-npm run db:form
+## Password policy
+
+Passwords currently require between 8 and 128 characters.
+
+Password hashes are stored by Better Auth in credential `Account`
+records. Raw passwords must never be logged or persisted by
+application code.
+
+## Authorization
+
+Authentication proves the identity of a user.
+
+Student and teacher permissions will be implemented separately during
+the onboarding and authorization milestone.

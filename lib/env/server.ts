@@ -15,11 +15,24 @@ const postgresUrlSchema = z
   );
 
 const serverEnvironmentSchema = z.object({
-  DATABASE_URL: postgresUrlSchema,
+  DIRECT_URL: postgresUrlSchema,
+
+  BETTER_AUTH_URL: z
+    .string()
+    .url("BETTER_AUTH_URL must be a valid URL"),
+
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(
+      32,
+      "BETTER_AUTH_SECRET must contain at least 32 characters",
+    ),
 });
 
 const parsedEnvironment = serverEnvironmentSchema.safeParse({
-  DATABASE_URL: process.env.DATABASE_URL,
+  DIRECT_URL: process.env.DIRECT_URL,
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
 });
 
 if (!parsedEnvironment.success) {

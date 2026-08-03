@@ -10,12 +10,12 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DIRECT_URL!,
 });
 
 function createPrismaClient() {
   const adapter = new PrismaPg({
-    connectionString: serverEnv.DATABASE_URL,
+    connectionString: serverEnv.DIRECT_URL,
   });
 
   return new PrismaClient({
