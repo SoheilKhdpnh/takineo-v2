@@ -12,16 +12,11 @@ import { authClient } from "@/lib/auth/auth-client";
 export default function SignInPage() {
   const router = useRouter();
 
-<<<<<<< HEAD
   const [error, setError] = useState<string | null>(
     null,
   );
   const [isSubmitting, setIsSubmitting] =
     useState(false);
-=======
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
->>>>>>> origin/main
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -31,7 +26,6 @@ export default function SignInPage() {
     setError(null);
     setIsSubmitting(true);
 
-<<<<<<< HEAD
     const formData = new FormData(
       event.currentTarget,
     );
@@ -70,32 +64,6 @@ export default function SignInPage() {
     } finally {
       setIsSubmitting(false);
     }
-=======
-    const formData = new FormData(event.currentTarget);
-
-    const email = String(formData.get("email") ?? "")
-      .trim()
-      .toLowerCase();
-    const password = String(formData.get("password") ?? "");
-
-    const result = await authClient.signIn.email({
-      email,
-      password,
-      rememberMe: true,
-    });
-
-    if (result.error) {
-      setError(
-        result.error.message ??
-          "The email or password is incorrect.",
-      );
-      setIsSubmitting(false);
-      return;
-    }
-
-    router.push("/dashboard");
-    router.refresh();
->>>>>>> origin/main
   }
 
   return (
@@ -111,11 +79,7 @@ export default function SignInPage() {
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-<<<<<<< HEAD
             Continue to your Takineo workspace.
-=======
-            Continue to your Takineo account.
->>>>>>> origin/main
           </p>
         </div>
 
@@ -175,13 +139,9 @@ export default function SignInPage() {
             disabled={isSubmitting}
             className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-<<<<<<< HEAD
             {isSubmitting
               ? "Signing in..."
               : "Sign in"}
-=======
-            {isSubmitting ? "Signing in..." : "Sign in"}
->>>>>>> origin/main
           </button>
         </form>
 

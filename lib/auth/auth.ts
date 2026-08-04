@@ -13,7 +13,6 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
-<<<<<<< HEAD
   user: {
     additionalFields: {
       role: {
@@ -24,8 +23,6 @@ export const auth = betterAuth({
     },
   },
 
-=======
->>>>>>> origin/main
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
