@@ -3,6 +3,12 @@
 Takineo uses PostgreSQL hosted by Neon and Prisma ORM for
 type-safe database access and migration management.
 
+The running Next.js application connects through Prisma's Neon
+serverless adapter using the pooled `DATABASE_URL`.
+
+Prisma CLI and migrations use the direct `DIRECT_URL` configured
+in `prisma.config.ts`.
+
 ## Connections
 
 The application uses two PostgreSQL connection strings.
