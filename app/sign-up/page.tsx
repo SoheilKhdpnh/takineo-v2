@@ -12,11 +12,16 @@ import { authClient } from "@/lib/auth/auth-client";
 export default function SignUpPage() {
   const router = useRouter();
 
+<<<<<<< HEAD
   const [error, setError] = useState<string | null>(
     null,
   );
   const [isSubmitting, setIsSubmitting] =
     useState(false);
+=======
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+>>>>>>> origin/main
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -26,6 +31,7 @@ export default function SignUpPage() {
     setError(null);
     setIsSubmitting(true);
 
+<<<<<<< HEAD
     const formData = new FormData(
       event.currentTarget,
     );
@@ -68,6 +74,33 @@ export default function SignUpPage() {
     } finally {
       setIsSubmitting(false);
     }
+=======
+    const formData = new FormData(event.currentTarget);
+
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase();
+    const password = String(formData.get("password") ?? "");
+
+    const result = await authClient.signUp.email({
+      name,
+      email,
+      password,
+    });
+
+    if (result.error) {
+      setError(
+        result.error.message ??
+          "We could not create your account.",
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+>>>>>>> origin/main
   }
 
   return (
@@ -83,8 +116,13 @@ export default function SignUpPage() {
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-zinc-600">
+<<<<<<< HEAD
             Create an account, then choose whether you
             want to learn or teach.
+=======
+            Begin with a secure Takineo account. Your student
+            or teacher profile will be created during onboarding.
+>>>>>>> origin/main
           </p>
         </div>
 

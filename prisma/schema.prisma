@@ -9,6 +9,7 @@ datasource db {
   provider = "postgresql"
 }
 
+<<<<<<< HEAD
 enum UserRole {
   STUDENT
   TEACHER
@@ -29,6 +30,19 @@ model User {
   accounts       Account[]
   studentProfile StudentProfile?
   teacherProfile TeacherProfile?
+=======
+model User {
+  id            String   @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  sessions Session[]
+  accounts Account[]
+>>>>>>> origin/main
 
   @@unique([email])
   @@map("user")
@@ -80,6 +94,7 @@ model Verification {
 
   @@map("verification")
 }
+<<<<<<< HEAD
 
 model StudentProfile {
   id        String   @id @default(cuid())
@@ -103,3 +118,5 @@ model TeacherProfile {
 
   @@map("teacher_profile")
 }
+=======
+>>>>>>> origin/main

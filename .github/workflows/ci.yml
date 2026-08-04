@@ -23,8 +23,10 @@ jobs:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
 
-      # CI only needs syntactically valid URLs.
-      # Build and schema validation do not connect to this database.
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/takineo
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/takineo
 
