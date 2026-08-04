@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "check": "npm run db:generate && npm run db:validate && npm run lint && npm run typecheck && next build",
     "db:format": "prisma format",
     "db:validate": "prisma validate",
