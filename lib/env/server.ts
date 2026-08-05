@@ -4,18 +4,18 @@ import { z } from "zod";
 
 const postgresUrlSchema = z
   .string()
-  .min(1, "Database URL is required")
+  .min(1, "DATABASE_URL is required")
   .refine(
     (value) =>
       value.startsWith("postgresql://") ||
       value.startsWith("postgres://"),
     {
-      message: "Expected a PostgreSQL connection URL",
+      message: "DATABASE_URL must be a PostgreSQL URL",
     },
   );
 
 const serverEnvironmentSchema = z.object({
-  DIRECT_URL: postgresUrlSchema,
+  DATABASE_URL: postgresUrlSchema,
 
   BETTER_AUTH_URL: z
     .string()
@@ -29,11 +29,13 @@ const serverEnvironmentSchema = z.object({
     ),
 });
 
-const parsedEnvironment = serverEnvironmentSchema.safeParse({
-  DIRECT_URL: process.env.DIRECT_URL,
-  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
-  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-});
+const parsedEnvironment =
+  serverEnvironmentSchema.safeParse({
+    DATABASE_URL: process.env.DATABASE_URL,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    BETTER_AUTH_SECRET:
+      process.env.BETTER_AUTH_SECRET,
+  });
 
 if (!parsedEnvironment.success) {
   console.error(
@@ -41,7 +43,9 @@ if (!parsedEnvironment.success) {
     parsedEnvironment.error.flatten().fieldErrors,
   );
 
-  throw new Error("Invalid server environment configuration");
+  throw new Error(
+    "Invalid server environment configuration",
+  );
 }
 
 export const serverEnv = parsedEnvironment.data;

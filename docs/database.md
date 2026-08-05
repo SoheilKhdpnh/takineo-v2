@@ -2,7 +2,13 @@
 
 Takineo uses Better Auth with Prisma and PostgreSQL.
 
-## Supported methods
+The running Next.js application connects through Prisma's Neon
+serverless adapter using the pooled `DATABASE_URL`.
+
+Prisma CLI and migrations use the direct `DIRECT_URL` configured
+in `prisma.config.ts`.
+
+## Connections
 
 The initial authentication foundation supports:
 

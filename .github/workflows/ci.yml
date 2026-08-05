@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
+
   pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,7 +22,7 @@ jobs:
   quality:
     name: Quality
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     env:
       CI: true

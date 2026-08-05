@@ -7,13 +7,16 @@ import {
   useState,
 } from "react";
 
-import { authClient } from "@/lib/auth/auth-client";
+import {authClient} from "@/lib/auth/auth-client";
 
 export default function SignInPage() {
   const router = useRouter();
 
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(
+    null,
+  );
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -23,30 +26,44 @@ export default function SignInPage() {
     setError(null);
     setIsSubmitting(true);
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(
+      event.currentTarget,
+    );
 
-    const email = String(formData.get("email") ?? "")
+    const email = String(
+      formData.get("email") ?? "",
+    )
       .trim()
       .toLowerCase();
-    const password = String(formData.get("password") ?? "");
 
-    const result = await authClient.signIn.email({
-      email,
-      password,
-      rememberMe: true,
-    });
+    const password = String(
+      formData.get("password") ?? "",
+    );
 
-    if (result.error) {
+    try {
+      const result = await authClient.signIn.email({
+        email,
+        password,
+        rememberMe: true,
+      });
+
+      if (result.error) {
+        setError(
+          result.error.message ??
+            "The email or password is incorrect.",
+        );
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
       setError(
-        result.error.message ??
-          "The email or password is incorrect.",
+        "A network error prevented sign-in.",
       );
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -62,7 +79,7 @@ export default function SignInPage() {
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Continue to your Takineo account.
+            Continue to your Takineo workspace.
           </p>
         </div>
 
@@ -122,7 +139,9 @@ export default function SignInPage() {
             disabled={isSubmitting}
             className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting
+              ? "Signing in..."
+              : "Sign in"}
           </button>
         </form>
 
