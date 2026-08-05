@@ -1,20 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  useTranslations,
+} from "next-intl";
 import {
   type FormEvent,
   useState,
 } from "react";
 
-import {authClient} from "@/lib/auth/auth-client";
+import {
+  Link,
+  useRouter,
+} from "@/i18n/navigation";
+import { authClient } from "@/lib/auth/auth-client";
+
+export const dynamic = "force-dynamic";
 
 export default function SignInPage() {
   const router = useRouter();
+  const t = useTranslations("Auth");
 
-  const [error, setError] = useState<string | null>(
-    null,
-  );
+  const [error, setError] =
+    useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
@@ -41,26 +48,22 @@ export default function SignInPage() {
     );
 
     try {
-      const result = await authClient.signIn.email({
-        email,
-        password,
-        rememberMe: true,
-      });
+      const result =
+        await authClient.signIn.email({
+          email,
+          password,
+          rememberMe: true,
+        });
 
       if (result.error) {
-        setError(
-          result.error.message ??
-            "The email or password is incorrect.",
-        );
+        setError(t("signInError"));
         return;
       }
 
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setError(
-        "A network error prevented sign-in.",
-      );
+      setError(t("networkError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,16 +73,12 @@ export default function SignInPage() {
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">
       <section className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
         <div className="mb-8">
-          <p className="text-sm font-medium text-zinc-500">
-            Takineo
-          </p>
-
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            Sign in
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
+            {t("signInTitle")}
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Continue to your Takineo workspace.
+            {t("signInDescription")}
           </p>
         </div>
 
@@ -92,16 +91,17 @@ export default function SignInPage() {
               htmlFor="email"
               className="text-sm font-medium text-zinc-900"
             >
-              Email
+              {t("email")}
             </label>
 
             <input
               id="email"
               name="email"
               type="email"
+              dir="ltr"
               autoComplete="email"
               required
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-950 outline-none transition focus:border-zinc-950"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
             />
           </div>
 
@@ -110,18 +110,19 @@ export default function SignInPage() {
               htmlFor="password"
               className="text-sm font-medium text-zinc-900"
             >
-              Password
+              {t("password")}
             </label>
 
             <input
               id="password"
               name="password"
               type="password"
+              dir="ltr"
               autoComplete="current-password"
               required
               minLength={8}
               maxLength={128}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-950 outline-none transition focus:border-zinc-950"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
             />
           </div>
 
@@ -140,18 +141,18 @@ export default function SignInPage() {
             className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
-              ? "Signing in..."
-              : "Sign in"}
+              ? t("signingIn")
+              : t("signIn")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-600">
-          Need an account?{" "}
+          {t("needAccount")}{" "}
           <Link
             href="/sign-up"
             className="font-medium text-zinc-950 underline-offset-4 hover:underline"
           >
-            Create one
+            {t("createAccount")}
           </Link>
         </p>
       </section>

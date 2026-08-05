@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { useRouter } from "@/i18n/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 
 export function SignOutButton() {
   const router = useRouter();
+  const t = useTranslations("SignOut");
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -14,15 +16,20 @@ export function SignOutButton() {
   async function handleSignOut() {
     setIsSubmitting(true);
 
-    const result = await authClient.signOut();
+    try {
+      const result =
+        await authClient.signOut();
 
-    if (result.error) {
+      if (result.error) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      router.push("/sign-in");
+      router.refresh();
+    } catch {
       setIsSubmitting(false);
-      return;
     }
-
-    router.push("/sign-in");
-    router.refresh();
   }
 
   return (
@@ -33,8 +40,8 @@ export function SignOutButton() {
       className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isSubmitting
-        ? "Signing out..."
-        : "Sign out"}
+        ? t("submitting")
+        : t("button")}
     </button>
   );
 }

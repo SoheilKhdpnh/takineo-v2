@@ -1,20 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  useTranslations,
+} from "next-intl";
 import {
   type FormEvent,
   useState,
 } from "react";
 
-import {authClient} from "@/lib/auth/auth-client";
+import {
+  Link,
+  useRouter,
+} from "@/i18n/navigation";
+import { authClient } from "@/lib/auth/auth-client";
 
-export default function SignInPage() {
+export const dynamic = "force-dynamic";
+
+export default function SignUpPage() {
   const router = useRouter();
+  const t = useTranslations("Auth");
 
-  const [error, setError] = useState<string | null>(
-    null,
-  );
+  const [error, setError] =
+    useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
@@ -30,6 +37,10 @@ export default function SignInPage() {
       event.currentTarget,
     );
 
+    const name = String(
+      formData.get("name") ?? "",
+    ).trim();
+
     const email = String(
       formData.get("email") ?? "",
     )
@@ -41,26 +52,22 @@ export default function SignInPage() {
     );
 
     try {
-      const result = await authClient.signIn.email({
-        email,
-        password,
-        rememberMe: true,
-      });
+      const result =
+        await authClient.signUp.email({
+          name,
+          email,
+          password,
+        });
 
       if (result.error) {
-        setError(
-          result.error.message ??
-            "The email or password is incorrect.",
-        );
+        setError(t("signUpError"));
         return;
       }
 
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setError(
-        "A network error prevented sign-in.",
-      );
+      setError(t("networkError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,16 +77,12 @@ export default function SignInPage() {
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">
       <section className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
         <div className="mb-8">
-          <p className="text-sm font-medium text-zinc-500">
-            Takineo
-          </p>
-
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            Sign in
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
+            {t("signUpTitle")}
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Continue to your Takineo workspace.
+            {t("signUpDescription")}
           </p>
         </div>
 
@@ -89,19 +92,40 @@ export default function SignInPage() {
         >
           <div className="space-y-2">
             <label
+              htmlFor="name"
+              className="text-sm font-medium text-zinc-900"
+            >
+              {t("name")}
+            </label>
+
+            <input
+              id="name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              required
+              minLength={2}
+              maxLength={80}
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-950 outline-none transition focus:border-zinc-950"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label
               htmlFor="email"
               className="text-sm font-medium text-zinc-900"
             >
-              Email
+              {t("email")}
             </label>
 
             <input
               id="email"
               name="email"
               type="email"
+              dir="ltr"
               autoComplete="email"
               required
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-950 outline-none transition focus:border-zinc-950"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
             />
           </div>
 
@@ -110,19 +134,24 @@ export default function SignInPage() {
               htmlFor="password"
               className="text-sm font-medium text-zinc-900"
             >
-              Password
+              {t("password")}
             </label>
 
             <input
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
+              dir="ltr"
+              autoComplete="new-password"
               required
               minLength={8}
               maxLength={128}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-950 outline-none transition focus:border-zinc-950"
+              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
             />
+
+            <p className="text-xs text-zinc-500">
+              {t("passwordHint")}
+            </p>
           </div>
 
           {error ? (
@@ -140,18 +169,18 @@ export default function SignInPage() {
             className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
-              ? "Signing in..."
-              : "Sign in"}
+              ? t("creatingAccount")
+              : t("createAccount")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-600">
-          Need an account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link
-            href="/sign-up"
+            href="/sign-in"
             className="font-medium text-zinc-950 underline-offset-4 hover:underline"
           >
-            Create one
+            {t("signIn")}
           </Link>
         </p>
       </section>

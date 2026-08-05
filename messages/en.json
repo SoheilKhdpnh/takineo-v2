@@ -5,9 +5,74 @@
   },
   "Common": {
     "brand": "Takineo",
-    "persian": "فارسی",
-    "english": "English",
     "loading": "Loading...",
     "tryAgain": "Try again"
+  },
+  "LanguageSwitcher": {
+    "switchToPersian": "تغییر زبان به فارسی",
+    "switchToEnglish": "Change language to English"
+  },
+  "Home": {
+    "eyebrow": "Takineo",
+    "title": "Focused speaking practice with human teachers and AI-assisted feedback",
+    "description": "Takineo is built around focused 15-minute English speaking sessions, where teachers teach and AI supports analysis and improvement.",
+    "createAccount": "Create account",
+    "signIn": "Sign in"
+  },
+  "Auth": {
+    "signUpTitle": "Create your account",
+    "signUpDescription": "Create an account, then choose whether you want to learn or teach.",
+    "signInTitle": "Sign in to Takineo",
+    "signInDescription": "Continue to your Takineo workspace.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "Use between 8 and 128 characters.",
+    "createAccount": "Create account",
+    "creatingAccount": "Creating account...",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "alreadyHaveAccount": "Already have an account?",
+    "needAccount": "Need an account?",
+    "signUpError": "We could not create your account. Check the information and try again.",
+    "signInError": "The email or password is incorrect.",
+    "networkError": "We could not connect to the server. Try again."
+  },
+  "Onboarding": {
+    "eyebrow": "Takineo onboarding",
+    "title": "How will you use Takineo?",
+    "description": "Choose the workspace that matches your role. This selection creates your initial profile.",
+    "roleGroupLabel": "Choose your Takineo role",
+    "studentTitle": "I want to learn",
+    "studentDescription": "Find teachers, book 15-minute speaking sessions, and receive personalized feedback.",
+    "teacherTitle": "I want to teach",
+    "teacherDescription": "Create availability, lead speaking sessions, and review AI-assisted feedback.",
+    "selectionHint": "Your initial role determines your workspace and the next onboarding steps.",
+    "selectRoleError": "Select a role before continuing.",
+    "genericError": "Unable to complete onboarding.",
+    "networkError": "A network error prevented onboarding.",
+    "continue": "Continue",
+    "creatingWorkspace": "Creating your workspace..."
+  },
+  "StudentDashboard": {
+    "eyebrow": "Student workspace",
+    "title": "Welcome to Takineo",
+    "description": "Your student profile is ready. Teacher discovery and session booking will be added in upcoming milestones."
+  },
+  "TeacherDashboard": {
+    "eyebrow": "Teacher workspace",
+    "title": "Welcome to Takineo",
+    "description": "Your teacher profile is ready. Availability management and teacher verification will be added in upcoming milestones."
+  },
+  "SignOut": {
+    "button": "Sign out",
+    "submitting": "Signing out..."
+  },
+  "Error": {
+    "eyebrow": "Takineo",
+    "title": "Something went wrong",
+    "description": "We could not load this page. The problem may be temporary.",
+    "retry": "Try again",
+    "reference": "Error reference: {digest}"
   }
 }

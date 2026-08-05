@@ -1,43 +1,42 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { useRouter } from "@/i18n/navigation";
 import type { UserRole } from "@/lib/domain/user-role";
-
-const roleOptions: Array<{
-  role: UserRole;
-  title: string;
-  description: string;
-}> = [
-  {
-    role: "STUDENT",
-    title: "I want to learn",
-    description:
-      "Find teachers, book 15-minute speaking sessions, and receive personalized feedback.",
-  },
-  {
-    role: "TEACHER",
-    title: "I want to teach",
-    description:
-      "Create availability, lead speaking sessions, and review AI-assisted feedback.",
-  },
-];
 
 export function RoleSelectionForm() {
   const router = useRouter();
+  const t = useTranslations("Onboarding");
 
   const [selectedRole, setSelectedRole] =
     useState<UserRole | null>(null);
-  const [error, setError] = useState<string | null>(
-    null,
-  );
+  const [error, setError] =
+    useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
+  const roleOptions: Array<{
+    role: UserRole;
+    title: string;
+    description: string;
+  }> = [
+    {
+      role: "STUDENT",
+      title: t("studentTitle"),
+      description: t("studentDescription"),
+    },
+    {
+      role: "TEACHER",
+      title: t("teacherTitle"),
+      description: t("teacherDescription"),
+    },
+  ];
+
   async function handleSubmit() {
     if (!selectedRole) {
-      setError("Select a role before continuing.");
+      setError(t("selectRoleError"));
       return;
     }
 
@@ -45,23 +44,20 @@ export function RoleSelectionForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/onboarding", {
-        method: "POST",
+      const response = await fetch(
+        "/api/onboarding",
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            role: selectedRole,
+          }),
         },
-
-        body: JSON.stringify({
-          role: selectedRole,
-        }),
-      });
-
-      const payload = (await response
-        .json()
-        .catch(() => null)) as {
-        error?: string;
-      } | null;
+      );
 
       if (response.status === 401) {
         router.push("/sign-in");
@@ -70,10 +66,7 @@ export function RoleSelectionForm() {
       }
 
       if (!response.ok) {
-        setError(
-          payload?.error ??
-            "Unable to complete onboarding.",
-        );
+        setError(t("genericError"));
         setIsSubmitting(false);
         return;
       }
@@ -81,9 +74,7 @@ export function RoleSelectionForm() {
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setError(
-        "A network error prevented onboarding.",
-      );
+      setError(t("networkError"));
       setIsSubmitting(false);
     }
   }
@@ -93,7 +84,7 @@ export function RoleSelectionForm() {
       <div
         className="grid gap-4 sm:grid-cols-2"
         role="radiogroup"
-        aria-label="Choose your Takineo role"
+        aria-label={t("roleGroupLabel")}
       >
         {roleOptions.map((option) => {
           const isSelected =
@@ -110,7 +101,7 @@ export function RoleSelectionForm() {
                 setSelectedRole(option.role)
               }
               className={[
-                "rounded-2xl border p-5 text-left transition",
+                "rounded-2xl border p-5 text-start transition",
                 "disabled:cursor-not-allowed disabled:opacity-60",
                 isSelected
                   ? "border-zinc-950 bg-zinc-950 text-white"
@@ -137,8 +128,7 @@ export function RoleSelectionForm() {
       </div>
 
       <p className="text-sm leading-6 text-zinc-500">
-        Your initial role determines which Takineo
-        workspace and onboarding flow you receive.
+        {t("selectionHint")}
       </p>
 
       {error ? (
@@ -157,8 +147,8 @@ export function RoleSelectionForm() {
         className="w-full rounded-lg bg-zinc-950 px-4 py-3 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting
-          ? "Creating your workspace..."
-          : "Continue"}
+          ? t("creatingWorkspace")
+          : t("continue")}
       </button>
     </div>
   );

@@ -1,16 +1,27 @@
 import "server-only";
 
-import { redirect } from "next/navigation";
-
 import {
   getUserAccessContext,
   type UserAccessContext,
 } from "@/lib/auth/access";
 import { getCurrentSession } from "@/lib/auth/session";
+import type { AppLocale } from "@/i18n/routing";
+import { redirect as intlRedirect } from "@/i18n/navigation";
 import {
   getRoleHome,
   type UserRole,
 } from "@/lib/domain/user-role";
+
+// Typed as `never` so TypeScript knows code after this call is unreachable.
+function redirect(options: {
+  href: string;
+  locale: AppLocale;
+}): never {
+  intlRedirect(options);
+  throw new Error(
+    "redirect() did not throw as expected.",
+  );
+}
 
 function hasRequiredProfile(
   access: UserAccessContext,
@@ -23,11 +34,16 @@ function hasRequiredProfile(
   return access.teacherProfile !== null;
 }
 
-export async function requireAuthenticatedPage() {
+export async function requireAuthenticatedPage(
+  locale: AppLocale,
+) {
   const session = await getCurrentSession();
 
   if (!session) {
-    redirect("/sign-in");
+    redirect({
+      href: "/sign-in",
+      locale,
+    });
   }
 
   const access = await getUserAccessContext(
@@ -35,7 +51,10 @@ export async function requireAuthenticatedPage() {
   );
 
   if (!access) {
-    redirect("/sign-in");
+    redirect({
+      href: "/sign-in",
+      locale,
+    });
   }
 
   return {
@@ -46,12 +65,16 @@ export async function requireAuthenticatedPage() {
 
 export async function requireRolePage(
   requiredRole: UserRole,
+  locale: AppLocale,
 ) {
   const { session, access } =
-    await requireAuthenticatedPage();
+    await requireAuthenticatedPage(locale);
 
   if (!access.role) {
-    redirect("/onboarding");
+    redirect({
+      href: "/onboarding",
+      locale,
+    });
   }
 
   if (!hasRequiredProfile(access, access.role)) {
@@ -61,7 +84,10 @@ export async function requireRolePage(
   }
 
   if (access.role !== requiredRole) {
-    redirect(getRoleHome(access.role));
+    redirect({
+      href: getRoleHome(access.role),
+      locale,
+    });
   }
 
   return {
