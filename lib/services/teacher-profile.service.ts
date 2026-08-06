@@ -19,9 +19,27 @@ const teacherProfileSelect = {
   teachingLanguage: true,
   timezone: true,
   profileCompletedAt: true,
-  isVerified: true,
+  applicationStatus: true,
+  applicationSubmittedAt: true,
+  applicationReviewedAt: true,
+  applicationReviewNote: true,
   createdAt: true,
   updatedAt: true,
+
+  introVideo: {
+  select: {
+    id: true,
+    provider: true,
+    uploadId: true,
+    assetId: true,
+    playbackId: true,
+    status: true,
+    durationSeconds: true,
+    rejectionReason: true,
+    submittedAt: true,
+    reviewedAt: true,
+  },
+}
 } satisfies Prisma.TeacherProfileSelect;
 
 type TeacherProfileRow = Prisma.TeacherProfileGetPayload<{

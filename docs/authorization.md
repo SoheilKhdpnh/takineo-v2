@@ -61,4 +61,25 @@ Creating a teacher profile does not publish the teacher.
 New teacher profiles begin with:
 
 ```text
-isVerified = false
+applicationStatus = DRAFT
+```
+
+A teacher becomes publicly visible only once their application reaches:
+
+```text
+applicationStatus = APPROVED
+```
+
+The full lifecycle is:
+
+```text
+DRAFT → PENDING_REVIEW → APPROVED
+                       → REJECTED
+                       → SUSPENDED
+```
+
+- **DRAFT** — profile created, not yet submitted for review
+- **PENDING_REVIEW** — submitted, awaiting admin review
+- **APPROVED** — verified and publicly visible
+- **REJECTED** — application declined
+- **SUSPENDED** — previously approved, now withdrawn from public visibility

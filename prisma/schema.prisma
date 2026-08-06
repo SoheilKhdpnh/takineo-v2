@@ -31,6 +31,23 @@ enum NativeLanguage {
   ku
 }
 
+enum TeacherApplicationStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum TeacherIntroVideoStatus {
+  UPLOAD_PENDING
+  PROCESSING
+  READY_FOR_REVIEW
+  APPROVED
+  REJECTED
+  FAILED
+}
+
 enum Timezone {
   Asia_Tehran         @map("Asia/Tehran")
   Asia_Dubai          @map("Asia/Dubai")
@@ -128,20 +145,44 @@ model StudentProfile {
 }
 
 model TeacherProfile {
-  id                 String         @id @default(cuid())
-  userId             String         @unique
-  headline           String?
-  bio                String?
-  experienceYears    Int?
-  nativeLanguage     NativeLanguage @default(fa)
-  teachingLanguage   String         @default("en") // leave as-is unless you also want to constrain this
-  timezone           Timezone       @default(Asia_Tehran)
-  profileCompletedAt DateTime?
-  isVerified         Boolean        @default(false)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                     String                   @id @default(cuid())
+  userId                 String                   @unique
+  headline               String?
+  bio                    String?
+  experienceYears        Int?
+  nativeLanguage         NativeLanguage           @default(fa)
+  teachingLanguage       String                   @default("en")
+  timezone               Timezone                 @default(Asia_Tehran)
+  profileCompletedAt     DateTime?
+  applicationStatus      TeacherApplicationStatus @default(DRAFT)
+  applicationSubmittedAt DateTime?
+  applicationReviewedAt  DateTime?
+  applicationReviewNote  String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  introVideo TeacherIntroVideo?
 
   @@map("teacher_profile")
+}
+
+model TeacherIntroVideo {
+  id               String                  @id @default(cuid())
+  teacherProfileId String                  @unique
+  provider         String                  @default("mux")
+  uploadId         String?                 @unique
+  assetId          String?                 @unique
+  playbackId       String?                 @unique
+  status           TeacherIntroVideoStatus @default(UPLOAD_PENDING)
+  durationSeconds  Int?
+  rejectionReason  String?
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@map("teacher_intro_video")
 }

@@ -17,6 +17,23 @@ interface TeacherDashboardPageProps {
   }>;
 }
 
+const applicationStatusTranslationKeys = {
+  DRAFT: "statusDraft",
+  PENDING_REVIEW: "statusPendingReview",
+  APPROVED: "statusApproved",
+  REJECTED: "statusRejected",
+  SUSPENDED: "statusSuspended",
+} as const;
+
+const videoStatusTranslationKeys = {
+  UPLOAD_PENDING: "videoMissing",
+  PROCESSING: "videoProcessing",
+  READY_FOR_REVIEW: "videoReview",
+  APPROVED: "videoApproved",
+  REJECTED: "videoRejected",
+  FAILED: "videoFailed",
+} as const;
+
 export default async function TeacherDashboardPage({
   params,
 }: TeacherDashboardPageProps) {
@@ -35,14 +52,15 @@ export default async function TeacherDashboardPage({
       locale,
     );
 
-  if (
-    !access.teacherProfile
-      ?.profileCompletedAt
-  ) {
+  const teacherProfile =
+    access.teacherProfile;
+
+  if (!teacherProfile?.profileCompletedAt) {
     redirect({
       href: "/teacher/profile",
       locale,
     });
+    return;
   }
 
   const t = await getTranslations({
@@ -50,33 +68,93 @@ export default async function TeacherDashboardPage({
     namespace: "TeacherDashboard",
   });
 
+  const applicationStatus =
+    teacherProfile.applicationStatus;
+
+  const introVideo =
+    teacherProfile.introVideo;
+
+  const videoMessage = introVideo
+    ? t(
+        videoStatusTranslationKeys[
+          introVideo.status
+        ],
+      )
+    : t("videoMissing");
+
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12">
-      <section className="mx-auto max-w-4xl rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-zinc-500">
+    <main className="min-h-screen bg-zinc-50 px-4 py-12 sm:px-6">
+      <section className="mx-auto max-w-5xl">
+        <header className="flex flex-col gap-6 rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-10">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold text-zinc-500">
               {t("eyebrow")}
             </p>
 
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
+            <h1 className="mt-3 text-4xl font-semibold text-zinc-950 sm:text-5xl">
               {t("title")}
             </h1>
 
-            <p className="mt-3 max-w-xl leading-7 text-zinc-600">
+            <p className="mt-4 max-w-xl text-base leading-8 text-zinc-600">
               {t("description")}
+            </p>
+          </div>
+
+          <SignOutButton />
+        </header>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <article className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+            <p className="text-sm font-semibold text-zinc-500">
+              {t("applicationStatus")}
+            </p>
+
+            <p className="mt-3 text-2xl font-semibold text-zinc-950">
+              {t(
+                applicationStatusTranslationKeys[
+                  applicationStatus
+                ],
+              )}
+            </p>
+
+            <h2 className="mt-8 text-xl text-zinc-950">
+              {t("applicationHeading")}
+            </h2>
+
+            <p className="mt-3 leading-7 text-zinc-600">
+              {t("applicationDescription")}
             </p>
 
             <Link
               href="/teacher/profile"
-              className="mt-6 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100"
+              className="mt-6 inline-flex rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-50"
             >
               {t("editProfile")}
             </Link>
-          </div>
+          </article>
 
-          <SignOutButton />
+          <article className="rounded-3xl border border-zinc-200 bg-zinc-950 p-7 text-white shadow-sm">
+            <p className="text-sm font-semibold text-zinc-400">
+              {t("videoHeading")}
+            </p>
+
+            <p className="mt-4 text-lg leading-8 text-zinc-100">
+              {videoMessage}
+            </p>
+
+            {!introVideo ? (
+              <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-7 text-zinc-300">
+                {t("nextStepVideo")}
+              </p>
+            ) : null}
+          </article>
         </div>
+
+        {applicationStatus === "APPROVED" ? (
+          <aside className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950">
+            {t("approvedNotice")}
+          </aside>
+        ) : null}
       </section>
     </main>
   );

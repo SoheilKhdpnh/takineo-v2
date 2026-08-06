@@ -18,8 +18,16 @@ export const userAccessSelect = {
   teacherProfile: {
     select: {
       id: true,
+      applicationStatus: true,
       profileCompletedAt: true,
-      isVerified: true,
+
+      introVideo: {
+        select: {
+          id: true,
+          status: true,
+        durationSeconds: true,
+        },
+      },
     },
   },
 } satisfies Prisma.UserSelect;

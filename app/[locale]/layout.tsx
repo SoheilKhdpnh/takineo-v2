@@ -1,5 +1,7 @@
+import "@fontsource-variable/manrope/wght.css";
+import "@fontsource-variable/vazirmatn/wght.css";
+import "@/app/globals.css";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import {
   getMessages,
@@ -7,7 +9,8 @@ import {
   setRequestLocale,
 } from "next-intl/server";
 import type { ReactNode } from "react";
-
+import "@fontsource-variable/manrope";
+import "@fontsource-variable/vazirmatn";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { requireAppLocale } from "@/i18n/locale";
 import {
@@ -17,15 +20,6 @@ import {
 
 import "../globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 interface LocaleLayoutProps {
   children: ReactNode;
@@ -86,9 +80,10 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={isRtlLocale(locale) ? "rtl" : "ltr"}
+      data-locale={locale}
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <LanguageSwitcher />
