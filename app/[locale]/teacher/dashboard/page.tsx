@@ -1,9 +1,15 @@
-import { getTranslations } from "next-intl/server";
+import {
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { requireAppLocale } from "@/i18n/locale";
-
-export const dynamic = "force-dynamic";
+import {
+  Link,
+  redirect,
+} from "@/i18n/navigation";
+import { requireRolePage } from "@/lib/auth/page-guards";
 
 interface TeacherDashboardPageProps {
   params: Promise<{
@@ -20,6 +26,24 @@ export default async function TeacherDashboardPage({
   const locale = requireAppLocale(
     requestedLocale,
   );
+
+  setRequestLocale(locale);
+
+  const { access } =
+    await requireRolePage(
+      "TEACHER",
+      locale,
+    );
+
+  if (
+    !access.teacherProfile
+      ?.profileCompletedAt
+  ) {
+    redirect({
+      href: "/teacher/profile",
+      locale,
+    });
+  }
 
   const t = await getTranslations({
     locale,
@@ -42,6 +66,13 @@ export default async function TeacherDashboardPage({
             <p className="mt-3 max-w-xl leading-7 text-zinc-600">
               {t("description")}
             </p>
+
+            <Link
+              href="/teacher/profile"
+              className="mt-6 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100"
+            >
+              {t("editProfile")}
+            </Link>
           </div>
 
           <SignOutButton />

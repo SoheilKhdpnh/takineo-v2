@@ -57,12 +57,14 @@
   "StudentDashboard": {
     "eyebrow": "Student workspace",
     "title": "Welcome to Takineo",
-    "description": "Your student profile is ready. Teacher discovery and session booking will be added in upcoming milestones."
+    "description": "Your student profile is ready. Teacher discovery and session booking will be added in upcoming milestones.",
+    "editProfile": "Edit profile"
   },
   "TeacherDashboard": {
     "eyebrow": "Teacher workspace",
     "title": "Welcome to Takineo",
-    "description": "Your teacher profile is ready. Availability management and teacher verification will be added in upcoming milestones."
+    "description": "Your teacher profile is ready. Availability management and teacher verification will be added in upcoming milestones.",
+    "editProfile": "Edit profile"
   },
   "SignOut": {
     "button": "Sign out",
@@ -74,5 +76,39 @@
     "description": "We could not load this page. The problem may be temporary.",
     "retry": "Try again",
     "reference": "Error reference: {digest}"
+  },
+  "ProfileCommon": {
+  "nativeLanguage": "Native language",
+  "timezone": "Time zone",
+  "save": "Save and continue",
+  "saving": "Saving...",
+  "saveError": "We could not save your profile. Check the information and try again.",
+  "networkError": "We could not connect to the server. Try again.",
+  "languages": {
+    "fa": "Persian",
+    "en": "English",
+    "ar": "Arabic",
+    "tr": "Turkish",
+    "ku": "Kurdish"
   }
+},
+"StudentProfile": {
+  "eyebrow": "Student profile",
+  "title": "Tell us about your learning goals",
+  "description": "This information will help Takineo recommend suitable teachers and speaking sessions.",
+  "englishLevel": "Current English level",
+  "selectLevel": "Select your level",
+  "learningGoal": "Learning goal",
+  "goalPlaceholder": "For example: I want to speak confidently in professional meetings and improve my everyday vocabulary."
+},
+"TeacherProfile": {
+  "eyebrow": "Teacher profile",
+  "title": "Create your professional teaching profile",
+  "description": "Students will later use this information to understand your teaching experience and approach.",
+  "headline": "Professional headline",
+  "headlinePlaceholder": "For example: English speaking coach for intermediate learners",
+  "bio": "Professional biography",
+  "bioPlaceholder": "Describe your experience, teaching approach, preferred learners, and the speaking skills you focus on.",
+  "experienceYears": "Years of teaching experience"
+}
 }
