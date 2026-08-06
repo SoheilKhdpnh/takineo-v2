@@ -52,6 +52,7 @@
     "@prisma/engines": true,
     "esbuild": true,
     "@parcel/watcher@2.6.0": true,
+    "fsevents@2.3.3": false,
     "@swc/core@1.15.47": true
   },
   "type": "module"
