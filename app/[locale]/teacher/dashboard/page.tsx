@@ -147,6 +147,12 @@ export default async function TeacherDashboardPage({
                 {t("nextStepVideo")}
               </p>
             ) : null}
+            <Link
+                href="/teacher/video"
+                className="mt-6 inline-flex rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                {t("manageVideo")}
+              </Link>
           </article>
         </div>
 
