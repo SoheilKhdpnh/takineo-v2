@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 export const userAccessSelect = {
   id: true,
   role: true,
+  accountStatus: true,
   onboardingCompletedAt: true,
 
   studentProfile: {

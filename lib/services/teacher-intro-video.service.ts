@@ -24,7 +24,8 @@ const teacherIntroVideoSelect = {
   provider: true,
   uploadId: true,
   assetId: true,
-  playbackId: true,
+  reviewPlaybackId: true,
+  publicPlaybackId: true,
   status: true,
   durationSeconds: true,
   rejectionReason: true,
@@ -351,7 +352,8 @@ export async function createTeacherIntroVideoUpload(
         provider: "mux",
         uploadId: upload.id,
         assetId: null,
-        playbackId: null,
+        reviewPlaybackId: null,
+        publicPlaybackId: null,
         status: "UPLOAD_PENDING",
         durationSeconds: null,
         rejectionReason: null,
@@ -462,7 +464,8 @@ export async function markTeacherVideoReady(
         : null,
 
       reviewedAt: null,
-      playbackId: null,
+      reviewPlaybackId: null,
+      publicPlaybackId: null,
     },
   });
 }
@@ -505,7 +508,8 @@ export async function markTeacherVideoFailed(
       rejectionReason: input.reason,
       submittedAt: null,
       reviewedAt: null,
-      playbackId: null,
+      reviewPlaybackId: null,
+      publicPlaybackId: null,
     },
   });
 }

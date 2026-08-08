@@ -49,11 +49,13 @@ export function canCreateAvailability(
 }
 
 export function isPublicTeacher(
+  accountStatus: "ACTIVE" | "SUSPENDED" | "DISABLED",
   applicationStatus: TeacherApplicationStatus,
   profileCompletedAt: Date | null,
   videoStatus: TeacherIntroVideoStatus | null,
 ): boolean {
   return (
+    accountStatus === "ACTIVE" &&
     applicationStatus === "APPROVED" &&
     profileCompletedAt !== null &&
     videoStatus === "APPROVED"

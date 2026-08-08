@@ -1,7 +1,7 @@
 import "server-only";
 import { TeacherApplicationLockedError } from "@/lib/errors/teacher-video-errors";
 import { canEditTeacherApplication } from "@/lib/domain/teacher-application";
-import { Prisma, Timezone } from "@/lib/generated/prisma/client";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   ProfileNotFoundError,
@@ -33,7 +33,8 @@ const teacherProfileSelect = {
     provider: true,
     uploadId: true,
     assetId: true,
-    playbackId: true,
+    reviewPlaybackId: true,
+    publicPlaybackId: true,
     status: true,
     durationSeconds: true,
     rejectionReason: true,

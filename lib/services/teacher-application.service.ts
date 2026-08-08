@@ -23,6 +23,9 @@ const teacherApplicationSelect = {
   applicationSubmittedAt: true,
   applicationReviewedAt: true,
   applicationReviewNote: true,
+  reviewCycle: true,
+  submittedProfileVersion: true,
+  submittedVideoId: true,
 
   introVideo: {
     select: {
@@ -132,6 +135,7 @@ export async function submitTeacherApplication(
    * This prevents two concurrent requests from
    * incorrectly submitting the same application.
    */
+  const submittedAt = new Date();
   const updateResult =
     await prisma.teacherProfile.updateMany({
       where: {
@@ -145,7 +149,11 @@ export async function submitTeacherApplication(
           "PENDING_REVIEW",
 
         applicationSubmittedAt:
-          new Date(),
+          submittedAt,
+        reviewCycle: { increment: 1 },
+        submittedProfileVersion: submittedAt,
+        submittedVideoId: application.introVideo.id,
+        updatedAt: submittedAt,
 
         /*
          * A previous rejection note is retained

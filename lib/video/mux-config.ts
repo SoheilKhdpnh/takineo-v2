@@ -19,6 +19,11 @@ const muxWebhookSecretSchema = z
   .trim()
   .min(1);
 
+const muxSigningEnvironmentSchema = z.object({
+  MUX_SIGNING_KEY: z.string().trim().min(1),
+  MUX_PRIVATE_KEY: z.string().trim().min(1),
+});
+
 export function getMuxApiConfiguration() {
   const result = muxApiEnvironmentSchema.safeParse({
     MUX_TOKEN_ID: process.env.MUX_TOKEN_ID,
@@ -51,4 +56,20 @@ export function getMuxWebhookSecret(): string {
   }
 
   return result.data;
+}
+
+export function getMuxSigningConfiguration() {
+  const result = muxSigningEnvironmentSchema.safeParse({
+    MUX_SIGNING_KEY: process.env.MUX_SIGNING_KEY,
+    MUX_PRIVATE_KEY: process.env.MUX_PRIVATE_KEY,
+  });
+  if (!result.success) {
+    throw new MuxConfigurationError(
+      "Mux playback signing credentials are not configured.",
+    );
+  }
+  return {
+    keyId: result.data.MUX_SIGNING_KEY,
+    privateKey: result.data.MUX_PRIVATE_KEY,
+  };
 }
