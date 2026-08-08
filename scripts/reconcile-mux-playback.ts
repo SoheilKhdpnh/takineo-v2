@@ -5,7 +5,7 @@ const allowedArguments = new Set(["--help", "-h", "--id", "--limit"]);
 const unknownArgument = args.find((argument) => argument.startsWith("-") && !allowedArguments.has(argument));
 if (unknownArgument) throw new Error(`Unknown argument: ${unknownArgument}`);
 if (args.includes("--help") || args.includes("-h")) {
-  process.stdout.write("Usage: npm run ops:mux-reconcile -- [--id <reconciliation-id> | --limit <1-50>]\n");
+  process.stdout.write("Usage: npm run ops:mux-reconcile -- [--id <reconciliation-id> | --limit <1-50>]\n--id forces immediate verification, including terminal SUCCEEDED intent.\n");
   process.exit(0);
 }
 

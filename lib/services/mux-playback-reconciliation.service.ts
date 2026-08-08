@@ -8,6 +8,7 @@ import { getMuxClient } from "@/lib/video/mux-client";
 
 const LEASE_SECONDS = 60;
 const MAX_BACKOFF_SECONDS = 3600;
+const TERMINAL_REVERIFY_SECONDS = 300;
 
 type PlaybackIntentInput = {
   introVideoId: string;
@@ -59,6 +60,10 @@ function backoffDate(attemptCount: number) {
   return new Date(Date.now() + seconds * 1000);
 }
 
+function terminalReverifyDate() {
+  return new Date(Date.now() + TERMINAL_REVERIFY_SECONDS * 1000);
+}
+
 type ClaimedReconciliation = Prisma.MuxPlaybackReconciliationGetPayload<{
   include: { introVideo: { select: { id: true; revision: true; status: true; teacherProfile: { select: { applicationStatus: true; profileCompletedAt: true; user: { select: { accountStatus: true } } } } } } };
 }>;
@@ -74,7 +79,7 @@ async function claimReconciliation(id: string, force: boolean): Promise<ClaimedR
       id,
       intentGeneration: current.intentGeneration,
       ...(force ? {} : { nextAttemptAt: { lte: now } }),
-      status: { in: ["PENDING", "FAILED", "PROCESSING"] },
+      status: { in: ["PENDING", "FAILED", "PROCESSING", "SUCCEEDED"] },
       OR: [{ leaseToken: null }, { leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
     },
     data: { status: "PROCESSING", attemptCount: { increment: 1 }, lastAttemptAt: now, leaseToken, leaseExpiresAt, lastErrorCode: null },
@@ -92,7 +97,7 @@ async function finalizeEnabled(record: ClaimedReconciliation, playbackId: string
   return prisma.$transaction(async (tx) => {
     const finalized = await tx.muxPlaybackReconciliation.updateMany({
       where: { id: record.id, intentGeneration: record.intentGeneration, videoRevision: record.videoRevision, leaseToken: record.leaseToken, status: "PROCESSING" },
-      data: { playbackId, status: "SUCCEEDED", leaseToken: null, leaseExpiresAt: null, lastErrorCode: null },
+      data: { playbackId, status: "SUCCEEDED", attemptCount: 0, nextAttemptAt: terminalReverifyDate(), leaseToken: null, leaseExpiresAt: null, lastErrorCode: null },
     });
     if (finalized.count !== 1) return false;
     const video = await tx.teacherIntroVideo.updateMany({
@@ -108,7 +113,7 @@ async function finalizeRevoked(record: ClaimedReconciliation, discoveredIds: str
   return prisma.$transaction(async (tx) => {
     const finalized = await tx.muxPlaybackReconciliation.updateMany({
       where: { id: record.id, intentGeneration: record.intentGeneration, videoRevision: record.videoRevision, leaseToken: record.leaseToken, status: "PROCESSING" },
-      data: { playbackId: null, status: "SUCCEEDED", leaseToken: null, leaseExpiresAt: null, lastErrorCode: null },
+      data: { playbackId: null, status: "SUCCEEDED", attemptCount: 0, nextAttemptAt: terminalReverifyDate(), leaseToken: null, leaseExpiresAt: null, lastErrorCode: null },
     });
     if (finalized.count !== 1) return false;
     const knownIds = [...new Set([record.playbackId, ...discoveredIds].filter((value): value is string => Boolean(value)))];
@@ -127,24 +132,30 @@ async function markFailed(record: ClaimedReconciliation, error: unknown) {
   return failed.count === 1;
 }
 
-async function requeueAfterStaleProviderEffect(record: ClaimedReconciliation) {
-  await prisma.muxPlaybackReconciliation.updateMany({
-    where: { id: record.id, intentGeneration: { gte: record.intentGeneration } },
+async function renewReconciliationLease(record: ClaimedReconciliation) {
+  const now = new Date();
+  const leaseExpiresAt = new Date(now.getTime() + LEASE_SECONDS * 1000);
+
+  const renewed = await prisma.muxPlaybackReconciliation.updateMany({
+    where: {
+      id: record.id,
+      intentGeneration: record.intentGeneration,
+      videoRevision: record.videoRevision,
+      leaseToken: record.leaseToken,
+      status: "PROCESSING",
+      leaseExpiresAt: { gt: now },
+    },
     data: {
-      intentGeneration: { increment: 1 },
-      status: "PENDING",
-      nextAttemptAt: new Date(),
-      leaseToken: null,
-      leaseExpiresAt: null,
-      lastErrorCode: "STALE_PROVIDER_EFFECT_REQUIRES_RECONCILIATION",
+      leaseExpiresAt,
     },
   });
+
+  return renewed.count === 1;
 }
 
 export async function reconcileMuxPlayback(reconciliationId: string, options: { force?: boolean } = {}) {
   const record = await claimReconciliation(reconciliationId, options.force ?? false);
   if (!record) return { outcome: "SKIPPED" as const };
-  let providerEffectAttempted = false;
   try {
     if (record.desiredState === "ENABLED") {
       const eligible = record.introVideo.revision === record.videoRevision
@@ -162,33 +173,63 @@ export async function reconcileMuxPlayback(reconciliationId: string, options: { 
       const publicIds = await listPublicPlaybackIds(record.assetId, false);
       let playbackId = publicIds.find((id) => id === record.playbackId) ?? publicIds[0];
       if (!playbackId) {
-        providerEffectAttempted = true;
-        playbackId = (await getMuxClient().video.assets.createPlaybackId(record.assetId, { policy: "public" })).id;
+        if (!(await renewReconciliationLease(record))) {
+          return { outcome: "SKIPPED" as const };
+        }
+
+        playbackId = (
+          await getMuxClient().video.assets.createPlaybackId(record.assetId, {
+            policy: "public",
+          })
+        ).id;
       }
       for (const duplicateId of publicIds.filter((id) => id !== playbackId)) {
-        providerEffectAttempted = true;
-        try { await getMuxClient().video.assets.deletePlaybackId(record.assetId, duplicateId); }
-        catch (error) { if (!isProviderNotFound(error)) throw error; }
+        if (!(await renewReconciliationLease(record))) {
+          return { outcome: "SKIPPED" as const };
+        }
+
+
+        try {
+          await getMuxClient().video.assets.deletePlaybackId(
+            record.assetId,
+            duplicateId,
+          );
+        } catch (error) {
+          if (!isProviderNotFound(error)) throw error;
+        }
       }
       const finalized = await finalizeEnabled(record, playbackId);
-      if (!finalized && providerEffectAttempted) await requeueAfterStaleProviderEffect(record);
-      return { outcome: finalized ? "SUCCEEDED" as const : "SKIPPED" as const };
+      if (finalized) return { outcome: "SUCCEEDED" as const };
+      return { outcome: "SKIPPED" as const };
     }
 
     const publicIds = await listPublicPlaybackIds(record.assetId, true);
     const idsToDelete = [...new Set([record.playbackId, ...publicIds].filter((value): value is string => Boolean(value)))];
     for (const playbackId of idsToDelete) {
-      providerEffectAttempted = true;
-      try { await getMuxClient().video.assets.deletePlaybackId(record.assetId, playbackId); }
-      catch (error) { if (!isProviderNotFound(error)) throw error; }
+      if (!(await renewReconciliationLease(record))) {
+        return { outcome: "SKIPPED" as const };
+      }
+
+
+      try {
+        await getMuxClient().video.assets.deletePlaybackId(
+          record.assetId,
+          playbackId,
+        );
+      } catch (error) {
+        if (!isProviderNotFound(error)) throw error;
+      }
     }
     const finalized = await finalizeRevoked(record, publicIds);
-    if (!finalized && providerEffectAttempted) await requeueAfterStaleProviderEffect(record);
-    return { outcome: finalized ? "SUCCEEDED" as const : "SKIPPED" as const };
+    if (finalized) return { outcome: "SUCCEEDED" as const };
+    return { outcome: "SKIPPED" as const };
   } catch (error) {
     const markedFailed = await markFailed(record, error);
-    if (!markedFailed && providerEffectAttempted) await requeueAfterStaleProviderEffect(record);
-    return { outcome: "FAILED" as const };
+
+    if (markedFailed) {
+      return { outcome: "FAILED" as const };
+    }
+    return { outcome: "SKIPPED" as const };
   }
 }
 
@@ -198,7 +239,7 @@ export async function processDueMuxPlaybackReconciliations(limit = 20) {
   const candidates = await prisma.muxPlaybackReconciliation.findMany({
     where: {
       nextAttemptAt: { lte: now },
-      status: { in: ["PENDING", "FAILED", "PROCESSING"] },
+      status: { in: ["PENDING", "FAILED", "PROCESSING", "SUCCEEDED"] },
       OR: [{ leaseToken: null }, { leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
     },
     orderBy: [{ nextAttemptAt: "asc" }, { id: "asc" }],
@@ -207,11 +248,15 @@ export async function processDueMuxPlaybackReconciliations(limit = 20) {
   });
   const counts = { selected: candidates.length, succeeded: 0, failed: 0, requeued: 0, skipped: 0 };
   for (const candidate of candidates) {
-    const result = await reconcileMuxPlayback(candidate.id);
-    if (result.outcome === "SUCCEEDED") counts.succeeded += 1;
-    else if (result.outcome === "FAILED") counts.failed += 1;
-    else if (result.outcome === "REQUEUED") counts.requeued += 1;
-    else counts.skipped += 1;
+    try {
+      const result = await reconcileMuxPlayback(candidate.id);
+      if (result.outcome === "SUCCEEDED") counts.succeeded += 1;
+      else if (result.outcome === "FAILED") counts.failed += 1;
+      else if (result.outcome === "REQUEUED") counts.requeued += 1;
+      else counts.skipped += 1;
+    } catch {
+      counts.failed += 1;
+    }
   }
   return counts;
 }
