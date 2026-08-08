@@ -57,6 +57,10 @@ export async function requireAuthenticatedPage(
     });
   }
 
+  if (access.accountStatus !== "ACTIVE") {
+    redirect({ href: "/sign-in", locale });
+  }
+
   return {
     session,
     access,

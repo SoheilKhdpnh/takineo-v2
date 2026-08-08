@@ -38,6 +38,10 @@ export async function requireAuthenticatedPage() {
     redirect("/sign-in");
   }
 
+  if (access.accountStatus !== "ACTIVE") {
+    redirect("/sign-in");
+  }
+
   return {
     session,
     access,

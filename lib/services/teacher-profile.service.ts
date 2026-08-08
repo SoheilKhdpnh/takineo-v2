@@ -24,6 +24,7 @@ const teacherProfileSelect = {
   applicationSubmittedAt: true,
   applicationReviewedAt: true,
   applicationReviewNote: true,
+  profileRevision: true,
   createdAt: true,
   updatedAt: true,
 
@@ -33,8 +34,8 @@ const teacherProfileSelect = {
     provider: true,
     uploadId: true,
     assetId: true,
-    reviewPlaybackId: true,
     publicPlaybackId: true,
+    revision: true,
     status: true,
     durationSeconds: true,
     rejectionReason: true,
@@ -68,6 +69,7 @@ export async function getTeacherProfileForUser(
     },
 
     select: {
+      accountStatus: true,
       role: true,
 
       teacherProfile: {
@@ -77,6 +79,10 @@ export async function getTeacherProfileForUser(
   });
 
   if (!user) {
+    throw new ProfileNotFoundError();
+  }
+
+  if (user.accountStatus !== "ACTIVE") {
     throw new ProfileNotFoundError();
   }
 
@@ -105,9 +111,12 @@ if (
 }
 
   try {
-    const updated = await prisma.teacherProfile.update({
+    const result = await prisma.teacherProfile.updateMany({
       where: {
-        userId,
+        id: currentProfile.id,
+        profileRevision: currentProfile.profileRevision,
+        applicationStatus: { in: ["DRAFT", "REJECTED"] },
+        user: { accountStatus: "ACTIVE" },
       },
 
       data: {
@@ -120,12 +129,11 @@ if (
 
         profileCompletedAt:
           currentProfile.profileCompletedAt ?? new Date(),
+        profileRevision: { increment: 1 },
       },
-
-      select: teacherProfileSelect,
     });
-
-    return toRecord(updated);
+    if (result.count !== 1) throw new TeacherApplicationLockedError();
+    return getTeacherProfileForUser(userId);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

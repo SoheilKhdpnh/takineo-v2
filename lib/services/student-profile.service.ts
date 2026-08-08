@@ -45,6 +45,7 @@ export async function getStudentProfileForUser(
     },
 
     select: {
+      accountStatus: true,
       role: true,
 
       studentProfile: {
@@ -54,6 +55,10 @@ export async function getStudentProfileForUser(
   });
 
   if (!user) {
+    throw new ProfileNotFoundError();
+  }
+
+  if (user.accountStatus !== "ACTIVE") {
     throw new ProfileNotFoundError();
   }
 
@@ -75,9 +80,10 @@ export async function saveStudentProfile(
   const currentProfile = await getStudentProfileForUser(userId);
 
   try {
-    const updated = await prisma.studentProfile.update({
+    const result = await prisma.studentProfile.updateMany({
       where: {
-        userId,
+        id: currentProfile.id,
+        user: { accountStatus: "ACTIVE" },
       },
 
       data: {
@@ -90,10 +96,9 @@ export async function saveStudentProfile(
           currentProfile.profileCompletedAt ?? new Date(),
       },
 
-      select: studentProfileSelect,
     });
-
-    return toRecord(updated);
+    if (result.count !== 1) throw new ProfileNotFoundError();
+    return getStudentProfileForUser(userId);
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

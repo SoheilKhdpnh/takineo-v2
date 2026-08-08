@@ -26,8 +26,13 @@ Local and deployed server environments require:
 - `MUX_WEBHOOK_SECRET`
 
 Wave 1 signed playback will additionally require server-only Mux signing
-configuration. Exact variable names belong to implementation/environment
-validation when that work is assigned.
+configuration:
+
+- `MUX_SIGNING_KEY`: Mux signing key ID
+- `MUX_PRIVATE_KEY`: the corresponding RSA private key, supplied either as a
+  PEM value or its base64-encoded PEM representation as accepted by the Mux
+  Node SDK. Deployment secret stores should preserve the complete key and PEM
+  line breaks/encoding.
 
 Mux credentials and signing keys must never be exposed through `NEXT_PUBLIC_*`
 variables or returned to the client.
@@ -95,6 +100,12 @@ Public playback must not be created unless the complete teacher approval
 invariant passes. It must be revoked or removed when required by video
 replacement, video rejection, teacher suspension, account moderation, or asset
 withdrawal.
+
+Each replacement increments a monotonic video revision. Public playback
+enable/revoke work is persisted per video revision with desired state, attempt
+count, status, provider identifiers, and a safe last-error code. Provider calls
+are reconciled from this durable state; a live playback identifier is retained
+until provider deletion is confirmed.
 
 The binding Wave 1 lifecycle and security contract is
 [admin-review-contract.md](engineering/admin-review-contract.md).

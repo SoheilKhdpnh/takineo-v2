@@ -80,7 +80,10 @@ The current foundation permits submission from `DRAFT` or `REJECTED` only when:
 
 Submission changes the application to `PENDING_REVIEW` through a server-side
 compare-and-set workflow. The browser is never authoritative for application
-state.
+state. Submission snapshots the monotonic profile revision and current video
+row, revision, upload ID, and asset ID. Profile edits and video replacements use
+conditional writes, so an edit/replacement racing submission cannot mutate the
+submitted review target.
 
 ## Administrative review
 

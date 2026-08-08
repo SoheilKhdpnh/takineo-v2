@@ -24,12 +24,19 @@ const teacherApplicationSelect = {
   applicationReviewedAt: true,
   applicationReviewNote: true,
   reviewCycle: true,
-  submittedProfileVersion: true,
+  profileRevision: true,
+  submittedProfileRevision: true,
   submittedVideoId: true,
+  submittedVideoRevision: true,
+  submittedVideoUploadId: true,
+  submittedVideoAssetId: true,
 
   introVideo: {
     select: {
       id: true,
+      revision: true,
+      uploadId: true,
+      assetId: true,
       status: true,
       durationSeconds: true,
       submittedAt: true,
@@ -52,6 +59,7 @@ export async function getTeacherApplicationForUser(
     },
 
     select: {
+      accountStatus: true,
       role: true,
 
       teacherProfile: {
@@ -61,6 +69,10 @@ export async function getTeacherApplicationForUser(
   });
 
   if (!user) {
+    throw new ProfileNotFoundError();
+  }
+
+  if (user.accountStatus !== "ACTIVE") {
     throw new ProfileNotFoundError();
   }
 
@@ -116,6 +128,10 @@ export async function submitTeacherApplication(
     );
   }
 
+  if (!application.introVideo.uploadId || !application.introVideo.assetId) {
+    throw new TeacherApplicationNotReadyError("VIDEO_NOT_READY");
+  }
+
   if (
     !isAcceptableSubmissionVideo(
       application.introVideo.status,
@@ -142,6 +158,17 @@ export async function submitTeacherApplication(
         id: application.id,
         applicationStatus:
           application.applicationStatus,
+        profileRevision: application.profileRevision,
+        user: { accountStatus: "ACTIVE" },
+        introVideo: {
+          is: {
+            id: application.introVideo.id,
+            revision: application.introVideo.revision,
+            uploadId: application.introVideo.uploadId,
+            assetId: application.introVideo.assetId,
+            status: application.introVideo.status,
+          },
+        },
       },
 
       data: {
@@ -151,8 +178,11 @@ export async function submitTeacherApplication(
         applicationSubmittedAt:
           submittedAt,
         reviewCycle: { increment: 1 },
-        submittedProfileVersion: submittedAt,
+        submittedProfileRevision: application.profileRevision,
         submittedVideoId: application.introVideo.id,
+        submittedVideoRevision: application.introVideo.revision,
+        submittedVideoUploadId: application.introVideo.uploadId,
+        submittedVideoAssetId: application.introVideo.assetId,
         updatedAt: submittedAt,
 
         /*

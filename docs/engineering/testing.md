@@ -129,3 +129,21 @@ criteria.
 If a required check cannot run, document the exact command, reason, and
 remaining risk. A missing safe `TEST_DATABASE_URL` is a reason to skip database
 tests, never a reason to fall back to another database.
+
+## Wave 1 admin backend testing handoff
+
+Agent D must test the implemented DTOs and invariants in
+`admin-backend-api.md`, including: clean migration; upgrade migration across all
+existing teacher states; safe preservation of reconstructable
+`PENDING_REVIEW`; fail-safe rejection of malformed legacy pending rows; audit
+trigger immutability; the complete admin authorization matrix; malformed IDs,
+bodies, queries, and origins; bootstrap; last-active-`SUPER_ADMIN` protection;
+`PROFILE`, `VIDEO`, and `BOTH` rejection; profile-only correction/resubmission
+with unchanged approved video; stale review cycle/profile revision/video
+revision/upload/asset; profile-edit/submission and upload/submission races;
+concurrent approval/rejection; account suspension races; product enforcement for
+`ACTIVE`, `SUSPENDED`, and `DISABLED`; signed review playback and token privacy;
+public playback enable/revoke/re-enable; durable provider failure and retry;
+delayed and duplicate Mux events; immutable audit snapshot contents; exact API
+response/nullability/error contracts; `private, no-store` on all admin responses;
+and regression of the existing application/upload/sync/webhook workflows.

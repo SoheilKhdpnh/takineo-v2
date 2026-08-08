@@ -7,8 +7,12 @@ export const adminQueueQuerySchema = z.object({
 
 const staleGuardSchema = z.object({
   reviewCycle: z.number().int().positive(),
+  profileRevision: z.number().int().positive(),
   videoId: z.string().cuid(),
+  videoRevision: z.number().int().positive(),
 });
+
+export const adminApplicationIdSchema = z.string().cuid();
 
 export const approveApplicationSchema = staleGuardSchema;
 

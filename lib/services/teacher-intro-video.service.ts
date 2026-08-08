@@ -18,14 +18,15 @@ import {
 } from "@/lib/domain/teacher-application";
 import { serverEnv } from "@/lib/env/server";
 import { getMuxClient } from "@/lib/video/mux-client";
+import { reconcileMuxPlayback } from "@/lib/services/mux-playback-reconciliation.service";
 
 const teacherIntroVideoSelect = {
   id: true,
   provider: true,
   uploadId: true,
   assetId: true,
-  reviewPlaybackId: true,
   publicPlaybackId: true,
+  revision: true,
   status: true,
   durationSeconds: true,
   rejectionReason: true,
@@ -234,6 +235,7 @@ async function getTeacherVideoContext(
     },
 
     select: {
+      accountStatus: true,
       role: true,
 
       teacherProfile: {
@@ -251,6 +253,10 @@ async function getTeacherVideoContext(
   });
 
   if (!user) {
+    throw new ProfileNotFoundError();
+  }
+
+  if (user.accountStatus !== "ACTIVE") {
     throw new ProfileNotFoundError();
   }
 
@@ -302,9 +308,6 @@ export async function createTeacherIntroVideoUpload(
     throw new TeacherApplicationLockedError();
   }
 
-  const previousAssetId =
-    teacherProfile.introVideo?.assetId ?? null;
-
   const mux = getMuxClient();
 
   const upload =
@@ -333,57 +336,36 @@ export async function createTeacherIntroVideoUpload(
     );
   }
 
-  const introVideo =
-    await prisma.teacherIntroVideo.upsert({
-      where: {
-        teacherProfileId:
-          teacherProfile.id,
-      },
-
-      create: {
-        teacherProfileId:
-          teacherProfile.id,
-        provider: "mux",
-        uploadId: upload.id,
-        status: "UPLOAD_PENDING",
-      },
-
-      update: {
-        provider: "mux",
-        uploadId: upload.id,
-        assetId: null,
-        reviewPlaybackId: null,
-        publicPlaybackId: null,
-        status: "UPLOAD_PENDING",
-        durationSeconds: null,
-        rejectionReason: null,
-        submittedAt: null,
-        reviewedAt: null,
-      },
-
-      select: teacherIntroVideoSelect,
-    });
-
-  /*
-   * The new database record is saved first.
-   * Removing an old rejected/failed asset is cleanup;
-   * it must not prevent creation of the new upload.
-   */
-  if (previousAssetId) {
-    try {
-      await mux.video.assets.delete(
-        previousAssetId,
-      );
-    } catch (error) {
-      console.error(
-        "Unable to remove previous Mux asset:",
-        error,
-      );
+  const databaseResult = await prisma.$transaction(async (tx) => {
+    const current = teacherProfile.introVideo;
+    if (!current) {
+      const introVideo = await tx.teacherIntroVideo.create({
+        data: { teacherProfileId: teacherProfile.id, provider: "mux", uploadId: upload.id, status: "UPLOAD_PENDING" },
+        select: teacherIntroVideoSelect,
+      });
+      return { introVideo, reconciliationId: null as string | null };
     }
-  }
+    let reconciliationId: string | null = null;
+    if (current.assetId && current.publicPlaybackId) {
+      const reconciliation = await tx.muxPlaybackReconciliation.upsert({
+        where: { introVideoId_videoRevision: { introVideoId: current.id, videoRevision: current.revision } },
+        create: { introVideoId: current.id, videoRevision: current.revision, assetId: current.assetId, playbackId: current.publicPlaybackId, desiredState: "REVOKED", status: "PENDING" },
+        update: { playbackId: current.publicPlaybackId, desiredState: "REVOKED", status: "PENDING", lastErrorCode: null },
+      });
+      reconciliationId = reconciliation.id;
+    }
+    const changed = await tx.teacherIntroVideo.updateMany({
+      where: { id: current.id, revision: current.revision, teacherProfile: { applicationStatus: { in: ["DRAFT", "REJECTED"] }, user: { accountStatus: "ACTIVE" } } },
+      data: { provider: "mux", uploadId: upload.id, assetId: null, reviewPlaybackId: null, publicPlaybackId: null, revision: { increment: 1 }, status: "UPLOAD_PENDING", durationSeconds: null, rejectionReason: null, submittedAt: null, reviewedAt: null },
+    });
+    if (changed.count !== 1) throw new TeacherApplicationLockedError();
+    const introVideo = await tx.teacherIntroVideo.findUniqueOrThrow({ where: { id: current.id }, select: teacherIntroVideoSelect });
+    return { introVideo, reconciliationId };
+  });
+  if (databaseResult.reconciliationId) await reconcileMuxPlayback(databaseResult.reconciliationId);
 
   return {
-    introVideo,
+    introVideo: databaseResult.introVideo,
 
     upload: {
       id: upload.id,
@@ -401,6 +383,7 @@ export async function markTeacherVideoProcessing(
   return prisma.teacherIntroVideo.updateMany({
     where: {
       uploadId,
+      status: { in: ["UPLOAD_PENDING", "PROCESSING"] },
     },
 
     data: {
@@ -431,21 +414,15 @@ export async function markTeacherVideoReady(
   const lookup: Prisma.TeacherIntroVideoWhereInput =
     input.uploadId
       ? {
-          OR: [
-            {
-              uploadId: input.uploadId,
-            },
-            {
-              assetId: input.assetId,
-            },
-          ],
+          uploadId: input.uploadId,
+          OR: [{ assetId: null }, { assetId: input.assetId }],
         }
       : {
           assetId: input.assetId,
         };
 
   return prisma.teacherIntroVideo.updateMany({
-    where: lookup,
+    where: { AND: [lookup, { status: { in: ["UPLOAD_PENDING", "PROCESSING"] } }] },
 
     data: {
       assetId: input.assetId,
@@ -465,7 +442,6 @@ export async function markTeacherVideoReady(
 
       reviewedAt: null,
       reviewPlaybackId: null,
-      publicPlaybackId: null,
     },
   });
 }
@@ -477,22 +453,7 @@ export async function markTeacherVideoFailed(
     reason: string;
   },
 ) {
-  const conditions: Prisma.TeacherIntroVideoWhereInput[] =
-    [];
-
-  if (input.uploadId) {
-    conditions.push({
-      uploadId: input.uploadId,
-    });
-  }
-
-  if (input.assetId) {
-    conditions.push({
-      assetId: input.assetId,
-    });
-  }
-
-  if (conditions.length === 0) {
+  if (!input.uploadId && !input.assetId) {
     return {
       count: 0,
     };
@@ -500,7 +461,9 @@ export async function markTeacherVideoFailed(
 
   return prisma.teacherIntroVideo.updateMany({
     where: {
-      OR: conditions,
+      ...(input.uploadId ? { uploadId: input.uploadId } : {}),
+      ...(input.assetId ? { assetId: input.assetId } : {}),
+      status: { in: ["UPLOAD_PENDING", "PROCESSING"] },
     },
 
     data: {
@@ -509,7 +472,6 @@ export async function markTeacherVideoFailed(
       submittedAt: null,
       reviewedAt: null,
       reviewPlaybackId: null,
-      publicPlaybackId: null,
     },
   });
 }
