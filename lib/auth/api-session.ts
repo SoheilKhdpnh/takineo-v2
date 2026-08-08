@@ -1,7 +1,7 @@
 import "server-only";
 
+import { isActiveAccount } from "@/lib/auth/account-policy";
 import { auth } from "@/lib/auth/auth";
-import { prisma } from "@/lib/db/prisma";
 
 export async function getApiSession(
   request: Request,
@@ -10,8 +10,5 @@ export async function getApiSession(
     headers: request.headers,
   });
   if (!session) return null;
-  const active = await prisma.user.count({
-    where: { id: session.user.id, accountStatus: "ACTIVE" },
-  });
-  return active === 1 ? session : null;
+  return await isActiveAccount(session.user.id) ? session : null;
 }
