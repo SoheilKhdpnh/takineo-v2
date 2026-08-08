@@ -3,7 +3,7 @@ import "server-only";
 import { requireAdminAccess } from "@/lib/auth/admin-access";
 import { prisma } from "@/lib/db/prisma";
 import { ADMIN_REVIEW_PLAYBACK_TTL_SECONDS, rejectionIncludesProfile, rejectionIncludesVideo } from "@/lib/domain/admin-review";
-import { AdminReviewConflictError, AdminReviewProviderError, AdminTargetNotFoundError } from "@/lib/errors/admin-errors";
+import { AdminForbiddenError, AdminReviewConflictError, AdminReviewProviderError, AdminTargetNotFoundError } from "@/lib/errors/admin-errors";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { queueMuxPlaybackIntent, reconcileMuxPlayback } from "@/lib/services/mux-playback-reconciliation.service";
 import { getMuxClient } from "@/lib/video/mux-client";
@@ -101,7 +101,7 @@ export async function createAdminReviewPlayback(actorUserId: string, application
     }
     return { playbackId, token, expiresInSeconds: ADMIN_REVIEW_PLAYBACK_TTL_SECONDS };
   } catch (error) {
-    if (error instanceof AdminReviewProviderError || error instanceof AdminReviewConflictError) throw error;
+    if (error instanceof AdminForbiddenError || error instanceof AdminReviewProviderError || error instanceof AdminReviewConflictError) throw error;
     throw new AdminReviewProviderError();
   }
 }

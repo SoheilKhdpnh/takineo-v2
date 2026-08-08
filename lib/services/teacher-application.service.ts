@@ -35,6 +35,7 @@ const teacherApplicationSelect = {
     select: {
       id: true,
       revision: true,
+      provider: true,
       uploadId: true,
       assetId: true,
       status: true,
@@ -55,7 +56,8 @@ function toApplicantApplication(application: TeacherApplicationContext) {
   void _submittedUpload;
   void _submittedAsset;
   if (!introVideo) return { ...profile, introVideo: null };
-  const { uploadId: _upload, assetId: _asset, ...applicantVideo } = introVideo;
+  const { provider: _provider, uploadId: _upload, assetId: _asset, ...applicantVideo } = introVideo;
+  void _provider;
   void _upload;
   void _asset;
   return { ...profile, introVideo: applicantVideo };
@@ -104,21 +106,6 @@ export async function getTeacherApplicationForUser(userId: string): Promise<Teac
   return toApplicantApplication(await getTeacherApplicationContext(userId));
 }
 
-function isAcceptableSubmissionVideo(
-  status:
-    | "UPLOAD_PENDING"
-    | "PROCESSING"
-    | "READY_FOR_REVIEW"
-    | "APPROVED"
-    | "REJECTED"
-    | "FAILED",
-): boolean {
-  return (
-    status === "READY_FOR_REVIEW" ||
-    status === "APPROVED"
-  );
-}
-
 export async function submitTeacherApplication(
   userId: string,
 ): Promise<TeacherApplicationRecord> {
@@ -145,14 +132,17 @@ export async function submitTeacherApplication(
     );
   }
 
-  if (!application.introVideo.uploadId || !application.introVideo.assetId) {
-    throw new TeacherApplicationNotReadyError("VIDEO_NOT_READY");
-  }
-
+  const video = application.introVideo;
+  const uploadId = video.uploadId;
+  const assetId = video.assetId;
+  const durationSeconds = video.durationSeconds;
   if (
-    !isAcceptableSubmissionVideo(
-      application.introVideo.status,
-    )
+    video.provider !== "mux" ||
+    !uploadId || /\s/.test(uploadId) ||
+    !assetId || /\s/.test(assetId) ||
+    uploadId === assetId ||
+    durationSeconds === null || durationSeconds < 60 || durationSeconds > 120 ||
+    !["READY_FOR_REVIEW", "APPROVED"].includes(video.status)
   ) {
     throw new TeacherApplicationNotReadyError(
       "VIDEO_NOT_READY",
@@ -179,11 +169,13 @@ export async function submitTeacherApplication(
         user: { accountStatus: "ACTIVE" },
         introVideo: {
           is: {
-            id: application.introVideo.id,
-            revision: application.introVideo.revision,
-            uploadId: application.introVideo.uploadId,
-            assetId: application.introVideo.assetId,
-            status: application.introVideo.status,
+            id: video.id,
+            revision: video.revision,
+            provider: "mux",
+            uploadId,
+            assetId,
+            status: video.status,
+            durationSeconds,
           },
         },
       },
@@ -196,10 +188,10 @@ export async function submitTeacherApplication(
           submittedAt,
         reviewCycle: { increment: 1 },
         submittedProfileRevision: application.profileRevision,
-        submittedVideoId: application.introVideo.id,
-        submittedVideoRevision: application.introVideo.revision,
-        submittedVideoUploadId: application.introVideo.uploadId,
-        submittedVideoAssetId: application.introVideo.assetId,
+        submittedVideoId: video.id,
+        submittedVideoRevision: video.revision,
+        submittedVideoUploadId: uploadId,
+        submittedVideoAssetId: assetId,
         updatedAt: submittedAt,
 
         /*

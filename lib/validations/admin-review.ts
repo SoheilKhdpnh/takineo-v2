@@ -13,6 +13,7 @@ const staleGuardSchema = z.object({
 }).strict();
 
 export const adminApplicationIdSchema = z.string().cuid();
+export const adminEmptyBodySchema = z.literal("");
 
 export const approveApplicationSchema = staleGuardSchema;
 

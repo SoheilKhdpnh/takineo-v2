@@ -3,7 +3,7 @@ import { requireAdminAccess } from "@/lib/auth/admin-access";
 import { adminErrorResponse, adminPrivateJson } from "@/lib/errors/admin-http";
 import { createAdminReviewPlayback } from "@/lib/services/admin-review.service";
 import { hasTrustedRequestOrigin } from "@/lib/security/same-origin";
-import { adminApplicationIdSchema } from "@/lib/validations/admin-review";
+import { adminApplicationIdSchema, adminEmptyBodySchema } from "@/lib/validations/admin-review";
 
 export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ applicationId: string }> }) {
@@ -13,6 +13,8 @@ export async function POST(request: Request, context: { params: Promise<{ applic
   if (!hasTrustedRequestOrigin(request)) return adminPrivateJson({ error: "UNTRUSTED_ORIGIN" }, { status: 403 });
   const parsedId = adminApplicationIdSchema.safeParse((await context.params).applicationId);
   if (!parsedId.success) return adminPrivateJson({ error: "INVALID_REQUEST", issues: { applicationId: ["Invalid application ID."] } }, { status: 400 });
+  const parsedBody = adminEmptyBodySchema.safeParse(await request.text());
+  if (!parsedBody.success) return adminPrivateJson({ error: "INVALID_REQUEST", issues: { body: ["Request body must be empty."] } }, { status: 400 });
   try { return adminPrivateJson({ playback: await createAdminReviewPlayback(session.user.id, parsedId.data) }); }
   catch (error) { return adminErrorResponse(error); }
 }

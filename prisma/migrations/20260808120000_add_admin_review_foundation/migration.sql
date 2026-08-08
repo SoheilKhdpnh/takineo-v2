@@ -19,6 +19,7 @@ ALTER TABLE "teacher_profile"
   ADD COLUMN "submittedVideoUploadId" TEXT,
   ADD COLUMN "submittedVideoAssetId" TEXT,
   ADD COLUMN "legacyApplicationStatus" "TeacherApplicationStatus",
+  ADD COLUMN "legacyApplicationSubmittedAt" TIMESTAMP(3),
   ADD COLUMN "legacyApplicationReviewedAt" TIMESTAMP(3),
   ADD COLUMN "legacyApplicationReviewNote" TEXT,
   ADD COLUMN "legacyTrustMigrationReason" TEXT;
@@ -32,8 +33,72 @@ ALTER TABLE "teacher_intro_video" ADD COLUMN "revision" INTEGER NOT NULL DEFAULT
 ALTER TABLE "teacher_intro_video"
   ADD COLUMN "legacyStatus" "TeacherIntroVideoStatus",
   ADD COLUMN "legacyRejectionReason" TEXT,
+  ADD COLUMN "legacySubmittedAt" TIMESTAMP(3),
+  ADD COLUMN "legacyReviewedAt" TIMESTAMP(3),
   ADD COLUMN "legacyTrustMigrationReason" TEXT;
 CREATE UNIQUE INDEX "teacher_intro_video_reviewPlaybackId_key" ON "teacher_intro_video"("reviewPlaybackId");
+
+-- Snapshot every pre-Wave 1 review state before any normalization. Current
+-- notes/timestamps remain untouched; these fields retain the exact legacy view.
+UPDATE "teacher_profile"
+SET "legacyApplicationStatus" = "applicationStatus",
+    "legacyApplicationSubmittedAt" = "applicationSubmittedAt",
+    "legacyApplicationReviewedAt" = "applicationReviewedAt",
+    "legacyApplicationReviewNote" = "applicationReviewNote";
+
+UPDATE "teacher_intro_video"
+SET "legacyStatus" = "status",
+    "legacyRejectionReason" = "rejectionReason",
+    "legacySubmittedAt" = "submittedAt",
+    "legacyReviewedAt" = "reviewedAt";
+
+-- Editable legacy applications may contain terminal-looking media that cannot
+-- satisfy the new provider/duration contract. Normalize only malformed media;
+-- valid approved media remains reusable after a profile-only rejection.
+UPDATE "teacher_intro_video" AS tiv
+SET "legacyTrustMigrationReason" = 'LEGACY_EDITABLE_VIDEO_EVIDENCE_INVALID',
+    "status" = 'REJECTED',
+    "rejectionReason" = COALESCE(NULLIF(BTRIM(tiv."rejectionReason"), ''), 'LEGACY_VIDEO_REQUIRES_REPLACEMENT')
+FROM "teacher_profile" AS tp
+WHERE tiv."teacherProfileId" = tp."id"
+  AND tp."applicationStatus" IN ('DRAFT', 'REJECTED')
+  AND (
+    (tiv."status" IN ('READY_FOR_REVIEW', 'APPROVED') AND NOT COALESCE((
+      tiv."provider" = 'mux'
+      AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+      AND tiv."uploadId" = BTRIM(tiv."uploadId")
+      AND tiv."uploadId" !~ '[[:space:]]'
+      AND NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+      AND tiv."assetId" = BTRIM(tiv."assetId")
+      AND tiv."assetId" !~ '[[:space:]]'
+      AND tiv."uploadId" <> tiv."assetId"
+      AND tiv."durationSeconds" BETWEEN 60 AND 120
+    ), false))
+    OR (tiv."status" = 'PROCESSING' AND NOT COALESCE((
+      tiv."provider" = 'mux'
+      AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+      AND tiv."uploadId" = BTRIM(tiv."uploadId")
+      AND tiv."uploadId" !~ '[[:space:]]'
+      AND NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+      AND tiv."assetId" = BTRIM(tiv."assetId")
+      AND tiv."assetId" !~ '[[:space:]]'
+      AND tiv."uploadId" <> tiv."assetId"
+      AND (tiv."durationSeconds" IS NULL OR tiv."durationSeconds" BETWEEN 60 AND 120)
+    ), false))
+    OR (tiv."status" = 'UPLOAD_PENDING' AND NOT COALESCE((
+      tiv."provider" = 'mux'
+      AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+      AND tiv."uploadId" = BTRIM(tiv."uploadId")
+      AND tiv."uploadId" !~ '[[:space:]]'
+      AND (tiv."assetId" IS NULL OR (
+        NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+        AND tiv."assetId" = BTRIM(tiv."assetId")
+        AND tiv."assetId" !~ '[[:space:]]'
+        AND tiv."uploadId" <> tiv."assetId"
+      ))
+      AND (tiv."durationSeconds" IS NULL OR tiv."durationSeconds" BETWEEN 60 AND 120)
+    ), false))
+  );
 
 -- Preserve only pending reviews with coherent evidence for the submitted media.
 UPDATE "teacher_profile" AS tp
@@ -50,7 +115,11 @@ WHERE tp."applicationStatus" = 'PENDING_REVIEW'
   AND tiv."provider" = 'mux'
   AND tiv."status" IN ('READY_FOR_REVIEW', 'APPROVED')
   AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+  AND tiv."uploadId" = BTRIM(tiv."uploadId")
+  AND tiv."uploadId" !~ '[[:space:]]'
   AND NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+  AND tiv."assetId" = BTRIM(tiv."assetId")
+  AND tiv."assetId" !~ '[[:space:]]'
   AND tiv."uploadId" <> tiv."assetId"
   AND tiv."durationSeconds" BETWEEN 60 AND 120;
 
@@ -70,7 +139,11 @@ WHERE tp."applicationStatus" IN ('APPROVED', 'SUSPENDED')
   AND tiv."provider" = 'mux'
   AND tiv."status" = 'APPROVED'
   AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+  AND tiv."uploadId" = BTRIM(tiv."uploadId")
+  AND tiv."uploadId" !~ '[[:space:]]'
   AND NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+  AND tiv."assetId" = BTRIM(tiv."assetId")
+  AND tiv."assetId" !~ '[[:space:]]'
   AND tiv."uploadId" <> tiv."assetId"
   AND tiv."durationSeconds" BETWEEN 60 AND 120;
 
@@ -78,12 +151,9 @@ WHERE tp."applicationStatus" IN ('APPROVED', 'SUSPENDED')
 -- current state. Valid approved media is preserved when only profile evidence
 -- is insufficient, allowing correction without unnecessary replacement.
 UPDATE "teacher_intro_video" AS tiv
-SET "legacyStatus" = tiv."status",
-    "legacyRejectionReason" = tiv."rejectionReason",
-    "legacyTrustMigrationReason" = 'LEGACY_VIDEO_EVIDENCE_INSUFFICIENT',
+SET "legacyTrustMigrationReason" = 'LEGACY_VIDEO_EVIDENCE_INSUFFICIENT',
     "status" = 'REJECTED',
-    "rejectionReason" = COALESCE(tiv."rejectionReason", 'LEGACY_VIDEO_REQUIRES_REPLACEMENT'),
-    "reviewedAt" = COALESCE(tiv."reviewedAt", CURRENT_TIMESTAMP)
+    "rejectionReason" = COALESCE(NULLIF(BTRIM(tiv."rejectionReason"), ''), 'LEGACY_VIDEO_REQUIRES_REPLACEMENT')
 FROM "teacher_profile" AS tp
 WHERE tiv."teacherProfileId" = tp."id"
   AND tp."applicationStatus" IN ('PENDING_REVIEW', 'APPROVED', 'SUSPENDED')
@@ -91,7 +161,11 @@ WHERE tiv."teacherProfileId" = tp."id"
     tiv."provider" = 'mux'
     AND tiv."status" IN ('READY_FOR_REVIEW', 'APPROVED')
     AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+    AND tiv."uploadId" = BTRIM(tiv."uploadId")
+    AND tiv."uploadId" !~ '[[:space:]]'
     AND NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+    AND tiv."assetId" = BTRIM(tiv."assetId")
+    AND tiv."assetId" !~ '[[:space:]]'
     AND tiv."uploadId" <> tiv."assetId"
     AND tiv."durationSeconds" BETWEEN 60 AND 120
   ), false);
@@ -100,9 +174,6 @@ WHERE tiv."teacherProfileId" = tp."id"
 -- historical note or timestamp.
 UPDATE "teacher_profile"
 SET "applicationStatus" = 'REJECTED',
-    "legacyApplicationStatus" = 'PENDING_REVIEW',
-    "legacyApplicationReviewedAt" = "applicationReviewedAt",
-    "legacyApplicationReviewNote" = "applicationReviewNote",
     "legacyTrustMigrationReason" = 'LEGACY_REVIEW_STATE_REQUIRES_RESUBMISSION'
 WHERE "applicationStatus" = 'PENDING_REVIEW'
   AND ("reviewCycle" = 0
@@ -115,10 +186,7 @@ WHERE "applicationStatus" = 'PENDING_REVIEW'
 -- An old isVerified-derived state is not sufficient. Downgrade legacy
 -- APPROVED/SUSPENDED rows unless the complete new evidence snapshot exists.
 UPDATE "teacher_profile"
-SET "legacyApplicationStatus" = "applicationStatus",
-    "legacyApplicationReviewedAt" = "applicationReviewedAt",
-    "legacyApplicationReviewNote" = "applicationReviewNote",
-    "legacyTrustMigrationReason" = 'LEGACY_TRUST_EVIDENCE_INSUFFICIENT',
+SET "legacyTrustMigrationReason" = 'LEGACY_TRUST_EVIDENCE_INSUFFICIENT',
     "applicationStatus" = 'REJECTED'
 WHERE "applicationStatus" IN ('APPROVED', 'SUSPENDED')
   AND ("submittedProfileRevision" IS NULL
@@ -180,9 +248,24 @@ DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM "teacher_intro_video"
-    WHERE "publicPlaybackId" IS NOT NULL AND "assetId" IS NULL
+    WHERE "publicPlaybackId" IS NOT NULL
+      AND NOT COALESCE((
+        "provider" = 'mux'
+        AND NULLIF(BTRIM("uploadId"), '') IS NOT NULL
+        AND "uploadId" = BTRIM("uploadId")
+        AND "uploadId" !~ '[[:space:]]'
+        AND NULLIF(BTRIM("assetId"), '') IS NOT NULL
+        AND "assetId" = BTRIM("assetId")
+        AND "assetId" !~ '[[:space:]]'
+        AND NULLIF(BTRIM("publicPlaybackId"), '') IS NOT NULL
+        AND "publicPlaybackId" = BTRIM("publicPlaybackId")
+        AND "publicPlaybackId" !~ '[[:space:]]'
+        AND "uploadId" <> "assetId"
+        AND "uploadId" <> "publicPlaybackId"
+        AND "assetId" <> "publicPlaybackId"
+      ), false)
   ) THEN
-    RAISE EXCEPTION 'Cannot migrate public playback without its Mux asset identity';
+    RAISE EXCEPTION 'Cannot migrate legacy public playback with unsupported or invalid Mux provider identity; verify/revoke or repair the source row before retrying';
   END IF;
 END;
 $$;
@@ -209,7 +292,19 @@ FROM "teacher_intro_video" tiv
 JOIN "teacher_profile" tp ON tp."id" = tiv."teacherProfileId"
 JOIN "user" u ON u."id" = tp."userId"
 WHERE tiv."publicPlaybackId" IS NOT NULL
-  AND tiv."assetId" IS NOT NULL;
+  AND tiv."provider" = 'mux'
+  AND NULLIF(BTRIM(tiv."uploadId"), '') IS NOT NULL
+  AND tiv."uploadId" = BTRIM(tiv."uploadId")
+  AND tiv."uploadId" !~ '[[:space:]]'
+  AND NULLIF(BTRIM(tiv."assetId"), '') IS NOT NULL
+  AND tiv."assetId" = BTRIM(tiv."assetId")
+  AND tiv."assetId" !~ '[[:space:]]'
+  AND NULLIF(BTRIM(tiv."publicPlaybackId"), '') IS NOT NULL
+  AND tiv."publicPlaybackId" = BTRIM(tiv."publicPlaybackId")
+  AND tiv."publicPlaybackId" !~ '[[:space:]]'
+  AND tiv."uploadId" <> tiv."assetId"
+  AND tiv."uploadId" <> tiv."publicPlaybackId"
+  AND tiv."assetId" <> tiv."publicPlaybackId";
 
 CREATE UNIQUE INDEX "admin_access_userId_key" ON "admin_access"("userId");
 CREATE INDEX "admin_access_permission_revokedAt_idx" ON "admin_access"("permission", "revokedAt");
