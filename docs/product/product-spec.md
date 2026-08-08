@@ -116,6 +116,21 @@ They will eventually manage:
 
 Administrative capabilities must never be self-assignable.
 
+Administrative access remains separate from the student/teacher product role.
+Wave 1 permission levels are `REVIEWER` and `SUPER_ADMIN` and are provisioned
+only through server-controlled workflows.
+
+## Account activity
+
+Server-controlled account states are:
+
+- `ACTIVE`
+- `SUSPENDED`
+- `DISABLED`
+
+Account-level suspension is distinct from teacher-specific application
+suspension. A public teacher must have an `ACTIVE` account.
+
 ## Teacher application lifecycle
 
 States:
@@ -141,6 +156,11 @@ Applicant may make required changes and resubmit.
 
 Existing teacher access/public visibility is restricted by Takineo.
 
+Profile and introduction-video review decisions are logically separate. Final
+application approval requires both to be acceptable, and the current video must
+be `APPROVED`. Profile-only rejection preserves an already approved unchanged
+video; video rejection requires replacement and review.
+
 ## Teacher introduction video
 
 Purpose:
@@ -154,8 +174,13 @@ Requirements:
 - processed duration is validated server-side
 - must pass review before becoming publicly usable
 - replacement may require a new review
+- pending administrative review uses signed/private playback
+- approved public playback uses a separate identifier and revocation lifecycle
 
 Video bytes are not stored in PostgreSQL.
+
+The binding Wave 1 review behavior is defined in
+[`admin-review-contract.md`](../engineering/admin-review-contract.md).
 
 ## Localization
 

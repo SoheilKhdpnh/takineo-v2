@@ -32,7 +32,26 @@ Current product-facing roles:
 
 Teacher is an application-side role, not automatic public approval.
 
-Administrative authorization must be introduced separately and must not be self-selectable during onboarding.
+Administrative authorization is introduced separately from product role and
+must not be self-selectable during signup or onboarding. Wave 1 permissions are
+`REVIEWER` and `SUPER_ADMIN`, linked to an existing user through server-controlled
+state.
+
+There must be no public admin registration, onboarding choice, or client-owned
+admin assignment. Administrative checks are enforced server-side on every admin
+page/API operation.
+
+Wave 1 must follow
+[`admin-review-contract.md`](admin-review-contract.md).
+
+## Account moderation
+
+Wave 1 introduces server-controlled `ACTIVE`, `SUSPENDED`, and `DISABLED`
+account states. Account state is never client-selectable.
+
+Teacher-specific suspension and full account suspension are separate. A
+suspended/disabled account is ineligible for public teacher visibility and must
+not retain usable administrative capability.
 
 ## Teacher approval
 
@@ -77,6 +96,7 @@ High-value secrets include:
 - Better Auth secret
 - Mux token secret
 - Mux webhook secret
+- Mux playback signing private keys
 - future AI provider keys
 - payment credentials
 
@@ -120,15 +140,21 @@ Takineo should validate:
 
 Do not trust client-declared duration as authoritative.
 
+Pending teacher videos require signed/private admin review playback. The server
+issues short-lived playback tokens after admin authorization; clients never
+receive signing credentials. Public playback uses a separate identifier created
+only after final approval and revoked when eligibility is withdrawn.
+
 ## Administrative actions
 
-Administrative actions should eventually record:
+Administrative actions must record immutable audit history including:
 
 - actor
 - target
 - action
 - timestamp
-- optional reason/metadata
+- required reason where the action contract requires one
+- relevant non-secret metadata and review-cycle/state context
 
 High-impact actions include:
 
@@ -137,6 +163,9 @@ High-impact actions include:
 - suspension
 - account moderation
 - sensitive manual overrides
+
+Admin bootstrap and administrative permission grant, revocation, or level
+changes are also high-impact auditable actions.
 
 ## RLS
 

@@ -10,7 +10,7 @@ Do not parallelize several tasks that simultaneously redesign the same schema, a
 
 # Wave 0 — Agent Foundation
 
-Status: CURRENT
+Status: COMPLETE / DOCUMENTATION REVIEW PENDING
 
 Deliverables:
 
@@ -22,10 +22,24 @@ Deliverables:
 - testing specification
 - production-readiness specification
 - agent playbook
+- binding Wave 1 admin/review contract
+
+Canonical Wave 1 contract:
+
+`docs/engineering/admin-review-contract.md`
 
 ---
 
 # Wave 1 — Teacher Trust Completion
+
+All Wave 1 agents must follow:
+
+`docs/engineering/admin-review-contract.md`
+
+No agent may independently change the admin identity boundary, permission
+matrix, account-state semantics, teacher review transitions, Mux playback
+lifecycle, audit requirements, or test-database safety rules without
+integration-lead approval and a contract update.
 
 Primary owner:
 Backend / Admin agent
@@ -35,17 +49,23 @@ Existing teacher application foundation
 
 Deliverables:
 
-- administrative authorization model
+- separate server-controlled administrative authorization linked to an existing
+  user; do not add `ADMIN` to product-role onboarding
+- `REVIEWER` and `SUPER_ADMIN` permission enforcement
+- privileged initial-admin bootstrap boundary
+- server-controlled `ACTIVE`, `SUSPENDED`, and `DISABLED` account states
 - admin route protection
 - pending teacher queue
 - teacher application detail
-- secure intro-video review
-- approve action
-- reject action
-- rejection reason
+- signed/private Mux intro-video review and short-lived server-issued playback
+  tokens
+- transactionally safe profile/video/final approval actions
+- `PROFILE`, `VIDEO`, and `BOTH` rejection targets
+- target-specific rejection reasons
 - teacher resubmission behavior
 - suspension foundation
-- audit trail for admin review
+- immutable audit trail for admin review and administrative access changes
+- separate approved public-playback lifecycle and revocation behavior
 - tests
 
 Parallelizable:
@@ -56,9 +76,22 @@ Frontend agent:
 Security agent:
 - admin authorization review
 - privilege-escalation tests
+- Mux signed/public playback review
+- account-state bypass review
 
 QA agent:
 - application-state tests
+- Vitest, React Testing Library, and Playwright foundation
+- fail-closed database-test configuration using only `TEST_DATABASE_URL`
+- authorization matrix from the Wave 1 contract
+
+Integration order:
+
+1. Integration lead approves backend API shapes, shared state transitions,
+   schema ownership, and migration order.
+2. Backend/data work establishes the agreed contract implementation.
+3. Frontend consumes agreed API shapes without inventing authorization rules.
+4. Security and QA review the integrated behavior adversarially.
 
 ---
 

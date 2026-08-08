@@ -1,66 +1,92 @@
-# Authentication
+# Database and Authentication
 
 Takineo uses Better Auth with Prisma and PostgreSQL.
 
-The running Next.js application connects through Prisma's Neon
-serverless adapter using the pooled `DATABASE_URL`.
+The running Next.js application connects through Prisma's Neon serverless
+adapter using the pooled `DATABASE_URL`. Prisma CLI and migrations use the
+direct `DIRECT_URL` configured in `prisma.config.ts`.
 
-Prisma CLI and migrations use the direct `DIRECT_URL` configured
-in `prisma.config.ts`.
+## Current authentication foundation
 
-## Connections
+- email/password registration
+- email/password login
+- persistent database sessions
+- sign out
+- server-side session validation
+- server-owned product role field
 
-The initial authentication foundation supports:
-
-- Email and password registration
-- Email and password login
-- Persistent database sessions
-- Sign out
-- Server-side session validation
-
-## Core database models
-
-Better Auth owns the following models:
+Better Auth owns the core identity/session models:
 
 - `User`
 - `Account`
 - `Session`
 - `Verification`
 
-Application-specific role and profile data must be added through
-separate models and relations. Authentication tables should not be
-used as a substitute for teacher or student domain models.
+Application-specific role, profile, teacher application, video, future account
+moderation, and administrative access data remain separate domain concerns.
+Authentication tables are not a substitute for application authorization.
+
+## Current application models
+
+- `StudentProfile`
+- `TeacherProfile`
+- `TeacherIntroVideo`
+
+The current schema also defines product-role, profile, timezone/language,
+teacher-application, and teacher-video enums.
+
+Wave 1 will design and migrate the server-controlled account moderation,
+administrative permission, and immutable review/audit persistence required by
+[admin-review-contract.md](engineering/admin-review-contract.md). This document
+does not prescribe the final table shape.
 
 ## Environment variables
 
-Required local variables:
+Application/runtime configuration requires:
 
 - `BETTER_AUTH_URL`
 - `BETTER_AUTH_SECRET`
 - `DATABASE_URL`
+
+Prisma CLI/migrations require:
+
 - `DIRECT_URL`
-- `NEXT_PUBLIC_APP_URL`
 
-Never commit real secrets or database connection strings.
+Client auth configuration may use intentionally public application-origin
+configuration where required by the application, but database and auth secrets
+must never use `NEXT_PUBLIC_*`.
 
-## Routes
+Database integration tests must use only:
 
-- `/sign-up`
-- `/sign-in`
-- `/dashboard`
-- `/api/auth/[...all]`
+- `TEST_DATABASE_URL`
+
+Test tooling must fail closed if `TEST_DATABASE_URL` is absent and must never
+fall back to `DATABASE_URL` or `DIRECT_URL`.
+
+Never commit real secrets or connection strings.
 
 ## Password policy
 
-Passwords currently require between 8 and 128 characters.
+Passwords currently require between 8 and 128 characters. Better Auth stores
+password hashes in credential `Account` records. Raw passwords must never be
+logged or persisted by application code.
 
-Password hashes are stored by Better Auth in credential `Account`
-records. Raw passwords must never be logged or persisted by
-application code.
+## Database change workflow
 
-## Authorization
+Every schema change requires:
 
-Authentication proves the identity of a user.
+1. Edit `prisma/schema.prisma`.
+2. Format and validate the schema.
+3. Create a new migration; do not rewrite already-applied migrations.
+4. Review generated SQL and data-preservation effects.
+5. Apply only to the intended environment.
+6. Regenerate Prisma Client.
+7. Run relevant tests and `npm run check`.
 
-Student and teacher permissions will be implemented separately during
-the onboarding and authorization milestone.
+Production migration execution must eventually be a controlled deployment step
+with one execution path per release, environment verification, migration
+validation, and rollback/recovery procedures. A generic hosting build that runs
+`prisma migrate deploy && npm run build` is not the final production strategy.
+
+Never use `prisma db push` as the normal production schema deployment strategy
+and never run destructive database commands against production.
