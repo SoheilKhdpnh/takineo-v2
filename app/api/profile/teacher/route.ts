@@ -9,12 +9,26 @@ import {
   saveTeacherProfile,
 } from "@/lib/services/teacher-profile.service";
 import { teacherProfileInputSchema } from "@/lib/validations/teacher-profile";
+import { TeacherApplicationLockedError } from "@/lib/errors/teacher-video-errors";
 
 export const runtime = "nodejs";
 
 function profileErrorResponse(
   error: unknown,
 ): Response {
+    if (
+    error instanceof
+    TeacherApplicationLockedError
+  ) {
+    return Response.json(
+      {
+        error: "TEACHER_APPLICATION_LOCKED",
+      },
+      {
+        status: 409,
+      },
+    );
+  }
   if (
     error instanceof ProfileRoleMismatchError
   ) {

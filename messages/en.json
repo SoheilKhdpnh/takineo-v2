@@ -156,6 +156,30 @@
   "providerUnavailable": "The video provider has not been configured for this environment.",
   "networkError": "Takineo could not connect to the server.",
   "applicationLocked": "This application cannot currently be edited.",
-  "pendingLocked": "Your application is under review, so its video cannot currently be replaced."
+  "pendingLocked": "Your application is under review, so its video cannot currently be replaced.",
+  "checkStatus": "Check processing status",
+  "checkingStatus": "Checking video status...",
+  "statusSaveError": "The upload completed, but Takineo could not save the processing state. Your video has not been lost.",
+  "statusSyncError": "Takineo could not check the video status with Mux. Try again when your connection is more stable."
+},
+"TeacherApplicationSubmit": {
+  "title": "Submit your teaching application",
+  "description": "Complete your professional profile and introduction video before sending your application to Takineo for review.",
+  "profileCheck": "Professional profile completed",
+  "videoCheck": "Introduction video ready for review",
+  "submit": "Submit application",
+  "submitting": "Submitting application...",
+  "confirmation": "Submit your teaching application for review? Your profile and introduction video will be locked while the application is under review.",
+  "profileIncomplete": "Complete your professional profile before submitting.",
+  "videoMissing": "Upload your introduction video before submitting.",
+  "videoNotReady": "Your introduction video must finish processing and meet the video requirements before submission.",
+  "submitError": "Takineo could not submit your application.",
+  "networkError": "The connection was interrupted. Please try again.",
+  "pendingTitle": "Your application is under review",
+  "pendingDescription": "Your professional profile and introduction video are temporarily locked while Takineo reviews your application.",
+  "approvedTitle": "Your teaching application is approved",
+  "approvedDescription": "Your application has been approved. Approved teachers will gain access to availability and booking features.",
+  "suspendedTitle": "Your teaching profile is suspended",
+  "suspendedDescription": "Your teacher profile is currently unavailable. Contact Takineo support if you believe this is an error."
 }
 }

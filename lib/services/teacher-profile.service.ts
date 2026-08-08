@@ -1,5 +1,6 @@
 import "server-only";
-
+import { TeacherApplicationLockedError } from "@/lib/errors/teacher-video-errors";
+import { canEditTeacherApplication } from "@/lib/domain/teacher-application";
 import { Prisma, Timezone } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -94,6 +95,13 @@ export async function saveTeacherProfile(
   input: TeacherProfileInput,
 ): Promise<TeacherProfileRecord> {
   const currentProfile = await getTeacherProfileForUser(userId);
+if (
+  !canEditTeacherApplication(
+    currentProfile.applicationStatus,
+  )
+) {
+  throw new TeacherApplicationLockedError();
+}
 
   try {
     const updated = await prisma.teacherProfile.update({

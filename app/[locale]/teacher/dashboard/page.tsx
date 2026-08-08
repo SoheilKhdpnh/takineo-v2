@@ -3,6 +3,7 @@ import {
   setRequestLocale,
 } from "next-intl/server";
 
+import { TeacherApplicationSubmit } from "@/components/profiles/TeacherApplicationSubmit";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { requireAppLocale } from "@/i18n/locale";
 import {
@@ -125,12 +126,17 @@ export default async function TeacherDashboardPage({
               {t("applicationDescription")}
             </p>
 
-            <Link
-              href="/teacher/profile"
-              className="mt-6 inline-flex rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-50"
-            >
-              {t("editProfile")}
-            </Link>
+            {(
+              applicationStatus === "DRAFT" ||
+              applicationStatus === "REJECTED"
+            ) ? (
+              <Link
+                href="/teacher/profile"
+                className="mt-6 inline-flex rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-50"
+              >
+                {t("editProfile")}
+              </Link>
+            ) : null}
           </article>
 
           <article className="rounded-3xl border border-zinc-200 bg-zinc-950 p-7 text-white shadow-sm">
@@ -147,12 +153,17 @@ export default async function TeacherDashboardPage({
                 {t("nextStepVideo")}
               </p>
             ) : null}
-            <Link
+            {(
+              applicationStatus === "DRAFT" ||
+              applicationStatus === "REJECTED"
+            ) ? (
+              <Link
                 href="/teacher/video"
                 className="mt-6 inline-flex rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
               >
                 {t("manageVideo")}
               </Link>
+            ) : null}
           </article>
         </div>
 
@@ -161,6 +172,21 @@ export default async function TeacherDashboardPage({
             {t("approvedNotice")}
           </aside>
         ) : null}
+        <div className="mt-6">
+          <TeacherApplicationSubmit
+            applicationStatus={
+              teacherProfile.applicationStatus
+            }
+            profileCompleted={
+              teacherProfile.profileCompletedAt !==
+              null
+            }
+            videoStatus={
+              teacherProfile.introVideo?.status ??
+              null
+            }
+          />
+        </div>
       </section>
     </main>
   );

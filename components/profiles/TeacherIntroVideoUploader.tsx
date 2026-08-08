@@ -59,6 +59,9 @@ export function TeacherIntroVideoUploader({
   const [isCreatingUpload, setIsCreatingUpload] =
     useState(false);
 
+  const [isSyncing, setIsSyncing] =
+    useState(false);
+
   const [error, setError] =
     useState<string | null>(null);
 
@@ -103,19 +106,40 @@ export function TeacherIntroVideoUploader({
                 string | null;
             } | null;
           };
-
-          if (result.introVideo) {
-            setVideo({
+        if (result.introVideo) {
+          setVideo((current) => {
+            const serverVideo = {
               status:
-                result.introVideo.status,
+                result.introVideo!.status,
+
               durationSeconds:
-                result.introVideo
+                result.introVideo!
                   .durationSeconds,
+
               rejectionReason:
-                result.introVideo
+                result.introVideo!
                   .rejectionReason,
-            });
-          }
+            };
+
+            /*
+            * The browser already knows that the
+            * upload completed successfully.
+            *
+            * An older DB value must never move the
+            * UI backwards to UPLOAD_PENDING.
+            */
+            if (
+              current.status ===
+                "PROCESSING" &&
+              serverVideo.status ===
+                "UPLOAD_PENDING"
+            ) {
+              return current;
+            }
+
+            return serverVideo;
+          });
+        }
         } catch {
           /*
            * A temporary polling failure should
@@ -130,6 +154,69 @@ export function TeacherIntroVideoUploader({
       window.clearInterval(interval);
     };
   }, [router, video.status]);
+
+  async function syncVideoStatus() {
+  setIsSyncing(true);
+  setError(null);
+
+  try {
+    const response = await fetch(
+      "/api/profile/teacher/intro-video/sync",
+      {
+        method: "POST",
+      },
+    );
+
+    if (response.status === 401) {
+      router.push("/sign-in");
+      router.refresh();
+      return;
+    }
+
+    if (!response.ok) {
+      setError(
+        t("statusSyncError"),
+      );
+
+      return;
+    }
+
+    const result =
+      (await response.json()) as {
+        introVideo: {
+          status:
+            TeacherIntroVideoStatus;
+
+          durationSeconds:
+            number | null;
+
+          rejectionReason:
+            string | null;
+        } | null;
+      };
+
+    if (result.introVideo) {
+      setVideo({
+        status:
+          result.introVideo.status,
+
+        durationSeconds:
+          result.introVideo
+            .durationSeconds,
+
+        rejectionReason:
+          result.introVideo
+            .rejectionReason,
+      });
+    }
+  } catch {
+    setError(
+      t("statusSyncError"),
+    );
+  } finally {
+    setIsSyncing(false);
+  }
+}
 
   async function createUpload() {
     setError(null);
@@ -322,6 +409,9 @@ export function TeacherIntroVideoUploader({
             dynamicChunkSize
             style={uploaderStyle}
             onSuccess={() => {
+              const completedUploadId =
+                uploadId;
+
               setUploadUrl(null);
 
               setVideo({
@@ -329,12 +419,63 @@ export function TeacherIntroVideoUploader({
                 durationSeconds: null,
                 rejectionReason: null,
               });
+
+              if (!completedUploadId) {
+                return;
+              }
+
+              void fetch(
+                "/api/profile/teacher/intro-video/complete",
+                {
+                  method: "POST",
+
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+                  },
+
+                  body: JSON.stringify({
+                    uploadId:
+                      completedUploadId,
+                  }),
+                },
+              ).then(async (response) => {
+                if (!response.ok) {
+                  setError(
+                    t("statusSaveError"),
+                  );
+                }
+              }).catch(() => {
+                setError(
+                  t("statusSaveError"),
+                );
+              });
             }}
             onUploadError={() => {
               setError(t("uploadError"));
             }}
           />
         </div>
+      ) : null}
+
+      {(
+        video.status === "PROCESSING" ||
+        (
+          video.status ===
+            "UPLOAD_PENDING" &&
+          !uploadUrl
+        )
+      ) ? (
+        <button
+          type="button"
+          disabled={isSyncing}
+          onClick={syncVideoStatus}
+          className="w-full rounded-2xl border border-zinc-300 bg-white px-5 py-3.5 font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSyncing
+            ? t("checkingStatus")
+            : t("checkStatus")}
+        </button>
       ) : null}
 
       {error ? (

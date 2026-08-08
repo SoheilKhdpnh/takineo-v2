@@ -9,6 +9,7 @@ import {
 import {
   TeacherApplicationLockedError,
   TeacherProfileIncompleteError,
+  TeacherVideoNotFoundError,
 } from "@/lib/errors/teacher-video-errors";
 import {
   canEditTeacherApplication,
@@ -33,6 +34,191 @@ const teacherIntroVideoSelect = {
   updatedAt: true,
 } satisfies Prisma.TeacherIntroVideoSelect;
 
+
+export async function syncTeacherIntroVideoFromMux(
+  userId: string,
+) {
+  const teacherProfile =
+    await getTeacherVideoContext(userId);
+
+  const introVideo =
+    teacherProfile.introVideo;
+
+  if (
+    !introVideo ||
+    !introVideo.uploadId
+  ) {
+    throw new TeacherVideoNotFoundError();
+  }
+
+  /*
+   * These states no longer need provider
+   * synchronization.
+   */
+  if (
+    introVideo.status ===
+      "READY_FOR_REVIEW" ||
+    introVideo.status === "APPROVED" ||
+    introVideo.status === "REJECTED" ||
+    introVideo.status === "FAILED"
+  ) {
+    return getTeacherIntroVideoState(
+      userId,
+    );
+  }
+
+  const mux = getMuxClient();
+
+  const upload =
+    await mux.video.uploads.retrieve(
+      introVideo.uploadId,
+    );
+
+  switch (upload.status) {
+    case "waiting": {
+      /*
+       * Do not regress PROCESSING back to
+       * UPLOAD_PENDING.
+       */
+      return getTeacherIntroVideoState(
+        userId,
+      );
+    }
+
+    case "asset_created": {
+      if (!upload.asset_id) {
+        return getTeacherIntroVideoState(
+          userId,
+        );
+      }
+
+      const asset =
+        await mux.video.assets.retrieve(
+          upload.asset_id,
+        );
+
+      if (asset.status === "errored") {
+        await markTeacherVideoFailed({
+          uploadId:
+            introVideo.uploadId,
+
+          assetId:
+            upload.asset_id,
+
+          reason:
+            "MUX_ASSET_PROCESSING_FAILED",
+        });
+
+        return getTeacherIntroVideoState(
+          userId,
+        );
+      }
+
+      if (
+        asset.status === "ready" &&
+        typeof asset.duration === "number"
+      ) {
+        await markTeacherVideoReady({
+          uploadId:
+            introVideo.uploadId,
+
+          assetId:
+            upload.asset_id,
+
+          duration:
+            asset.duration,
+        });
+
+        return getTeacherIntroVideoState(
+          userId,
+        );
+      }
+
+      await markTeacherVideoProcessing(
+        introVideo.uploadId,
+        upload.asset_id,
+      );
+
+      return getTeacherIntroVideoState(
+        userId,
+      );
+    }
+
+    case "errored": {
+      await markTeacherVideoFailed({
+        uploadId:
+          introVideo.uploadId,
+
+        reason:
+          "MUX_UPLOAD_FAILED",
+      });
+
+      break;
+    }
+
+    case "cancelled": {
+      await markTeacherVideoFailed({
+        uploadId:
+          introVideo.uploadId,
+
+        reason:
+          "MUX_UPLOAD_CANCELLED",
+      });
+
+      break;
+    }
+
+    case "timed_out": {
+      await markTeacherVideoFailed({
+        uploadId:
+          introVideo.uploadId,
+
+        reason:
+          "MUX_UPLOAD_TIMED_OUT",
+      });
+
+      break;
+    }
+  }
+
+  return getTeacherIntroVideoState(
+    userId,
+  );
+}
+
+export async function markTeacherIntroVideoUploadComplete(
+  userId: string,
+  uploadId: string,
+) {
+  const teacherProfile =
+    await getTeacherVideoContext(userId);
+
+  const introVideo =
+    teacherProfile.introVideo;
+
+  if (
+    !introVideo ||
+    introVideo.uploadId !== uploadId
+  ) {
+    throw new TeacherVideoNotFoundError();
+  }
+
+  await prisma.teacherIntroVideo.updateMany({
+    where: {
+      id: introVideo.id,
+      uploadId,
+      status: "UPLOAD_PENDING",
+    },
+
+    data: {
+      status: "PROCESSING",
+    },
+  });
+
+  return getTeacherIntroVideoState(
+    userId,
+  );
+}
 export type TeacherIntroVideoRecord =
   Prisma.TeacherIntroVideoGetPayload<{
     select: typeof teacherIntroVideoSelect;
