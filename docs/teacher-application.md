@@ -85,6 +85,28 @@ row, revision, upload ID, and asset ID. Profile edits and video replacements use
 conditional writes, so an edit/replacement racing submission cannot mutate the
 submitted review target.
 
+## Legacy migration
+
+The Wave 1 migration does not infer current trust from the historical
+`isVerified` flag alone. A legacy `APPROVED` or `SUSPENDED` application is
+preserved only when the current profile is complete and the current Mux video
+has nonblank, coherent upload/asset identifiers, a processed duration within
+60-120 seconds, and a video state compatible with approved media. The migration
+records the submitted profile/video snapshots required by the new review
+invariant.
+
+If that evidence is insufficient, the application becomes editable
+`REJECTED` and must be explicitly resubmitted. Malformed legacy pending rows
+also become `REJECTED`; unusable videos become replaceable `REJECTED` videos.
+Dedicated legacy snapshot fields retain the previous application/video state,
+review note, review timestamp, and migration context. Existing review history
+is not overwritten by the migration context message.
+
+The migration is enclosed in an explicit PostgreSQL transaction. Its deliberate
+legacy-playback consistency guard raises before `COMMIT`, so any failure rolls
+back all statements in the migration. It must be exercised against a disposable
+PostgreSQL upgrade database before deployment.
+
 ## Administrative review
 
 Wave 1 introduces separate profile and video review decisions, immutable audit

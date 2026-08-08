@@ -31,10 +31,6 @@ const teacherProfileSelect = {
   introVideo: {
   select: {
     id: true,
-    provider: true,
-    uploadId: true,
-    assetId: true,
-    publicPlaybackId: true,
     revision: true,
     status: true,
     durationSeconds: true,

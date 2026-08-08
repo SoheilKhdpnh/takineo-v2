@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:migrate:dev": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy"
+    "db:migrate:deploy": "prisma migrate deploy",
+    "ops:mux-reconcile": "node --conditions=react-server --import tsx scripts/reconcile-mux-playback.ts"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",

@@ -13,6 +13,25 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const active = await prisma.user.count({ where: { id: session.userId, accountStatus: "ACTIVE" } });
+          return active === 1;
+        },
+      },
+      update: {
+        before: async (session) => {
+          const userId = session.userId ?? (session.id ? (await prisma.session.findUnique({ where: { id: session.id }, select: { userId: true } }))?.userId : null);
+          if (!userId) return false;
+          const active = await prisma.user.count({ where: { id: userId, accountStatus: "ACTIVE" } });
+          return active === 1;
+        },
+      },
+    },
+  },
+
   user: {
     additionalFields: {
       role: {

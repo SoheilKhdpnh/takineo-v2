@@ -24,6 +24,8 @@ Local and deployed server environments require:
 - `MUX_TOKEN_ID`
 - `MUX_TOKEN_SECRET`
 - `MUX_WEBHOOK_SECRET`
+- `INTERNAL_JOB_SECRET`: server-only secret (at least 32 characters) protecting
+  the internal Mux playback reconciliation job endpoint
 
 Wave 1 signed playback will additionally require server-only Mux signing
 configuration:
@@ -102,10 +104,40 @@ replacement, video rejection, teacher suspension, account moderation, or asset
 withdrawal.
 
 Each replacement increments a monotonic video revision. Public playback
-enable/revoke work is persisted per video revision with desired state, attempt
-count, status, provider identifiers, and a safe last-error code. Provider calls
-are reconciled from this durable state; a live playback identifier is retained
-until provider deletion is confirmed.
+enable/revoke work is persisted per video revision with desired state,
+monotonic intent generation, attempt count, next-attempt time, lease token and
+expiry, status, provider identifiers, and a safe last-error code. Provider
+calls are reconciled from this durable state; a live playback identifier is
+retained until provider deletion is confirmed.
+
+The processor conditionally leases bounded batches of due work. Completion is
+accepted only while the lease, intent generation, and target video revision
+still match. Failures retain durable intent and retry with exponential backoff
+(starting at 30 seconds and capped at one hour); expired leases become eligible
+for another worker. A provider effect from a stale lease requeues and advances
+the current intent without changing its desired state. Reconciliation inspects
+the authoritative Mux asset so it
+can adopt a public playback ID created before a failed database write, remove
+duplicate public IDs, and revoke provider IDs even when the local playback ID
+is missing. Signed review IDs are not treated as public IDs.
+
+Operations may replay one reconciliation or a bounded due batch with:
+
+```text
+npm run ops:mux-reconcile -- --id <reconciliation-id>
+npm run ops:mux-reconcile -- --limit <1-50>
+```
+
+A future scheduler can call:
+
+```text
+POST /api/internal/jobs/mux-playback-reconciliation
+x-takineo-job-secret: <INTERNAL_JOB_SECRET>
+```
+
+The endpoint returns safe batch counts and is not a user endpoint. No hosting
+scheduler is deployed by this foundation; production deployment owns attaching
+a scheduler to this protected endpoint and monitoring failures.
 
 The binding Wave 1 lifecycle and security contract is
 [admin-review-contract.md](engineering/admin-review-contract.md).
@@ -115,6 +147,15 @@ The binding Wave 1 lifecycle and security contract is
 - A provider failure must not falsely mark a video approved or public.
 - Cleanup must be retry-safe and observable.
 - A failed cleanup must not make stale public playback acceptable indefinitely.
+- Signed review playback IDs are deleted after approval, video rejection, or
+  replacement when possible. Database references are cleared only after
+  provider-confirmed deletion in the shared cleanup helper. If cleanup after a
+  replacement cannot complete, no new signed token is issued for that obsolete
+  target and previously issued tokens retain their short expiry.
+- A first-upload eligibility race never attaches the upload or returns its URL.
+  The server attempts to cancel the Mux direct upload; because its URL was never
+  disclosed, an unsuccessful cancellation leaves an unusable upload that
+  expires under the provider upload timeout rather than a usable teacher video.
 - Logs must not contain upload URLs, signing keys, private playback tokens, or
   unnecessary media metadata.
 - Rate limiting is required before public beta for upload creation and manual

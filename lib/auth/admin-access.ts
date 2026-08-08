@@ -19,3 +19,18 @@ export async function requireAdminAccess(userId: string, capability: AdminCapabi
   }
   return { userId, permission: user.adminAccess.permission };
 }
+
+export async function getCurrentAdminCapabilities(userId: string) {
+  const admin = await requireAdminAccess(userId);
+  const isSuperAdmin = admin.permission === "SUPER_ADMIN";
+  return {
+    userId,
+    permission: admin.permission,
+    capabilities: {
+      reviewTeacherApplications: true,
+      moderateTeachers: isSuperAdmin,
+      moderateAccounts: isSuperAdmin,
+      manageAdminAccess: isSuperAdmin,
+    },
+  };
+}

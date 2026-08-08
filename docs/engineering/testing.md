@@ -133,17 +133,35 @@ tests, never a reason to fall back to another database.
 ## Wave 1 admin backend testing handoff
 
 Agent D must test the implemented DTOs and invariants in
-`admin-backend-api.md`, including: clean migration; upgrade migration across all
-existing teacher states; safe preservation of reconstructable
-`PENDING_REVIEW`; fail-safe rejection of malformed legacy pending rows; audit
-trigger immutability; the complete admin authorization matrix; malformed IDs,
-bodies, queries, and origins; bootstrap; last-active-`SUPER_ADMIN` protection;
-`PROFILE`, `VIDEO`, and `BOTH` rejection; profile-only correction/resubmission
-with unchanged approved video; stale review cycle/profile revision/video
-revision/upload/asset; profile-edit/submission and upload/submission races;
-concurrent approval/rejection; account suspension races; product enforcement for
-`ACTIVE`, `SUSPENDED`, and `DISABLED`; signed review playback and token privacy;
-public playback enable/revoke/re-enable; durable provider failure and retry;
-delayed and duplicate Mux events; immutable audit snapshot contents; exact API
-response/nullability/error contracts; `private, no-store` on all admin responses;
-and regression of the existing application/upload/sync/webhook workflows.
+`admin-backend-api.md`. The exact handoff is:
+
+- clean migration and upgrade migration across all existing teacher states
+- preservation or fail-safe downgrade of old `APPROVED` and `SUSPENDED` users
+- malformed legacy pending applications and malformed/unusable legacy videos
+- complete rollback when the atomic migration guard raises
+- reconciliation worker concurrency and conditional claiming
+- expired lease recovery and intent-generation flips
+- Mux create succeeds followed by database failure
+- Mux delete fails
+- Mux delete succeeds followed by final database conflict/failure
+- discovery of untracked public playback IDs and cleanup of duplicate public IDs
+- reconciliation retry timing and exponential backoff
+- protected internal-job authorization and safe result counts
+- manual replay of one reconciliation and bounded due batches
+- Better Auth inactive-account catch-all allowlist and denied normal access
+- first-upload race with account/application suspension or state change
+- signed review-token race with reject, replace, or admin revocation
+- differing Mux asset ID within the same video revision
+- Prisma `P2034` serialization conflict mapping to stable HTTP 409
+- current-admin capability output for `REVIEWER` and `SUPER_ADMIN`
+- applicant DTO privacy for submitted/current provider identifiers
+- audit immutability for `UPDATE`, `DELETE`, and `TRUNCATE`
+- the complete admin authorization matrix; malformed IDs, bodies, queries, and
+  origins; bootstrap; and last-active-`SUPER_ADMIN` protection
+- `PROFILE`, `VIDEO`, and `BOTH` rejection; correction/resubmission; stale
+  review-cycle/profile/video/upload/asset conflicts; edit/submission,
+  upload/submission, approval/rejection, and moderation races
+- product enforcement for `ACTIVE`, `SUSPENDED`, and `DISABLED`; delayed and
+  duplicate Mux events; immutable audit snapshots; exact response nullability,
+  stable errors, and `private, no-store`; plus regression of the existing
+  application/upload/sync/webhook workflows

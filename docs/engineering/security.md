@@ -12,6 +12,23 @@ Better Auth identifies authenticated users.
 
 Sensitive operations require a valid server-side session.
 
+Takineo treats account status as an additional server-side session boundary.
+Only `ACTIVE` users may create or update Better Auth sessions or use the normal
+Better Auth application endpoints. The Better Auth catch-all keeps this narrow
+security allowlist available to an already-authenticated `SUSPENDED` or
+`DISABLED` user so they can exit or protect the account:
+
+- `/api/auth/sign-out`
+- `/api/auth/list-sessions`
+- `/api/auth/revoke-session`
+- `/api/auth/revoke-sessions`
+- `/api/auth/revoke-other-sessions`
+
+All other Better Auth catch-all operations for a known inactive session return
+`403 ACCOUNT_INACTIVE`. Session create/update database hooks also fail closed
+when the owning account is inactive. Authorization for Takineo product APIs
+continues to require an active server-side session independently.
+
 ## Authorization
 
 Authorization must be enforced server-side.
@@ -166,6 +183,12 @@ High-impact actions include:
 
 Admin bootstrap and administrative permission grant, revocation, or level
 changes are also high-impact auditable actions.
+
+The database rejects ordinary `UPDATE`, `DELETE`, and `TRUNCATE` operations on
+the admin audit table. A future schema or retention migration that deliberately
+needs one of those operations must explicitly disable/remove the guard inside a
+controlled privileged migration and restore the intended protection; routine
+application credentials must never bypass it.
 
 ## RLS
 

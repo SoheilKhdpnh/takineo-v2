@@ -45,14 +45,27 @@ const teacherApplicationSelect = {
   },
 } satisfies Prisma.TeacherProfileSelect;
 
-export type TeacherApplicationRecord =
+type TeacherApplicationContext =
   Prisma.TeacherProfileGetPayload<{
     select: typeof teacherApplicationSelect;
   }>;
 
-export async function getTeacherApplicationForUser(
+function toApplicantApplication(application: TeacherApplicationContext) {
+  const { submittedVideoUploadId: _submittedUpload, submittedVideoAssetId: _submittedAsset, introVideo, ...profile } = application;
+  void _submittedUpload;
+  void _submittedAsset;
+  if (!introVideo) return { ...profile, introVideo: null };
+  const { uploadId: _upload, assetId: _asset, ...applicantVideo } = introVideo;
+  void _upload;
+  void _asset;
+  return { ...profile, introVideo: applicantVideo };
+}
+
+export type TeacherApplicationRecord = ReturnType<typeof toApplicantApplication>;
+
+async function getTeacherApplicationContext(
   userId: string,
-): Promise<TeacherApplicationRecord> {
+): Promise<TeacherApplicationContext> {
   const user = await prisma.user.findUnique({
     where: {
       id: userId,
@@ -87,6 +100,10 @@ export async function getTeacherApplicationForUser(
   return user.teacherProfile;
 }
 
+export async function getTeacherApplicationForUser(userId: string): Promise<TeacherApplicationRecord> {
+  return toApplicantApplication(await getTeacherApplicationContext(userId));
+}
+
 function isAcceptableSubmissionVideo(
   status:
     | "UPLOAD_PENDING"
@@ -106,7 +123,7 @@ export async function submitTeacherApplication(
   userId: string,
 ): Promise<TeacherApplicationRecord> {
   const application =
-    await getTeacherApplicationForUser(userId);
+    await getTeacherApplicationContext(userId);
 
   if (
     !canSubmitTeacherApplication(

@@ -18,7 +18,8 @@ import {
 } from "@/lib/domain/teacher-application";
 import { serverEnv } from "@/lib/env/server";
 import { getMuxClient } from "@/lib/video/mux-client";
-import { reconcileMuxPlayback } from "@/lib/services/mux-playback-reconciliation.service";
+import { queueMuxPlaybackIntent, reconcileMuxPlayback } from "@/lib/services/mux-playback-reconciliation.service";
+import { cleanupMuxReviewPlayback } from "@/lib/video/mux-review-playback";
 
 const teacherIntroVideoSelect = {
   id: true,
@@ -221,10 +222,20 @@ export async function markTeacherIntroVideoUploadComplete(
     userId,
   );
 }
-export type TeacherIntroVideoRecord =
+type TeacherIntroVideoRecord =
   Prisma.TeacherIntroVideoGetPayload<{
     select: typeof teacherIntroVideoSelect;
   }>;
+
+function toApplicantVideo(video: TeacherIntroVideoRecord | null) {
+  if (!video) return null;
+  const { provider: _provider, uploadId: _uploadId, assetId: _assetId, publicPlaybackId: _publicPlaybackId, ...applicantVideo } = video;
+  void _provider;
+  void _uploadId;
+  void _assetId;
+  void _publicPlaybackId;
+  return applicantVideo;
+}
 
 async function getTeacherVideoContext(
   userId: string,
@@ -286,7 +297,7 @@ export async function getTeacherIntroVideoState(
     ),
 
     introVideo:
-      teacherProfile.introVideo,
+      toApplicantVideo(teacherProfile.introVideo),
   };
 }
 
@@ -307,6 +318,10 @@ export async function createTeacherIntroVideoUpload(
   ) {
     throw new TeacherApplicationLockedError();
   }
+
+  const previousReviewPlaybackId = teacherProfile.introVideo
+    ? await prisma.teacherIntroVideo.findUnique({ where: { id: teacherProfile.introVideo.id }, select: { reviewPlaybackId: true } }).then((row) => row?.reviewPlaybackId ?? null)
+    : null;
 
   const mux = getMuxClient();
 
@@ -336,36 +351,46 @@ export async function createTeacherIntroVideoUpload(
     );
   }
 
-  const databaseResult = await prisma.$transaction(async (tx) => {
-    const current = teacherProfile.introVideo;
-    if (!current) {
-      const introVideo = await tx.teacherIntroVideo.create({
-        data: { teacherProfileId: teacherProfile.id, provider: "mux", uploadId: upload.id, status: "UPLOAD_PENDING" },
-        select: teacherIntroVideoSelect,
-      });
-      return { introVideo, reconciliationId: null as string | null };
+  const databaseResult = await (async () => {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const current = teacherProfile.introVideo;
+        if (!current) {
+          const eligible = await tx.teacherProfile.count({ where: { id: teacherProfile.id, applicationStatus: { in: ["DRAFT", "REJECTED"] }, user: { id: userId, accountStatus: "ACTIVE" }, introVideo: { is: null } } });
+          if (eligible !== 1) throw new TeacherApplicationLockedError();
+          const introVideo = await tx.teacherIntroVideo.create({
+            data: { teacherProfileId: teacherProfile.id, provider: "mux", uploadId: upload.id, status: "UPLOAD_PENDING" },
+            select: teacherIntroVideoSelect,
+          });
+          return { introVideo, reconciliationId: null as string | null };
+        }
+        let reconciliationId: string | null = null;
+        if (current.assetId) {
+          const reconciliation = await queueMuxPlaybackIntent(tx, { introVideoId: current.id, videoRevision: current.revision, assetId: current.assetId, playbackId: current.publicPlaybackId, desiredState: "REVOKED" });
+          reconciliationId = reconciliation.id;
+        }
+        const changed = await tx.teacherIntroVideo.updateMany({
+          where: { id: current.id, revision: current.revision, teacherProfile: { applicationStatus: { in: ["DRAFT", "REJECTED"] }, user: { accountStatus: "ACTIVE" } } },
+          data: { provider: "mux", uploadId: upload.id, assetId: null, reviewPlaybackId: null, publicPlaybackId: null, revision: { increment: 1 }, status: "UPLOAD_PENDING", durationSeconds: null, rejectionReason: null, submittedAt: null, reviewedAt: null },
+        });
+        if (changed.count !== 1) throw new TeacherApplicationLockedError();
+        const introVideo = await tx.teacherIntroVideo.findUniqueOrThrow({ where: { id: current.id }, select: teacherIntroVideoSelect });
+        return { introVideo, reconciliationId };
+      }, { isolationLevel: "Serializable" });
+    } catch (error) {
+      try { await mux.video.uploads.cancel(upload.id); }
+      catch { /* The URL is never returned; an uncancelled orphan expires at Mux. */ }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code)) throw new TeacherApplicationLockedError();
+      throw error;
     }
-    let reconciliationId: string | null = null;
-    if (current.assetId && current.publicPlaybackId) {
-      const reconciliation = await tx.muxPlaybackReconciliation.upsert({
-        where: { introVideoId_videoRevision: { introVideoId: current.id, videoRevision: current.revision } },
-        create: { introVideoId: current.id, videoRevision: current.revision, assetId: current.assetId, playbackId: current.publicPlaybackId, desiredState: "REVOKED", status: "PENDING" },
-        update: { playbackId: current.publicPlaybackId, desiredState: "REVOKED", status: "PENDING", lastErrorCode: null },
-      });
-      reconciliationId = reconciliation.id;
-    }
-    const changed = await tx.teacherIntroVideo.updateMany({
-      where: { id: current.id, revision: current.revision, teacherProfile: { applicationStatus: { in: ["DRAFT", "REJECTED"] }, user: { accountStatus: "ACTIVE" } } },
-      data: { provider: "mux", uploadId: upload.id, assetId: null, reviewPlaybackId: null, publicPlaybackId: null, revision: { increment: 1 }, status: "UPLOAD_PENDING", durationSeconds: null, rejectionReason: null, submittedAt: null, reviewedAt: null },
-    });
-    if (changed.count !== 1) throw new TeacherApplicationLockedError();
-    const introVideo = await tx.teacherIntroVideo.findUniqueOrThrow({ where: { id: current.id }, select: teacherIntroVideoSelect });
-    return { introVideo, reconciliationId };
-  });
+  })();
   if (databaseResult.reconciliationId) await reconcileMuxPlayback(databaseResult.reconciliationId);
+  if (teacherProfile.introVideo?.assetId) {
+    await cleanupMuxReviewPlayback({ videoId: teacherProfile.introVideo.id, videoRevision: teacherProfile.introVideo.revision, assetId: teacherProfile.introVideo.assetId, playbackId: previousReviewPlaybackId });
+  }
 
   return {
-    introVideo: databaseResult.introVideo,
+    introVideo: toApplicantVideo(databaseResult.introVideo),
 
     upload: {
       id: upload.id,
@@ -384,6 +409,7 @@ export async function markTeacherVideoProcessing(
     where: {
       uploadId,
       status: { in: ["UPLOAD_PENDING", "PROCESSING"] },
+      OR: [{ assetId: null }, { assetId }],
     },
 
     data: {
