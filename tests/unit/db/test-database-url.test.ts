@@ -1,4 +1,4 @@
-﻿import {
+import {
   describe,
   expect,
   it,
@@ -141,4 +141,3 @@ describe("TEST_DATABASE_URL safety guard", () => {
     );
   });
 });
-

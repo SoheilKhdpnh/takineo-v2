@@ -1,4 +1,4 @@
-﻿const POSTGRES_PROTOCOLS = new Set([
+const POSTGRES_PROTOCOLS = new Set([
   "postgres:",
   "postgresql:",
 ]);
@@ -79,5 +79,3 @@ export function getTestDatabaseUrl(
 
   return rawTestUrl;
 }
-
-
