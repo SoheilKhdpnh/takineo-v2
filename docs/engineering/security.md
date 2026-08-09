@@ -13,10 +13,11 @@ Better Auth identifies authenticated users.
 Sensitive operations require a valid server-side session.
 
 Takineo treats account status as an additional server-side session boundary.
-Only `ACTIVE` users may create or update Better Auth sessions or use the normal
-Better Auth application endpoints. The Better Auth catch-all keeps this narrow
-security allowlist available to an already-authenticated `SUSPENDED` or
-`DISABLED` user so they can exit or protect the account:
+Only `ACTIVE` users may create Better Auth sessions or use normal application
+endpoints. Better Auth 1.6.25 sliding updates derive the authenticated user from
+the supported endpoint-hook context rather than from the partial update payload.
+`ACTIVE` sessions refresh normally. An already-authenticated `SUSPENDED` or
+`DISABLED` user retains only this exact security self-service allowlist:
 
 - `/api/auth/sign-out`
 - `/api/auth/list-sessions`
@@ -25,9 +26,13 @@ security allowlist available to an already-authenticated `SUSPENDED` or
 - `/api/auth/revoke-other-sessions`
 
 All other Better Auth catch-all operations for a known inactive session return
-`403 ACCOUNT_INACTIVE`. Session create/update database hooks also fail closed
-when the owning account is inactive. Authorization for Takineo product APIs
-continues to require an active server-side session independently.
+`403 ACCOUNT_INACTIVE`. Sign-out is dispatched without an account-policy
+preflight so cookie/session cleanup remains available. Session creation fails
+closed for inactive accounts. Normal session refresh remains available only to
+`ACTIVE` accounts; inactive accounts cannot use `/get-session` to extend a
+session. The remaining self-service endpoints exist only for sign-out,
+inspection of other sessions, and session revocation. Authorization for Takineo
+product APIs continues to require an active server-side session independently.
 
 ## Authorization
 

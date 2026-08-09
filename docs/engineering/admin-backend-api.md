@@ -185,6 +185,8 @@ target account state fails with `409 REVIEW_STATE_CONFLICT`.
 `POST /api/admin/teacher-applications/:applicationId/playback` with no body.
 Allowed only for the unchanged current submitted video in `READY_FOR_REVIEW` or
 `APPROVED` while the application is `PENDING_REVIEW`.
+Any non-empty request body, including `{}`, JSON `null`, whitespace, or
+authoritative review fields, returns `400 INVALID_REQUEST`.
 
 ```ts
 type PlaybackResponse = {
@@ -201,7 +203,9 @@ return `reviewPlaybackId`. Immediately before returning the token, the server
 revalidates the active administrator, pending application cycle, profile/video
 revisions, provider, upload, and asset. Rejected/replaced/finally approved
 review IDs are deleted best-effort; failed deletion does not permit new tokens,
-and already issued tokens expire after at most five minutes.
+and already issued tokens expire after at most five minutes. If this final
+administrator check observes revocation or inactivity, it remains
+`403 ADMIN_FORBIDDEN`; it is never mapped to a Mux provider error.
 
 ## Approve
 
@@ -281,13 +285,19 @@ code and retried through the reconciliation processor.
 
 ## Mux playback reconciliation operations
 
-Every desired-state change increments `intentGeneration`, resets retry state,
-and invalidates any existing lease. Workers claim due rows with a UUID
-`leaseToken` and 60-second `leaseExpiresAt`. Final database writes require the
-same lease token, intent generation, and video revision. A stale worker may
-complete an unavoidable provider call but cannot mark or erase newer intent;
-an observed stale provider effect increments/requeues the current generation so
-the newer desired state subsequently reconverges provider state.
+Every provider mutation is preceded by renewal of the exact
+`intentGeneration` + `leaseToken` lease. A worker that loses its fence stops
+without modifying newer database intent. Because a provider call is external,
+a generation can still become stale immediately after the final lease check;
+therefore terminal `SUCCEEDED` intents remain periodically verifiable and
+repair any resulting provider drift.
+
+`SUCCEEDED` means provider state was observed converged and the fenced database
+finalization succeeded; it is not permanently retired. Its `nextAttemptAt` is
+set five minutes ahead for terminal verification. Due `SUCCEEDED` rows are
+leased and checked again, so an old worker that mutates Mux and dies after a
+newer generation succeeded cannot leave permanent drift. `nextAttemptAt`
+therefore represents either a failure retry or a terminal verification.
 
 Retries start at 30 seconds with exponential backoff capped at one hour.
 Revocation always retrieves the authoritative Mux asset and removes every
@@ -301,8 +311,9 @@ Processing entry points:
 - Server service: `processDueMuxPlaybackReconciliations(limit)` processes a
   bounded 1–50 row batch and returns safe selected/succeeded/failed/requeued/
   skipped counts.
-- Manual replay: `npm run ops:mux-reconcile -- --limit 20`, or force one due
-  intent with `npm run ops:mux-reconcile -- --id <reconciliation-cuid>`.
+- Manual replay: `npm run ops:mux-reconcile -- --limit 20`, or force one intent,
+  including terminal `SUCCEEDED`, with
+  `npm run ops:mux-reconcile -- --id <reconciliation-cuid>`.
 - Future scheduler endpoint: `POST /api/internal/jobs/mux-playback-reconciliation`
   with `X-Takineo-Job-Secret` and strict body `{ "limit": 20 }`.
 
@@ -312,6 +323,19 @@ characters), is not a user/admin browser API, and returns
 `INVALID_REQUEST` when applicable. The processor exists, but production
 deployment must explicitly attach a scheduler; no scheduler is currently
 deployed.
+
+Count semantics are operationally strict:
+
+- `succeeded`: authoritative provider state was converged and fenced
+  finalization succeeded
+- `requeued`: immediate durable `PENDING` recovery was persisted
+- `skipped`: no claim was acquired, work was not due or was actively leased, or
+  the worker lost its generation/lease fence and therefore could not
+  authoritatively finalize the attempt
+- `failed`: the leased attempt encountered an error while still owning its
+  fence and was durably marked `FAILED` with backoff
+
+Pending/requeued work is never counted as succeeded.
 
 ## Provisioning, account moderation, and secrets
 

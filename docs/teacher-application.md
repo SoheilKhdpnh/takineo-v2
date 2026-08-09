@@ -99,13 +99,27 @@ If that evidence is insufficient, the application becomes editable
 `REJECTED` and must be explicitly resubmitted. Malformed legacy pending rows
 also become `REJECTED`; unusable videos become replaceable `REJECTED` videos.
 Dedicated legacy snapshot fields retain the previous application/video state,
-review note, review timestamp, and migration context. Existing review history
-is not overwritten by the migration context message.
+application/video submitted timestamps, review note, video rejection reason,
+review timestamps, and migration context for every pre-Wave 1 row—including
+existing rejected and safely preserved states. Existing review history is not
+overwritten by the migration context message, and migration normalization does
+not invent a new administrative review timestamp.
+
+Malformed terminal-looking media on editable `DRAFT`/`REJECTED` applications
+is normalized to replaceable `REJECTED` media. Submission independently
+requires exact Mux provider identity, canonical nonblank and distinct upload/
+asset IDs, processed duration from 60 through 120 seconds, and a current
+`READY_FOR_REVIEW` or `APPROVED` status. A legacy status label alone is never
+sufficient.
 
 The migration is enclosed in an explicit PostgreSQL transaction. Its deliberate
 legacy-playback consistency guard raises before `COMMIT`, so any failure rolls
-back all statements in the migration. It must be exercised against a disposable
-PostgreSQL upgrade database before deployment.
+back all statements in the migration. Legacy public playback with unsupported
+provider identity, blank/whitespace/noncanonical identifiers, or incoherent
+Mux identifiers triggers this guard. The original source row remains intact so
+an operator can verify/revoke provider state or repair the identity before
+retrying. The migration must be exercised against a disposable PostgreSQL
+upgrade database before deployment.
 
 ## Administrative review
 

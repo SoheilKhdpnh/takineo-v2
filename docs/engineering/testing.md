@@ -135,33 +135,40 @@ tests, never a reason to fall back to another database.
 Agent D must test the implemented DTOs and invariants in
 `admin-backend-api.md`. The exact handoff is:
 
-- clean migration and upgrade migration across all existing teacher states
-- preservation or fail-safe downgrade of old `APPROVED` and `SUSPENDED` users
-- malformed legacy pending applications and malformed/unusable legacy videos
-- complete rollback when the atomic migration guard raises
-- reconciliation worker concurrency and conditional claiming
-- expired lease recovery and intent-generation flips
-- Mux create succeeds followed by database failure
-- Mux delete fails
-- Mux delete succeeds followed by final database conflict/failure
-- discovery of untracked public playback IDs and cleanup of duplicate public IDs
-- reconciliation retry timing and exponential backoff
-- protected internal-job authorization and safe result counts
-- manual replay of one reconciliation and bounded due batches
-- Better Auth inactive-account catch-all allowlist and denied normal access
-- first-upload race with account/application suspension or state change
-- signed review-token race with reject, replace, or admin revocation
-- differing Mux asset ID within the same video revision
+- `ACTIVE` Better Auth sliding refresh and `ACTIVE` sign out
+- suspended/disabled `/get-session` denial without session refresh, while
+  sign-out, session listing, and self-revocation remain available and every
+  ordinary auth/product/admin operation is denied
+- clean migration and full upgrade migration across every legacy application
+  and video state/evidence combination
+- editable malformed-video normalization and successful replacement afterward
+- submission rejection for unsupported provider, blank/whitespace/noncanonical
+  or incoherent IDs, and missing/out-of-range authoritative duration
+- preservation of legacy application/video status, notes/reasons, submitted
+  timestamps, and reviewed timestamps for rejected, pending, approved,
+  suspended, and downgraded rows
+- public-playback migration fixtures with unsupported provider, null/blank/
+  whitespace asset, malformed playback ID, and incoherent identities
+- complete rollback when any atomic migration guard raises
+- stale worker death immediately after Mux public playback create
+- stale worker death immediately after Mux public playback delete
+- provider drift repair for due `SUCCEEDED` ENABLED and REVOKED intents
+- duplicate public playback discovery and repair
+- forced manual replay of terminal intents and bounded due batches
+- scheduler/internal replay of terminal drift and internal-job authorization
+- exact truthful `succeeded`, `requeued`, `skipped`, and `failed` counts
+- expired lease recovery, intent-generation flips, worker concurrency, provider
+  failures, and final database-write conflicts
+- signed-token admin revocation/inactivity returning stable 403, plus concurrent
+  reject/replace target races
+- queue/detail admin authorization before validation or object lookup
+- playback with an absent body succeeding and `{}`, whitespace, JSON `null`, or
+  arbitrary fields returning `400 INVALID_REQUEST`
+- differing Mux asset ID within the same video revision and delayed/duplicate
+  webhook behavior
 - Prisma `P2034` serialization conflict mapping to stable HTTP 409
-- current-admin capability output for `REVIEWER` and `SUPER_ADMIN`
-- applicant DTO privacy for submitted/current provider identifiers
+- current-admin capabilities and applicant DTO provider-identifier privacy
 - audit immutability for `UPDATE`, `DELETE`, and `TRUNCATE`
-- the complete admin authorization matrix; malformed IDs, bodies, queries, and
-  origins; bootstrap; and last-active-`SUPER_ADMIN` protection
-- `PROFILE`, `VIDEO`, and `BOTH` rejection; correction/resubmission; stale
-  review-cycle/profile/video/upload/asset conflicts; edit/submission,
-  upload/submission, approval/rejection, and moderation races
-- product enforcement for `ACTIVE`, `SUSPENDED`, and `DISABLED`; delayed and
-  duplicate Mux events; immutable audit snapshots; exact response nullability,
-  stable errors, and `private, no-store`; plus regression of the existing
-  application/upload/sync/webhook workflows
+- the complete existing teacher application, profile, upload, sync, webhook,
+  review, correction/resubmission, moderation, authorization, concurrency,
+  response/nullability, stable-error, and `private, no-store` regression suite

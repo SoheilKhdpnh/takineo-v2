@@ -121,6 +121,13 @@ can adopt a public playback ID created before a failed database write, remove
 duplicate public IDs, and revoke provider IDs even when the local playback ID
 is missing. Signed review IDs are not treated as public IDs.
 
+Successful intents remain periodically verifiable: `SUCCEEDED` schedules its
+next authoritative check five minutes later. Scheduled processing includes due
+terminal rows, and manual `--id` replay forces terminal verification while
+respecting active leases. This repairs missing, obsolete, or duplicate public
+IDs even if a superseded worker performs a provider mutation and exits before
+it can update database intent.
+
 Operations may replay one reconciliation or a bounded due batch with:
 
 ```text

@@ -3,7 +3,6 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 
 const inactiveAccountSelfServiceEndpoints = new Set([
-  "/get-session",
   "/sign-out",
   "/list-sessions",
   "/revoke-session",
