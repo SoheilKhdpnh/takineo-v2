@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import {
   getTestDatabaseUrl,
 } from "@/tests/support/test-database-url";
