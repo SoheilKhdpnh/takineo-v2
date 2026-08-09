@@ -4,11 +4,6 @@ import {
   getTestDatabaseUrl,
 } from "@/tests/support/test-database-url";
 
-const testDatabaseUrl =
-  getTestDatabaseUrl();
-
-process.env.DATABASE_URL =
-  testDatabaseUrl;
-
-process.env.DIRECT_URL =
-  testDatabaseUrl;
+// Fail immediately before any integration test can import
+// a database client. Do not rewrite DATABASE_URL or DIRECT_URL.
+getTestDatabaseUrl();
