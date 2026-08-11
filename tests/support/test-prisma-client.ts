@@ -14,9 +14,24 @@ export function createTestPrismaClient():
   const connectionString =
     getTestDatabaseUrl();
 
+  /*
+   * Keep PostgreSQL driver-adapter sessions in
+   * UTC.
+   *
+   * SpeakingSession timestamps represent
+   * absolute instants. Their persistence must
+   * therefore not depend on the PostgreSQL
+   * server/session timezone.
+   *
+   * This also avoids known @prisma/adapter-pg
+   * TIMESTAMPTZ behavior on non-UTC sessions.
+   */
   const adapter =
     new PrismaPg({
       connectionString,
+
+      options:
+        "-c timezone=UTC",
     });
 
   return new PrismaClient({
