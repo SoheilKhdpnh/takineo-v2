@@ -1,16 +1,33 @@
 import "server-only";
 
-import { prisma } from "@/lib/db/prisma";
-import { AdminReviewConflictError } from "@/lib/errors/admin-errors";
-import { Prisma } from "@/lib/generated/prisma/client";
+import {
+  AdminReviewConflictError,
+} from "@/lib/errors/admin-errors";
+import {
+  Prisma,
+} from "@/lib/generated/prisma/client";
+import {
+  runSerializableTransaction,
+} from "@/lib/services/serializable-transaction";
 
-export async function runSerializableAdminTransaction<T>(work: (tx: Prisma.TransactionClient) => Promise<T>) {
-  try {
-    return await prisma.$transaction(work, { isolationLevel: "Serializable" });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
-      throw new AdminReviewConflictError();
-    }
-    throw error;
-  }
+export async function runSerializableAdminTransaction<T>(
+  work: (
+    tx: Prisma.TransactionClient,
+  ) => Promise<T>,
+): Promise<T> {
+  return runSerializableTransaction(
+    work,
+    {
+      /*
+       * Preserve Wave 1 semantics:
+       * admin review conflicts are surfaced
+       * immediately rather than retried.
+       */
+      maxAttempts: 1,
+
+      conflictErrorFactory:
+        () =>
+          new AdminReviewConflictError(),
+    },
+  );
 }

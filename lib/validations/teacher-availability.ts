@@ -87,6 +87,38 @@ export const replaceTeacherAvailabilitySchema =
         value,
         context,
       ) => {
+        const exactWindows =
+          new Set<string>();
+
+        for (
+          const rule
+          of value.rules
+        ) {
+          const key =
+            `${rule.weekday}:${rule.startMinute}:${rule.endMinute}`;
+
+          if (
+            exactWindows.has(
+              key,
+            )
+          ) {
+            context.addIssue({
+              code: "custom",
+              path: [
+                "rules",
+              ],
+              message:
+                "Duplicate availability windows are not allowed.",
+            });
+
+            return;
+          }
+
+          exactWindows.add(
+            key,
+          );
+        }
+
         const activeRules =
           value.rules.filter(
             (rule) =>
