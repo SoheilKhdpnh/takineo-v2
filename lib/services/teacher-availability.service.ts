@@ -1,10 +1,6 @@
 import "server-only";
 
 import {
-  createHash,
-} from "node:crypto";
-
-import {
   prisma,
 } from "@/lib/db/prisma";
 import {
@@ -29,6 +25,9 @@ import {
 import {
   Prisma,
 } from "@/lib/generated/prisma/client";
+import {
+  lockTeacherBookingScope,
+} from "@/lib/services/booking-locks";
 import {
   runSerializableTransaction,
 } from "@/lib/services/serializable-transaction";
@@ -274,53 +273,6 @@ async function getTeacherAvailabilityContext(
   };
 }
 
-function getAvailabilityLockKey(
-  userId: string,
-): bigint {
-  const digest =
-    createHash(
-      "sha256",
-    )
-      .update(
-        `takineo:teacher-availability:${userId}`,
-      )
-      .digest();
-
-  return digest.readBigInt64BE(
-    0,
-  );
-}
-
-async function lockTeacherAvailability(
-  tx:
-    Prisma.TransactionClient,
-  userId: string,
-): Promise<void> {
-  const lockKey =
-    getAvailabilityLockKey(
-      userId,
-    );
-
-  /*
-   * pg_advisory_xact_lock returns PostgreSQL
-   * void. $queryRaw would attempt to deserialize
-   * that unsupported value.
-   *
-   * $executeRaw executes the statement without
-   * asking Prisma to deserialize the void result.
-   *
-   * Because this is a transaction-level advisory
-   * lock, PostgreSQL releases it automatically
-   * when the surrounding transaction completes.
-   */
-  await tx.$executeRaw`
-    SELECT
-      pg_advisory_xact_lock(
-        ${lockKey}
-      )
-  `;
-}
-
 function translateAvailabilityWriteError(
   error: unknown,
 ): never {
@@ -470,7 +422,7 @@ export async function replaceTeacherWeeklyAvailability(
          * any authorization read or availability
          * mutation in this transaction.
          */
-        await lockTeacherAvailability(
+        await lockTeacherBookingScope(
           tx,
           userId,
         );
@@ -578,7 +530,7 @@ export async function createTeacherAvailabilityException(
     const row =
       await runSerializableTransaction(
         async (tx) => {
-          await lockTeacherAvailability(
+          await lockTeacherBookingScope(
             tx,
             userId,
           );
@@ -654,7 +606,7 @@ export async function deleteTeacherAvailabilityException(
   try {
     await runSerializableTransaction(
       async (tx) => {
-        await lockTeacherAvailability(
+        await lockTeacherBookingScope(
           tx,
           userId,
         );
