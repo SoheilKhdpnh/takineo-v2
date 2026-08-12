@@ -413,6 +413,8 @@ model SpeakingSession {
   @@unique([studentUserId, bookingIdempotencyKey], map: "speaking_session_student_idempotency_key")
   @@index([teacherProfileId, status, startAt], map: "speaking_session_teacher_status_start_idx")
   @@index([studentUserId, status, startAt], map: "speaking_session_student_status_start_idx")
+  @@index([teacherProfileId, startAt, id], map: "speaking_session_teacher_start_id_idx")
+  @@index([studentUserId, startAt, id], map: "speaking_session_student_start_id_idx")
   @@index([status, startAt], map: "speaking_session_status_start_idx")
   @@map("speaking_session")
 }
