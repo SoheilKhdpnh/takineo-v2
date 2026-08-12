@@ -891,87 +891,121 @@ describe.sequential(
     );
 
     test(
-      "CANCELLED sessions release the slot for a new booking",
-      async () => {
-        await insertSession({
-          id:
-            "it_wave2_session_cancelled",
-          teacherProfileId:
-            IDS.teacherProfileA,
-          studentUserId:
-            IDS.studentA,
-          startAt:
-            "2026-08-24T05:30:00Z",
-          endAt:
-            "2026-08-24T05:45:00Z",
-          key:
-            "cancelled-original",
-        });
-
-        await setupClient!.query(`
-          UPDATE "speaking_session"
-          SET
-            "status" = 'CANCELLED',
-            "updatedAt" =
-              CURRENT_TIMESTAMP
-          WHERE
-            "id" =
-              'it_wave2_session_cancelled'
-        `);
-
-        await setupClient!.query(`
-          INSERT INTO
-            "speaking_session_cancellation" (
-              "id",
-              "sessionId",
-              "actorType",
-              "actorUserId",
-              "reason"
-            )
-          VALUES (
-            'it_wave2_cancellation_valid',
-            'it_wave2_session_cancelled',
-            'STUDENT',
-            '${IDS.studentA}',
-            'Schedule changed'
-          )
-        `);
-
-        await insertSession({
-          id:
-            "it_wave2_session_rebooked",
-          teacherProfileId:
-            IDS.teacherProfileA,
-          studentUserId:
-            IDS.studentA,
-          startAt:
-            "2026-08-24T05:30:00Z",
-          endAt:
-            "2026-08-24T05:45:00Z",
-          key:
-            "cancelled-rebook",
-        });
-
-        const count =
-          await setupClient!.query<{
-            count: number;
-          }>(`
-            SELECT COUNT(*)::int
-              AS count
-            FROM "speaking_session"
-            WHERE
-              "teacherProfileId" =
-                '${IDS.teacherProfileA}'
-              AND "startAt" =
-                '2026-08-24T05:30:00Z'
-                  ::timestamptz
-          `);
-
-        expect(
-          count.rows[0]?.count,
-        ).toBe(2);
-      },
+  "CANCELLED sessions release the slot for a new booking",
+  async () => {
+    /*
+     * Cancellation history is append-only once
+     * committed.
+     *
+     * Keep this fixture transaction-scoped so
+     * ROLLBACK removes the test history without
+     * violating production immutability.
+     */
+    await setupClient!.query(
+      "BEGIN",
     );
+
+    try {
+      await insertSession({
+        id:
+          "it_wave2_session_cancelled",
+
+        teacherProfileId:
+          IDS.teacherProfileA,
+
+        studentUserId:
+          IDS.studentA,
+
+        startAt:
+          "2026-08-24T05:30:00Z",
+
+        endAt:
+          "2026-08-24T05:45:00Z",
+
+        key:
+          "cancelled-original",
+      });
+
+      await setupClient!.query(`
+        UPDATE
+          "speaking_session"
+        SET
+          "status" = 'CANCELLED',
+          "updatedAt" =
+            CURRENT_TIMESTAMP
+        WHERE
+          "id" =
+            'it_wave2_session_cancelled'
+      `);
+
+      await setupClient!.query(`
+        INSERT INTO
+          "speaking_session_cancellation" (
+            "id",
+            "sessionId",
+            "actorType",
+            "actorUserId",
+            "reason"
+          )
+        VALUES (
+          'it_wave2_cancellation_valid',
+          'it_wave2_session_cancelled',
+          'STUDENT',
+          '${IDS.studentA}',
+          'Schedule changed'
+        )
+      `);
+
+      await insertSession({
+        id:
+          "it_wave2_session_rebooked",
+
+        teacherProfileId:
+          IDS.teacherProfileA,
+
+        studentUserId:
+          IDS.studentA,
+
+        startAt:
+          "2026-08-24T05:30:00Z",
+
+        endAt:
+          "2026-08-24T05:45:00Z",
+
+        key:
+          "cancelled-rebook",
+      });
+
+      const count =
+        await setupClient!.query<{
+          count: number;
+        }>(`
+          SELECT
+            COUNT(*)::int
+              AS count
+          FROM
+            "speaking_session"
+          WHERE
+            "teacherProfileId" =
+              '${IDS.teacherProfileA}'
+            AND
+            "startAt" =
+              '2026-08-24T05:30:00Z'
+              ::timestamptz
+        `);
+
+      expect(
+        count.rows[0]?.count,
+      ).toBe(
+        2,
+      );
+    } finally {
+      await setupClient!.query(
+        "ROLLBACK",
+      );
+    }
+  },
+);
 
     test(
       "booking idempotency is unique per student across retries",
@@ -1115,23 +1149,33 @@ describe.sequential(
           "session_cancellation_reason_check",
         );
 
-        await setupClient!.query(`
-          INSERT INTO
-            "speaking_session_cancellation" (
-              "id",
-              "sessionId",
-              "actorType",
-              "actorUserId",
-              "reason"
+        await setupClient!.query(
+          "BEGIN",
+        );
+
+        try {
+          await setupClient!.query(`
+            INSERT INTO
+              "speaking_session_cancellation" (
+                "id",
+                "sessionId",
+                "actorType",
+                "actorUserId",
+                "reason"
+              )
+            VALUES (
+              'it_wave2_cancel_valid',
+              'it_wave2_session_for_cancellation',
+              'STUDENT',
+              '${IDS.studentA}',
+              'Cannot attend'
             )
-          VALUES (
-            'it_wave2_cancel_valid',
-            'it_wave2_session_for_cancellation',
-            'STUDENT',
-            '${IDS.studentA}',
-            'Cannot attend'
-          )
-        `);
+          `);
+        } finally {
+          await setupClient!.query(
+            "ROLLBACK",
+          );
+        }
       },
     );
 

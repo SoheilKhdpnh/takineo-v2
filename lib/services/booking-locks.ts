@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import {
   createHash,
@@ -16,19 +16,47 @@ type BookingLockScope =
   | {
       type: "student";
       id: string;
+    }
+  | {
+      type: "session";
+      id: string;
     };
 
 function getBookingLockKey(
   scope: BookingLockScope,
 ): bigint {
-  /*
-   * Preserve the teacher lock namespace that
-   * Wave 2 availability writes already use.
-   */
-  const namespace =
-    scope.type === "teacher"
-      ? `takineo:teacher-availability:${scope.id}`
-      : `takineo:student-booking:${scope.id}`;
+  let namespace:
+    string;
+
+  switch (
+    scope.type
+  ) {
+    case "teacher":
+      /*
+       * Preserve the namespace already shared
+       * between availability writes and booking.
+       */
+      namespace =
+        `takineo:teacher-availability:${scope.id}`;
+      break;
+
+    case "student":
+      namespace =
+        `takineo:student-booking:${scope.id}`;
+      break;
+
+    case "session":
+      /*
+       * Every future terminal session transition
+       * must share this namespace:
+       *
+       * cancel ↔ complete ↔ future dispute/state
+       * transitions.
+       */
+      namespace =
+        `takineo:speaking-session:${scope.id}`;
+      break;
+  }
 
   const digest =
     createHash(
@@ -72,9 +100,9 @@ async function lockScopes(
   }
 
   /*
-   * Deterministic ordering avoids introducing
-   * lock-order deadlocks when a transaction
-   * needs multiple booking resources.
+   * Deterministic ordering prevents deadlocks
+   * when a transaction needs multiple booking
+   * resources.
    */
   const keys =
     [...keyMap.values()]
@@ -108,8 +136,8 @@ async function lockScopes(
     /*
      * pg_advisory_xact_lock returns void.
      *
-     * $executeRaw is intentional so Prisma
-     * does not try to deserialize that value.
+     * $executeRaw is intentional so Prisma does
+     * not try to deserialize PostgreSQL void.
      */
     await tx.$executeRaw`
       SELECT
@@ -131,6 +159,7 @@ export async function lockTeacherBookingScope(
       {
         type:
           "teacher",
+
         id:
           teacherUserId,
       },
@@ -152,14 +181,35 @@ export async function lockStudentAndTeacherBookingScopes(
       {
         type:
           "student",
+
         id:
           input.studentUserId,
       },
       {
         type:
           "teacher",
+
         id:
           input.teacherUserId,
+      },
+    ],
+  );
+}
+
+export async function lockSpeakingSessionScope(
+  tx:
+    Prisma.TransactionClient,
+  sessionId: string,
+): Promise<void> {
+  await lockScopes(
+    tx,
+    [
+      {
+        type:
+          "session",
+
+        id:
+          sessionId,
       },
     ],
   );
