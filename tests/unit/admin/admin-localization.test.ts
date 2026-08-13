@@ -91,6 +91,18 @@ describe("admin localization catalogs", () => {
     expect(fa.AdminReviewDetail.playbackStart).toBe(
       "بارگذاری پخش خصوصی",
     );
+    expect(en.AdminReviewDetail.decisionHeading).toBe(
+      "Review decision",
+    );
+    expect(fa.AdminReviewDetail.decisionHeading).toBe(
+      "تصمیم بررسی",
+    );
+    expect(en.AdminReviewDetail.approveAction).toBe(
+      "Approve application",
+    );
+    expect(fa.AdminReviewDetail.rejectAction).toBe(
+      "رد درخواست",
+    );
     expect(fa.AdminReviewDetail.eyebrow).toBe(
       "جزئیات درخواست",
     );

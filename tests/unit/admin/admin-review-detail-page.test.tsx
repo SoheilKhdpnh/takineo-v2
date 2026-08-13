@@ -128,6 +128,13 @@ describe("admin teacher application detail page", () => {
         user: Record<string, unknown>;
         introVideo: Record<string, unknown>;
       };
+      decisionGuard: {
+        reviewCycle: number;
+        profileRevision: number;
+        videoId: string;
+        videoRevision: number;
+      } | null;
+      canApprove: boolean;
     }>;
 
     expect(mocks.setRequestLocale).toHaveBeenCalledWith("en");
@@ -141,6 +148,13 @@ describe("admin teacher application detail page", () => {
       namespace: "AdminReviewDetail",
     });
     expect(result.props.application.snapshotAligned).toBe(true);
+    expect(result.props.decisionGuard).toEqual({
+      reviewCycle: 2,
+      profileRevision: 3,
+      videoId: "ck22345678901234567890123",
+      videoRevision: 4,
+    });
+    expect(result.props.canApprove).toBe(true);
     expect(result.props.application.timezoneLabel).toBe("Asia/Tehran");
     expect(result.props.application).not.toHaveProperty("submittedVideoUploadId");
     expect(result.props.application.user).not.toHaveProperty("id");
@@ -169,10 +183,42 @@ describe("admin teacher application detail page", () => {
         snapshotAligned: boolean;
         introVideo: Record<string, unknown>;
       };
+      decisionGuard: Record<string, unknown> | null;
+      canApprove: boolean;
     }>;
 
     expect(result.props.application.snapshotAligned).toBe(false);
+    expect(result.props.decisionGuard).toBeNull();
+    expect(result.props.canApprove).toBe(false);
     expect(result.props.application.introVideo).not.toHaveProperty("assetId");
+  });
+
+  it("keeps an aligned rejection guard while withholding approval for an inactive applicant", async () => {
+    mocks.getAdminTeacherApplication.mockResolvedValue({
+      ...detail,
+      user: {
+        ...detail.user,
+        accountStatus: "SUSPENDED",
+      },
+    });
+
+    const result = (await AdminTeacherApplicationDetailPage({
+      params: Promise.resolve({
+        locale: "en",
+        applicationId: validApplicationId,
+      }),
+    })) as ReactElement<{
+      decisionGuard: Record<string, unknown> | null;
+      canApprove: boolean;
+    }>;
+
+    expect(result.props.decisionGuard).toEqual({
+      reviewCycle: 2,
+      profileRevision: 3,
+      videoId: "ck22345678901234567890123",
+      videoRevision: 4,
+    });
+    expect(result.props.canApprove).toBe(false);
   });
 
   it("authorizes before rejecting a malformed application ID", async () => {

@@ -92,9 +92,31 @@ export default async function AdminTeacherApplicationDetailPage({
       video.uploadId === application.submittedVideoUploadId &&
       video.assetId === application.submittedVideoAssetId,
   );
+  const decisionGuard =
+    snapshotAligned &&
+    application.applicationStatus === "PENDING_REVIEW" &&
+    application.submittedProfileRevision !== null &&
+    application.submittedVideoId &&
+    application.submittedVideoRevision !== null &&
+    video &&
+    ["READY_FOR_REVIEW", "APPROVED"].includes(video.status)
+      ? {
+          reviewCycle: application.reviewCycle,
+          profileRevision: application.submittedProfileRevision,
+          videoId: application.submittedVideoId,
+          videoRevision: application.submittedVideoRevision,
+        }
+      : null;
+  const canApprove = Boolean(
+    decisionGuard &&
+      application.user.accountStatus === "ACTIVE" &&
+      application.profileCompletedAt,
+  );
 
   return (
     <AdminReviewDetail
+      decisionGuard={decisionGuard}
+      canApprove={canApprove}
       application={{
         id: application.id,
         headline: application.headline,
@@ -202,7 +224,41 @@ export default async function AdminTeacherApplicationDetailPage({
         playbackUnavailable: t("playbackUnavailable"),
         playbackGenericError: t("playbackGenericError"),
         playbackPlayerTitle: t("playbackPlayerTitle"),
-        actionsDeferred: t("actionsDeferred"),
+        decisionHeading: t("decisionHeading"),
+        decisionDescription: t("decisionDescription"),
+        decisionUnavailable: t("decisionUnavailable"),
+        approveAction: t("approveAction"),
+        rejectAction: t("rejectAction"),
+        approveHeading: t("approveHeading"),
+        approveDescription: t("approveDescription"),
+        approveUnavailable: t("approveUnavailable"),
+        approveConfirm: t("approveConfirm"),
+        rejectHeading: t("rejectHeading"),
+        rejectDescription: t("rejectDescription"),
+        rejectTargetLabel: t("rejectTargetLabel"),
+        rejectProfile: t("rejectProfile"),
+        rejectVideo: t("rejectVideo"),
+        rejectBoth: t("rejectBoth"),
+        profileReasonLabel: t("profileReasonLabel"),
+        profileReasonPlaceholder: t("profileReasonPlaceholder"),
+        videoReasonLabel: t("videoReasonLabel"),
+        videoReasonPlaceholder: t("videoReasonPlaceholder"),
+        rejectionReasonHint: t("rejectionReasonHint"),
+        rejectionTargetRequired: t("rejectionTargetRequired"),
+        profileReasonRequired: t("profileReasonRequired"),
+        videoReasonRequired: t("videoReasonRequired"),
+        submitRejection: t("submitRejection"),
+        cancelDecision: t("cancelDecision"),
+        decisionSubmitting: t("decisionSubmitting"),
+        approveSuccess: t("approveSuccess"),
+        rejectSuccess: t("rejectSuccess"),
+        decisionUnauthorized: t("decisionUnauthorized"),
+        decisionForbidden: t("decisionForbidden"),
+        decisionConflict: t("decisionConflict"),
+        decisionInvalidRequest: t("decisionInvalidRequest"),
+        decisionGenericError: t("decisionGenericError"),
+        decisionReload: t("decisionReload"),
+        moderationDeferred: t("moderationDeferred"),
       }}
       formatDate={(value) => dateFormatter.format(value)}
       formatDuration={(seconds) =>

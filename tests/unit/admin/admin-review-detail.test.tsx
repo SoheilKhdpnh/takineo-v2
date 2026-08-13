@@ -11,6 +11,7 @@ vi.mock("@/i18n/navigation", () => ({
   }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
     <a href={href} {...props} />
   ),
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 import {
@@ -90,7 +91,41 @@ const copy = {
   playbackUnavailable: "Playback unavailable.",
   playbackGenericError: "Playback failed.",
   playbackPlayerTitle: "Private teacher introduction video",
-  actionsDeferred: "Decisions arrive later.",
+  decisionHeading: "Review decision",
+  decisionDescription: "Decide against the current snapshot.",
+  decisionUnavailable: "Decision unavailable.",
+  approveAction: "Approve application",
+  rejectAction: "Reject application",
+  approveHeading: "Confirm approval",
+  approveDescription: "Approve the submitted profile and video.",
+  approveUnavailable: "Approval unavailable.",
+  approveConfirm: "Confirm approval",
+  rejectHeading: "Record a rejection",
+  rejectDescription: "Choose what failed review.",
+  rejectTargetLabel: "Reject",
+  rejectProfile: "Profile only",
+  rejectVideo: "Video only",
+  rejectBoth: "Profile and video",
+  profileReasonLabel: "Profile rejection reason",
+  profileReasonPlaceholder: "Profile reason",
+  videoReasonLabel: "Video rejection reason",
+  videoReasonPlaceholder: "Video reason",
+  rejectionReasonHint: "Specific reasons required.",
+  rejectionTargetRequired: "Choose a target.",
+  profileReasonRequired: "Profile reason required.",
+  videoReasonRequired: "Video reason required.",
+  submitRejection: "Confirm rejection",
+  cancelDecision: "Cancel",
+  decisionSubmitting: "Saving decision…",
+  approveSuccess: "Application approved.",
+  rejectSuccess: "Application rejected.",
+  decisionUnauthorized: "Session unavailable.",
+  decisionForbidden: "Admin access revoked.",
+  decisionConflict: "Review changed.",
+  decisionInvalidRequest: "Invalid decision.",
+  decisionGenericError: "Decision failed.",
+  decisionReload: "Reload review",
+  moderationDeferred: "Moderation arrives later.",
 };
 
 const application: AdminReviewDetailApplication = {
@@ -127,10 +162,17 @@ const application: AdminReviewDetailApplication = {
 };
 
 describe("AdminReviewDetail", () => {
-  it("renders a complete review detail with private playback entry but no decision controls", () => {
+  it("renders a complete review detail with private playback and guarded decision entry", () => {
     render(
       <AdminReviewDetail
         application={application}
+        decisionGuard={{
+          reviewCycle: 2,
+          profileRevision: 3,
+          videoId: "ck22345678901234567890123",
+          videoRevision: 4,
+        }}
+        canApprove
         copy={copy}
         formatDate={() => "Aug 13, 2026, 1:30 PM"}
         formatDuration={() => "90 sec"}
@@ -154,8 +196,12 @@ describe("AdminReviewDetail", () => {
     expect(
       screen.getByRole("button", { name: "Load private playback" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/approve/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/reject/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Approve application" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reject application" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/playback-id/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/asset-id/i)).not.toBeInTheDocument();
   });
@@ -169,6 +215,8 @@ describe("AdminReviewDetail", () => {
           submittedVideoRevision: null,
           introVideo: null,
         }}
+        decisionGuard={null}
+        canApprove={false}
         copy={copy}
         formatDate={() => "Submitted time"}
         formatDuration={() => "Unavailable"}
@@ -178,6 +226,11 @@ describe("AdminReviewDetail", () => {
     expect(screen.getByText("Snapshot changed or incomplete")).toBeInTheDocument();
     expect(screen.getByText("No introduction video")).toBeInTheDocument();
     expect(screen.getByText("Playback unavailable for this state.")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: copy.approveAction }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: copy.rejectAction }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
 
+import {
+  AdminReviewDecision,
+  type AdminReviewDecisionGuard,
+} from "@/components/admin/AdminReviewDecision";
 import { AdminReviewPlayback } from "@/components/admin/AdminReviewPlayback";
 import { Link } from "@/i18n/navigation";
 
@@ -115,11 +119,47 @@ interface AdminReviewDetailCopy {
   playbackUnavailable: string;
   playbackGenericError: string;
   playbackPlayerTitle: string;
-  actionsDeferred: string;
+  decisionHeading: string;
+  decisionDescription: string;
+  decisionUnavailable: string;
+  approveAction: string;
+  rejectAction: string;
+  approveHeading: string;
+  approveDescription: string;
+  approveUnavailable: string;
+  approveConfirm: string;
+  rejectHeading: string;
+  rejectDescription: string;
+  rejectTargetLabel: string;
+  rejectProfile: string;
+  rejectVideo: string;
+  rejectBoth: string;
+  profileReasonLabel: string;
+  profileReasonPlaceholder: string;
+  videoReasonLabel: string;
+  videoReasonPlaceholder: string;
+  rejectionReasonHint: string;
+  rejectionTargetRequired: string;
+  profileReasonRequired: string;
+  videoReasonRequired: string;
+  submitRejection: string;
+  cancelDecision: string;
+  decisionSubmitting: string;
+  approveSuccess: string;
+  rejectSuccess: string;
+  decisionUnauthorized: string;
+  decisionForbidden: string;
+  decisionConflict: string;
+  decisionInvalidRequest: string;
+  decisionGenericError: string;
+  decisionReload: string;
+  moderationDeferred: string;
 }
 
 interface AdminReviewDetailProps {
   application: AdminReviewDetailApplication;
+  decisionGuard: AdminReviewDecisionGuard | null;
+  canApprove: boolean;
   copy: AdminReviewDetailCopy;
   formatDate: (value: Date) => string;
   formatDuration: (seconds: number | null) => string;
@@ -188,6 +228,8 @@ function Definition({
 
 export function AdminReviewDetail({
   application,
+  decisionGuard,
+  canApprove,
   copy,
   formatDate,
   formatDuration,
@@ -415,8 +457,59 @@ export function AdminReviewDetail({
                 playerTitle: copy.playbackPlayerTitle,
               }}
             />
-            <p className="mt-4 border-t border-zinc-200 pt-4 text-xs font-medium leading-6 text-zinc-500">
-              {copy.actionsDeferred}
+          </aside>
+
+          <aside className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-sm sm:p-7">
+            <h2 className="text-lg font-semibold text-zinc-950">
+              {copy.decisionHeading}
+            </h2>
+            <AdminReviewDecision
+              key={
+                decisionGuard
+                  ? `${decisionGuard.reviewCycle}:${decisionGuard.profileRevision}:${decisionGuard.videoId}:${decisionGuard.videoRevision}`
+                  : "unavailable"
+              }
+              applicationId={application.id}
+              guard={decisionGuard}
+              canApprove={canApprove}
+              copy={{
+                description: copy.decisionDescription,
+                unavailable: copy.decisionUnavailable,
+                approve: copy.approveAction,
+                reject: copy.rejectAction,
+                approveHeading: copy.approveHeading,
+                approveDescription: copy.approveDescription,
+                approveUnavailable: copy.approveUnavailable,
+                approveConfirm: copy.approveConfirm,
+                rejectHeading: copy.rejectHeading,
+                rejectDescription: copy.rejectDescription,
+                rejectTargetLabel: copy.rejectTargetLabel,
+                rejectProfile: copy.rejectProfile,
+                rejectVideo: copy.rejectVideo,
+                rejectBoth: copy.rejectBoth,
+                profileReasonLabel: copy.profileReasonLabel,
+                profileReasonPlaceholder: copy.profileReasonPlaceholder,
+                videoReasonLabel: copy.videoReasonLabel,
+                videoReasonPlaceholder: copy.videoReasonPlaceholder,
+                reasonHint: copy.rejectionReasonHint,
+                targetRequired: copy.rejectionTargetRequired,
+                profileReasonRequired: copy.profileReasonRequired,
+                videoReasonRequired: copy.videoReasonRequired,
+                submitRejection: copy.submitRejection,
+                cancel: copy.cancelDecision,
+                submitting: copy.decisionSubmitting,
+                approveSuccess: copy.approveSuccess,
+                rejectSuccess: copy.rejectSuccess,
+                unauthorized: copy.decisionUnauthorized,
+                forbidden: copy.decisionForbidden,
+                conflict: copy.decisionConflict,
+                invalidRequest: copy.decisionInvalidRequest,
+                genericError: copy.decisionGenericError,
+                reload: copy.decisionReload,
+              }}
+            />
+            <p className="mt-4 border-t border-zinc-100 pt-4 text-xs font-medium leading-6 text-zinc-500">
+              {copy.moderationDeferred}
             </p>
           </aside>
         </div>
