@@ -181,5 +181,29 @@
   "approvedDescription": "Your application has been approved. Approved teachers will gain access to availability and booking features.",
   "suspendedTitle": "Your teaching profile is suspended",
   "suspendedDescription": "Your teacher profile is currently unavailable. Contact Takineo support if you believe this is an error."
+},
+"AdminShell": {
+  "skipToContent": "Skip to admin content",
+  "brand": "Takineo",
+  "workspace": "Admin workspace",
+  "navigationLabel": "Administration",
+  "overview": "Overview",
+  "signedInAs": "Signed in as",
+  "permissionLabel": "Access level",
+  "reviewerPermission": "Reviewer",
+  "superAdminPermission": "Super admin"
+},
+"AdminDashboard": {
+  "eyebrow": "Administration overview",
+  "title": "A focused workspace for trusted operations",
+  "description": "Takineo administration keeps teacher review and operational controls behind a dedicated, server-protected access boundary.",
+  "reviewHeading": "Teacher applications",
+  "reviewTitle": "Review workspace is the next capability",
+  "nextMilestone": "Next milestone",
+  "reviewDescription": "The application queue, review detail, private video playback, and review decisions will be introduced together in the next milestone—not partially exposed here.",
+  "reviewBoundary": "This shell establishes the protected administrative surface first, keeping review data and actions unavailable until their complete workflow is ready.",
+  "accessHeading": "Protected by design",
+  "accessDescription": "Administrative access is checked on the server independently from student or teacher product roles before this workspace renders.",
+  "accessNote": "Interface visibility never grants administrative permission."
 }
 }
