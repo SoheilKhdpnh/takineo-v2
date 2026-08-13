@@ -106,6 +106,13 @@ describe("admin teacher application detail page", () => {
       },
       admin: {
         permission: "REVIEWER",
+        capabilities: {
+          reviewTeacherApplications: true,
+          moderateTeachers: false,
+          moderateAccounts: false,
+          manageAdminAccess: false,
+          manageSessions: false,
+        },
       },
     });
     mocks.getAdminTeacherApplication.mockResolvedValue(detail);
@@ -135,6 +142,11 @@ describe("admin teacher application detail page", () => {
         videoRevision: number;
       } | null;
       canApprove: boolean;
+      canModerateTeachers: boolean;
+      moderationGuard: {
+        action: "SUSPEND" | "REINSTATE";
+        reviewCycle: number;
+      } | null;
     }>;
 
     expect(mocks.setRequestLocale).toHaveBeenCalledWith("en");
@@ -155,6 +167,8 @@ describe("admin teacher application detail page", () => {
       videoRevision: 4,
     });
     expect(result.props.canApprove).toBe(true);
+    expect(result.props.canModerateTeachers).toBe(false);
+    expect(result.props.moderationGuard).toBeNull();
     expect(result.props.application.timezoneLabel).toBe("Asia/Tehran");
     expect(result.props.application).not.toHaveProperty("submittedVideoUploadId");
     expect(result.props.application.user).not.toHaveProperty("id");
@@ -219,6 +233,94 @@ describe("admin teacher application detail page", () => {
       videoRevision: 4,
     });
     expect(result.props.canApprove).toBe(false);
+  });
+
+
+  it("offers suspension only to a super admin for an approved teacher", async () => {
+    mocks.requireAdminPageAccess.mockResolvedValue({
+      session: { user: { id: "super-admin", name: "Super Admin" } },
+      admin: {
+        permission: "SUPER_ADMIN",
+        capabilities: {
+          reviewTeacherApplications: true,
+          moderateTeachers: true,
+          moderateAccounts: true,
+          manageAdminAccess: true,
+          manageSessions: true,
+        },
+      },
+    });
+    mocks.getAdminTeacherApplication.mockResolvedValue({
+      ...detail,
+      applicationStatus: "APPROVED",
+      applicationReviewedAt: new Date("2026-08-13T11:00:00.000Z"),
+      introVideo: {
+        ...detail.introVideo,
+        status: "APPROVED",
+        reviewedAt: new Date("2026-08-13T11:00:00.000Z"),
+      },
+    });
+
+    const result = (await AdminTeacherApplicationDetailPage({
+      params: Promise.resolve({ locale: "en", applicationId: validApplicationId }),
+    })) as ReactElement<{
+      canModerateTeachers: boolean;
+      moderationGuard: { action: "SUSPEND" | "REINSTATE"; reviewCycle: number } | null;
+    }>;
+
+    expect(result.props.canModerateTeachers).toBe(true);
+    expect(result.props.moderationGuard).toEqual({
+      action: "SUSPEND",
+      reviewCycle: 2,
+    });
+  });
+
+  it("offers reinstatement only while a suspended teacher account is active", async () => {
+    mocks.requireAdminPageAccess.mockResolvedValue({
+      session: { user: { id: "super-admin", name: "Super Admin" } },
+      admin: {
+        permission: "SUPER_ADMIN",
+        capabilities: {
+          reviewTeacherApplications: true,
+          moderateTeachers: true,
+          moderateAccounts: true,
+          manageAdminAccess: true,
+          manageSessions: true,
+        },
+      },
+    });
+    mocks.getAdminTeacherApplication.mockResolvedValue({
+      ...detail,
+      applicationStatus: "SUSPENDED",
+      applicationReviewedAt: new Date("2026-08-13T11:00:00.000Z"),
+      introVideo: {
+        ...detail.introVideo,
+        status: "APPROVED",
+        reviewedAt: new Date("2026-08-13T11:00:00.000Z"),
+      },
+    });
+
+    const activeResult = (await AdminTeacherApplicationDetailPage({
+      params: Promise.resolve({ locale: "en", applicationId: validApplicationId }),
+    })) as ReactElement<{
+      moderationGuard: { action: "SUSPEND" | "REINSTATE"; reviewCycle: number } | null;
+    }>;
+    expect(activeResult.props.moderationGuard).toEqual({
+      action: "REINSTATE",
+      reviewCycle: 2,
+    });
+
+    mocks.getAdminTeacherApplication.mockResolvedValue({
+      ...detail,
+      applicationStatus: "SUSPENDED",
+      user: { ...detail.user, accountStatus: "DISABLED" },
+      introVideo: { ...detail.introVideo, status: "APPROVED" },
+    });
+
+    const inactiveResult = (await AdminTeacherApplicationDetailPage({
+      params: Promise.resolve({ locale: "en", applicationId: validApplicationId }),
+    })) as ReactElement<{ moderationGuard: Record<string, unknown> | null }>;
+    expect(inactiveResult.props.moderationGuard).toBeNull();
   });
 
   it("authorizes before rejecting a malformed application ID", async () => {

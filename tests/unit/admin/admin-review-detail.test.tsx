@@ -125,7 +125,33 @@ const copy = {
   decisionInvalidRequest: "Invalid decision.",
   decisionGenericError: "Decision failed.",
   decisionReload: "Reload review",
-  moderationDeferred: "Moderation arrives later.",
+  moderationHeading: "Teacher access moderation",
+  moderationDescription: "Moderation is separate from review.",
+  moderationRestricted: "Super-admin access required.",
+  moderationUnavailable: "No moderation transition available.",
+  suspendAction: "Suspend teacher",
+  reinstateAction: "Reinstate teacher",
+  suspendHeading: "Confirm teacher suspension",
+  suspendDescription: "Suspension description.",
+  reinstateHeading: "Confirm teacher reinstatement",
+  reinstateDescription: "Reinstatement description.",
+  moderationReasonLabel: "Moderation reason",
+  suspendReasonPlaceholder: "Suspension reason",
+  reinstateReasonPlaceholder: "Reinstatement reason",
+  moderationReasonHint: "Specific reason required.",
+  moderationReasonRequired: "Moderation reason required.",
+  suspendConfirm: "Confirm suspension",
+  reinstateConfirm: "Confirm reinstatement",
+  moderationCancel: "Cancel",
+  moderationSubmitting: "Saving moderation change…",
+  suspendSuccess: "Teacher suspended.",
+  reinstateSuccess: "Teacher reinstated.",
+  moderationUnauthorized: "Session unavailable.",
+  moderationForbidden: "Moderation forbidden.",
+  moderationConflict: "Teacher state changed.",
+  moderationInvalidRequest: "Invalid moderation request.",
+  moderationGenericError: "Moderation failed.",
+  moderationReload: "Reload teacher state",
 };
 
 const application: AdminReviewDetailApplication = {
@@ -173,6 +199,8 @@ describe("AdminReviewDetail", () => {
           videoRevision: 4,
         }}
         canApprove
+        canModerateTeachers={false}
+        moderationGuard={null}
         copy={copy}
         formatDate={() => "Aug 13, 2026, 1:30 PM"}
         formatDuration={() => "90 sec"}
@@ -204,6 +232,10 @@ describe("AdminReviewDetail", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/playback-id/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/asset-id/i)).not.toBeInTheDocument();
+    expect(screen.getByText(copy.moderationRestricted)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: copy.suspendAction }),
+    ).not.toBeInTheDocument();
   });
 
   it("surfaces an incomplete snapshot and missing video without inventing review actions", () => {
@@ -217,6 +249,8 @@ describe("AdminReviewDetail", () => {
         }}
         decisionGuard={null}
         canApprove={false}
+        canModerateTeachers={false}
+        moderationGuard={null}
         copy={copy}
         formatDate={() => "Submitted time"}
         formatDuration={() => "Unavailable"}

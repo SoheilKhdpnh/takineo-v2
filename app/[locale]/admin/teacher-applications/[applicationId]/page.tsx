@@ -36,7 +36,7 @@ export default async function AdminTeacherApplicationDetailPage({
   const locale = requireAppLocale(requestedLocale);
   setRequestLocale(locale);
 
-  const { session } = await requireAdminPageAccess(locale);
+  const { session, admin } = await requireAdminPageAccess(locale);
   const parsedApplicationId = adminApplicationIdSchema.safeParse(applicationId);
 
   if (!parsedApplicationId.success) {
@@ -112,11 +112,28 @@ export default async function AdminTeacherApplicationDetailPage({
       application.user.accountStatus === "ACTIVE" &&
       application.profileCompletedAt,
   );
+  const moderationGuard =
+    admin.capabilities.moderateTeachers &&
+    video?.status === "APPROVED" &&
+    video.assetId &&
+    (application.applicationStatus === "APPROVED" ||
+      (application.applicationStatus === "SUSPENDED" &&
+        application.user.accountStatus === "ACTIVE"))
+      ? {
+          action:
+            application.applicationStatus === "APPROVED"
+              ? ("SUSPEND" as const)
+              : ("REINSTATE" as const),
+          reviewCycle: application.reviewCycle,
+        }
+      : null;
 
   return (
     <AdminReviewDetail
       decisionGuard={decisionGuard}
       canApprove={canApprove}
+      canModerateTeachers={admin.capabilities.moderateTeachers}
+      moderationGuard={moderationGuard}
       application={{
         id: application.id,
         headline: application.headline,
@@ -258,7 +275,33 @@ export default async function AdminTeacherApplicationDetailPage({
         decisionInvalidRequest: t("decisionInvalidRequest"),
         decisionGenericError: t("decisionGenericError"),
         decisionReload: t("decisionReload"),
-        moderationDeferred: t("moderationDeferred"),
+        moderationHeading: t("moderationHeading"),
+        moderationDescription: t("moderationDescription"),
+        moderationRestricted: t("moderationRestricted"),
+        moderationUnavailable: t("moderationUnavailable"),
+        suspendAction: t("suspendAction"),
+        reinstateAction: t("reinstateAction"),
+        suspendHeading: t("suspendHeading"),
+        suspendDescription: t("suspendDescription"),
+        reinstateHeading: t("reinstateHeading"),
+        reinstateDescription: t("reinstateDescription"),
+        moderationReasonLabel: t("moderationReasonLabel"),
+        suspendReasonPlaceholder: t("suspendReasonPlaceholder"),
+        reinstateReasonPlaceholder: t("reinstateReasonPlaceholder"),
+        moderationReasonHint: t("moderationReasonHint"),
+        moderationReasonRequired: t("moderationReasonRequired"),
+        suspendConfirm: t("suspendConfirm"),
+        reinstateConfirm: t("reinstateConfirm"),
+        moderationCancel: t("moderationCancel"),
+        moderationSubmitting: t("moderationSubmitting"),
+        suspendSuccess: t("suspendSuccess"),
+        reinstateSuccess: t("reinstateSuccess"),
+        moderationUnauthorized: t("moderationUnauthorized"),
+        moderationForbidden: t("moderationForbidden"),
+        moderationConflict: t("moderationConflict"),
+        moderationInvalidRequest: t("moderationInvalidRequest"),
+        moderationGenericError: t("moderationGenericError"),
+        moderationReload: t("moderationReload"),
       }}
       formatDate={(value) => dateFormatter.format(value)}
       formatDuration={(seconds) =>

@@ -103,6 +103,18 @@ describe("admin localization catalogs", () => {
     expect(fa.AdminReviewDetail.rejectAction).toBe(
       "رد درخواست",
     );
+    expect(en.AdminReviewDetail.moderationHeading).toBe(
+      "Teacher access moderation",
+    );
+    expect(fa.AdminReviewDetail.moderationHeading).toBe(
+      "نظارت بر دسترسی مدرس",
+    );
+    expect(en.AdminReviewDetail.suspendAction).toBe(
+      "Suspend teacher",
+    );
+    expect(fa.AdminReviewDetail.reinstateAction).toBe(
+      "بازگردانی مدرس",
+    );
     expect(fa.AdminReviewDetail.eyebrow).toBe(
       "جزئیات درخواست",
     );

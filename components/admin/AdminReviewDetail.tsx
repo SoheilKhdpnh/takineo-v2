@@ -5,6 +5,10 @@ import {
   type AdminReviewDecisionGuard,
 } from "@/components/admin/AdminReviewDecision";
 import { AdminReviewPlayback } from "@/components/admin/AdminReviewPlayback";
+import {
+  AdminTeacherModeration,
+  type AdminTeacherModerationGuard,
+} from "@/components/admin/AdminTeacherModeration";
 import { Link } from "@/i18n/navigation";
 
 export interface AdminReviewDetailApplication {
@@ -153,13 +157,41 @@ interface AdminReviewDetailCopy {
   decisionInvalidRequest: string;
   decisionGenericError: string;
   decisionReload: string;
-  moderationDeferred: string;
+  moderationHeading: string;
+  moderationDescription: string;
+  moderationRestricted: string;
+  moderationUnavailable: string;
+  suspendAction: string;
+  reinstateAction: string;
+  suspendHeading: string;
+  suspendDescription: string;
+  reinstateHeading: string;
+  reinstateDescription: string;
+  moderationReasonLabel: string;
+  suspendReasonPlaceholder: string;
+  reinstateReasonPlaceholder: string;
+  moderationReasonHint: string;
+  moderationReasonRequired: string;
+  suspendConfirm: string;
+  reinstateConfirm: string;
+  moderationCancel: string;
+  moderationSubmitting: string;
+  suspendSuccess: string;
+  reinstateSuccess: string;
+  moderationUnauthorized: string;
+  moderationForbidden: string;
+  moderationConflict: string;
+  moderationInvalidRequest: string;
+  moderationGenericError: string;
+  moderationReload: string;
 }
 
 interface AdminReviewDetailProps {
   application: AdminReviewDetailApplication;
   decisionGuard: AdminReviewDecisionGuard | null;
   canApprove: boolean;
+  canModerateTeachers: boolean;
+  moderationGuard: AdminTeacherModerationGuard | null;
   copy: AdminReviewDetailCopy;
   formatDate: (value: Date) => string;
   formatDuration: (seconds: number | null) => string;
@@ -230,6 +262,8 @@ export function AdminReviewDetail({
   application,
   decisionGuard,
   canApprove,
+  canModerateTeachers,
+  moderationGuard,
   copy,
   formatDate,
   formatDuration,
@@ -508,9 +542,52 @@ export function AdminReviewDetail({
                 reload: copy.decisionReload,
               }}
             />
-            <p className="mt-4 border-t border-zinc-100 pt-4 text-xs font-medium leading-6 text-zinc-500">
-              {copy.moderationDeferred}
-            </p>
+          </aside>
+
+          <aside className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-sm sm:p-7">
+            <h2 className="text-lg font-semibold text-zinc-950">
+              {copy.moderationHeading}
+            </h2>
+            <AdminTeacherModeration
+              key={
+                moderationGuard
+                  ? `${moderationGuard.action}:${moderationGuard.reviewCycle}`
+                  : canModerateTeachers
+                    ? "unavailable"
+                    : "restricted"
+              }
+              applicationId={application.id}
+              canModerateTeachers={canModerateTeachers}
+              guard={moderationGuard}
+              copy={{
+                description: copy.moderationDescription,
+                restricted: copy.moderationRestricted,
+                unavailable: copy.moderationUnavailable,
+                suspendAction: copy.suspendAction,
+                reinstateAction: copy.reinstateAction,
+                suspendHeading: copy.suspendHeading,
+                suspendDescription: copy.suspendDescription,
+                reinstateHeading: copy.reinstateHeading,
+                reinstateDescription: copy.reinstateDescription,
+                reasonLabel: copy.moderationReasonLabel,
+                suspendReasonPlaceholder: copy.suspendReasonPlaceholder,
+                reinstateReasonPlaceholder: copy.reinstateReasonPlaceholder,
+                reasonHint: copy.moderationReasonHint,
+                reasonRequired: copy.moderationReasonRequired,
+                suspendConfirm: copy.suspendConfirm,
+                reinstateConfirm: copy.reinstateConfirm,
+                cancel: copy.moderationCancel,
+                submitting: copy.moderationSubmitting,
+                suspendSuccess: copy.suspendSuccess,
+                reinstateSuccess: copy.reinstateSuccess,
+                unauthorized: copy.moderationUnauthorized,
+                forbidden: copy.moderationForbidden,
+                conflict: copy.moderationConflict,
+                invalidRequest: copy.moderationInvalidRequest,
+                genericError: copy.moderationGenericError,
+                reload: copy.moderationReload,
+              }}
+            />
           </aside>
         </div>
       </div>
