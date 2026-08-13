@@ -235,6 +235,41 @@ Success: `{ application: ApplicationDetail }`. Profile-only rejection promotes
 same unchanged revision may be resubmitted. Video rejection marks that revision
 `REJECTED` and durably requests public playback revocation.
 
+## Teacher moderation index
+
+`GET /api/admin/teachers?status=APPROVED|SUSPENDED&limit=20&cursor=<teacherProfileId>`
+
+This endpoint is discoverability support for ongoing teacher suspension and
+reinstatement. It requires `SUPER_ADMIN` / `MODERATE_TEACHER`; reviewers cannot
+enumerate it. `status` is required and accepts only `APPROVED` or `SUSPENDED`.
+`limit` defaults to 20 and is an integer from 1 through 50. `cursor` is the
+teacher-profile CUID of the last item from the previous page. Results are
+ordered by `applicationReviewedAt` descending and then `id` descending.
+
+```ts
+type ModerationIndexResponse = {
+  teachers: Array<{
+    id: string;
+    headline: string | null;
+    applicationStatus: "APPROVED" | "SUSPENDED";
+    applicationReviewedAt: string | null;
+    reviewCycle: number;
+    updatedAt: string;
+    user: {
+      name: string;
+      email: string;
+      accountStatus: AccountStatus;
+    };
+  }>;
+  nextCursor: string | null;
+};
+```
+
+The index intentionally excludes intro-video provider identifiers, playback
+identifiers, submitted upload/asset snapshots, audit metadata, and admin
+capability data. The detail endpoint remains authoritative before a mutation;
+index state is only a discoverability snapshot and may become stale.
+
 ## Teacher moderation
 
 `POST /api/admin/teacher-applications/:applicationId/moderation`
