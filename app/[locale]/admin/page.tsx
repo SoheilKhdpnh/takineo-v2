@@ -4,6 +4,7 @@ import {
 } from "next-intl/server";
 
 import { requireAppLocale } from "@/i18n/locale";
+import { Link } from "@/i18n/navigation";
 
 interface AdminOverviewPageProps {
   params: Promise<{
@@ -73,6 +74,13 @@ export default async function AdminOverviewPage({
             <p className="text-sm leading-7 text-zinc-400">
               {t("reviewBoundary")}
             </p>
+
+            <Link
+              href="/admin/teacher-applications"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+            >
+              {t("reviewAction")}
+            </Link>
           </div>
         </article>
 

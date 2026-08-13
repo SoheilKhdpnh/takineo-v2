@@ -35,6 +35,7 @@ const translations: Record<string, string> = {
   workspace: "Admin workspace",
   navigationLabel: "Administration",
   overview: "Overview",
+  teacherApplications: "Teacher applications",
   signedInAs: "Signed in as",
   permissionLabel: "Access level",
   reviewerPermission: "Reviewer",

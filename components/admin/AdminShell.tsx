@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AdminNavigation } from "@/components/admin/AdminNavigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { Link } from "@/i18n/navigation";
 import type { AdminPermissionValue } from "@/lib/auth/admin-access";
@@ -10,6 +11,7 @@ type AdminShellCopy = {
   workspace: string;
   navigationLabel: string;
   overview: string;
+  teacherApplications: string;
   signedInAs: string;
   permissionLabel: string;
   reviewerPermission: string;
@@ -78,22 +80,11 @@ export function AdminShell({
               </Link>
             </div>
 
-            <nav
-              aria-label={copy.navigationLabel}
-              className="mt-7 lg:mt-12"
-            >
-              <Link
-                href="/admin"
-                aria-current="page"
-                className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:bg-white/[0.12] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              >
-                <span>{copy.overview}</span>
-                <span
-                  aria-hidden="true"
-                  className="size-1.5 shrink-0 rounded-full bg-white"
-                />
-              </Link>
-            </nav>
+            <AdminNavigation
+              label={copy.navigationLabel}
+              overviewLabel={copy.overview}
+              teacherApplicationsLabel={copy.teacherApplications}
+            />
 
             <div className="mt-6 border-t border-white/10 pt-5 lg:mt-auto">
               <p className="text-xs font-medium text-zinc-500">

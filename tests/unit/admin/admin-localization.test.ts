@@ -33,6 +33,7 @@ describe("admin localization catalogs", () => {
     for (const namespace of [
       "AdminShell",
       "AdminDashboard",
+      "AdminReviewQueue",
     ]) {
       expect(fa[namespace]).toBeDefined();
       expect(en[namespace]).toBeDefined();
@@ -62,11 +63,23 @@ describe("admin localization catalogs", () => {
     expect(fa.AdminShell.workspace).toBe(
       "فضای مدیریت",
     );
+    expect(en.AdminShell.teacherApplications).toBe(
+      "Teacher applications",
+    );
+    expect(fa.AdminShell.teacherApplications).toBe(
+      "درخواست‌های مدرس‌ها",
+    );
     expect(en.AdminDashboard.eyebrow).toBe(
       "Administration overview",
     );
     expect(fa.AdminDashboard.eyebrow).toBe(
       "نمای کلی مدیریت",
+    );
+    expect(en.AdminReviewQueue.title).toBe(
+      "Pending teacher applications",
+    );
+    expect(fa.AdminReviewQueue.title).toBe(
+      "درخواست‌های در انتظار بررسی",
     );
   });
 });

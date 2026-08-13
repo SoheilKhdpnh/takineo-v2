@@ -17,6 +17,7 @@ vi.mock("@/i18n/navigation", () => ({
   }: AnchorHTMLAttributes<HTMLAnchorElement> & {
     href: string;
   }) => <a href={href} {...props} />,
+  usePathname: () => "/admin",
 }));
 
 vi.mock("@/components/auth/SignOutButton", () => ({
@@ -37,6 +38,7 @@ const copy = {
   workspace: "Admin workspace",
   navigationLabel: "Administration",
   overview: "Overview",
+  teacherApplications: "Teacher applications",
   signedInAs: "Signed in as",
   permissionLabel: "Access level",
   reviewerPermission: "Reviewer",
