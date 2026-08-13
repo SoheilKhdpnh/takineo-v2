@@ -6,6 +6,8 @@ Human teachers teach.
 AI analyzes and assists.
 AI does not replace teachers.
 
+Speaking sessions are exactly 15 minutes.
+
 This file is the repository map and set of non-negotiable engineering rules.
 Detailed specifications live under `/docs`.
 
@@ -50,6 +52,14 @@ Read the relevant documents before implementing a task:
 - Mux for teacher introduction video
 - GitHub
 
+## Interface quality
+
+The interface must use premium, distinctive typography and visual design rather
+than generic default styling.
+
+Use Framer Motion only when motion materially improves the interface. Do not add
+or retain it as an unused dependency.
+
 ## Localization
 
 Takineo launches Persian-first.
@@ -67,6 +77,14 @@ Takineo launches Persian-first.
 Internal identifiers, APIs, database fields, code symbols, and logs remain English.
 
 ## Architecture boundaries
+
+Route Handlers are thin transport adapters.
+
+Authorization-sensitive workflows belong in the service layer and deny access
+by default.
+
+Where concurrency can violate correctness, use database constraints,
+appropriate transactions, and explicit conflict handling.
 
 The normal write path is:
 
@@ -207,7 +225,14 @@ Do not embed localized date formatting into domain or persistence logic.
 
 ## Git and agent workflow
 
-Task agents must work in isolated branches/worktrees.
+Preserve all unrelated and pre-existing user changes.
+
+Never use destructive Git commands.
+
+Stage only intended files. Do not stage, commit, or push until the user has
+reviewed the intended diff and explicitly approved it.
+
+Task agents must follow the multi-agent worktree and file-ownership rules below.
 
 Do not force-push shared branches.
 
@@ -217,6 +242,13 @@ Do not modify unrelated files merely to clean them up.
 
 Prefer small, coherent commits.
 
+Use scoped Conventional Commit messages ending in `[skip netlify]`.
+
+For work spanning multiple independent domains, the primary agent must
+orchestrate bounded specialist subagents. Parallel analysis may share a worktree
+read-only. Parallel edits require disjoint file ownership or isolated Git
+worktrees. The primary agent owns integration and final verification.
+
 The integration target for agent work is:
 
 `codex/integration`
@@ -224,6 +256,10 @@ The integration target for agent work is:
 `main` is reserved for intentionally integrated stable releases.
 
 ## Definition of done
+
+Security, data integrity, accessibility, localization, observability,
+scalability, maintainability, migrations, recovery, and tests are required parts
+of delivery.
 
 A feature is not complete merely because it renders.
 
@@ -247,6 +283,18 @@ Run:
 `npm run check`
 
 before completing any code-changing task unless the task explicitly documents why it cannot run.
+
+Before an approved code-changing commit, run the relevant task-specific tests plus:
+
+```text
+npm run test:unit
+npm run test:integration
+npm run check
+git diff --cached --check
+```
+
+At every milestone, report the exact project-relative paths changed and the
+exact verification commands and results.
 
 ## Agent behavior
 
