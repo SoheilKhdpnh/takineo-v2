@@ -34,6 +34,7 @@ describe("admin localization catalogs", () => {
       "AdminShell",
       "AdminDashboard",
       "AdminReviewQueue",
+      "AdminReviewDetail",
     ]) {
       expect(fa[namespace]).toBeDefined();
       expect(en[namespace]).toBeDefined();
@@ -80,6 +81,12 @@ describe("admin localization catalogs", () => {
     );
     expect(fa.AdminReviewQueue.title).toBe(
       "درخواست‌های در انتظار بررسی",
+    );
+    expect(en.AdminReviewDetail.eyebrow).toBe(
+      "Application detail",
+    );
+    expect(fa.AdminReviewDetail.eyebrow).toBe(
+      "جزئیات درخواست",
     );
   });
 });

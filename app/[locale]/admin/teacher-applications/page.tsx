@@ -121,6 +121,7 @@ export default async function AdminTeacherApplicationsPage({
             videoFailed: t("videoFailed"),
             nextPage: t("nextPage"),
             endOfQueue: t("endOfQueue"),
+            openApplication: t("openApplication"),
           }}
         />
       </div>

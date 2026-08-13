@@ -47,6 +47,7 @@ const copy = {
   videoFailed: "Failed",
   nextPage: "Next page",
   endOfQueue: "End of queue",
+  openApplication: "Open application",
 };
 
 const completeApplication: AdminQueueApplication = {
@@ -88,6 +89,12 @@ describe("AdminReviewQueue", () => {
     expect(screen.getByText("Ready for review")).toBeInTheDocument();
     expect(screen.getByText("1:30")).toBeInTheDocument();
     expect(screen.getByText("Aug 13, 2026, 1:30 PM")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open application" }),
+    ).toHaveAttribute(
+      "href",
+      "/admin/teacher-applications/ck12345678901234567890123",
+    );
 
     expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute(
       "href",

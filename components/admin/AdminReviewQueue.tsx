@@ -51,6 +51,7 @@ interface AdminReviewQueueCopy {
   videoFailed: string;
   nextPage: string;
   endOfQueue: string;
+  openApplication: string;
 }
 
 interface AdminReviewQueueProps {
@@ -173,6 +174,12 @@ export function AdminReviewQueue({
                     <p className="mt-1 break-all text-sm text-zinc-500">
                       {application.user.email}
                     </p>
+                    <Link
+                      href={`/admin/teacher-applications/${application.id}`}
+                      className="mt-4 inline-flex min-h-10 items-center rounded-xl text-sm font-semibold text-zinc-700 transition hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
+                    >
+                      {copy.openApplication}
+                    </Link>
                   </div>
 
                   <dl className="grid gap-4 text-sm sm:grid-cols-2 xl:min-w-[34rem] xl:grid-cols-3">

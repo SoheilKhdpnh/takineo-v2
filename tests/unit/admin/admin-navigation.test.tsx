@@ -45,8 +45,11 @@ describe("AdminNavigation", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("marks the teacher application queue as current on its route", () => {
-    mocks.usePathname.mockReturnValue("/admin/teacher-applications");
+  it.each([
+    "/admin/teacher-applications",
+    "/admin/teacher-applications/ck12345678901234567890123",
+  ])("marks teacher applications as current on %s", (pathname) => {
+    mocks.usePathname.mockReturnValue(pathname);
     render(<AdminNavigation {...props} />);
 
     expect(screen.getByRole("link", { name: "Overview" })).not.toHaveAttribute(
