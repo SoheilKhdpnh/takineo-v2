@@ -76,7 +76,20 @@ const copy = {
   videoFailed: "Failed",
   noVideo: "No introduction video",
   playbackHeading: "Private video review",
-  playbackDeferred: "Playback arrives later.",
+  playbackDescription: "Request short-lived playback.",
+  playbackStart: "Load private playback",
+  playbackRefresh: "Request fresh playback",
+  playbackLoading: "Requesting private playback…",
+  playbackActive: "Private playback is active.",
+  playbackExpiresSoon: "It expires soon.",
+  playbackExpired: "Playback expired.",
+  playbackUnavailableState: "Playback unavailable for this state.",
+  playbackUnauthorized: "Session unavailable.",
+  playbackForbidden: "Admin access revoked.",
+  playbackConflict: "Review state changed.",
+  playbackUnavailable: "Playback unavailable.",
+  playbackGenericError: "Playback failed.",
+  playbackPlayerTitle: "Private teacher introduction video",
   actionsDeferred: "Decisions arrive later.",
 };
 
@@ -114,7 +127,7 @@ const application: AdminReviewDetailApplication = {
 };
 
 describe("AdminReviewDetail", () => {
-  it("renders a complete read-only review detail without decision or playback controls", () => {
+  it("renders a complete review detail with private playback entry but no decision controls", () => {
     render(
       <AdminReviewDetail
         application={application}
@@ -138,7 +151,11 @@ describe("AdminReviewDetail", () => {
       screen.getByRole("link", { name: "Back to review queue" }),
     ).toHaveAttribute("href", "/admin/teacher-applications");
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Load private playback" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/approve/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/reject/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/playback-id/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/asset-id/i)).not.toBeInTheDocument();
   });
@@ -160,6 +177,7 @@ describe("AdminReviewDetail", () => {
 
     expect(screen.getByText("Snapshot changed or incomplete")).toBeInTheDocument();
     expect(screen.getByText("No introduction video")).toBeInTheDocument();
+    expect(screen.getByText("Playback unavailable for this state.")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

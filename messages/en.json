@@ -243,7 +243,7 @@
   "backToQueue": "Back to review queue",
   "eyebrow": "Application detail",
   "title": "Application — {name}",
-  "description": "Inspect the current teacher profile fields alongside the submitted review snapshot metadata. This page is read-only; private playback and review decisions are introduced separately.",
+  "description": "Inspect the current teacher profile fields alongside the submitted review snapshot metadata. Private playback is available for an unchanged reviewable video; review decisions remain read-only in this milestone.",
   "applicationIdLabel": "Application ID",
   "snapshotAligned": "Snapshot aligned",
   "snapshotChanged": "Snapshot changed or incomplete",
@@ -294,7 +294,20 @@
   "videoFailed": "Failed",
   "noVideo": "No introduction video is attached to this application.",
   "playbackHeading": "Private video review",
-  "playbackDeferred": "Signed administrative playback is intentionally not exposed in this milestone. It will be added with its short-lived authorization flow next.",
-  "actionsDeferred": "Approval, rejection, and moderation controls are also still unavailable."
+  "playbackDescription": "Request a short-lived private player only when you are ready to review this introduction video. The playback grant is issued on demand and expires automatically.",
+  "playbackStart": "Load private playback",
+  "playbackRefresh": "Request fresh playback",
+  "playbackLoading": "Requesting private playback…",
+  "playbackActive": "Private playback is active.",
+  "playbackExpiresSoon": "The signed grant expires automatically within five minutes.",
+  "playbackExpired": "This private playback grant expired. Request a fresh grant to continue reviewing.",
+  "playbackUnavailableState": "Private playback is unavailable because this application or its submitted video is no longer in an eligible, unchanged review state.",
+  "playbackUnauthorized": "Your session is no longer available. Sign in again before requesting playback.",
+  "playbackForbidden": "Your administrative access no longer permits private review playback.",
+  "playbackConflict": "The application or submitted video changed. Reload the detail page before continuing the review.",
+  "playbackUnavailable": "Private playback is temporarily unavailable. Try again without changing the review state.",
+  "playbackGenericError": "Private playback could not be loaded. Try again.",
+  "playbackPlayerTitle": "Private teacher introduction video",
+  "actionsDeferred": "Approval, rejection, and moderation controls are still unavailable in this milestone."
 }
 }

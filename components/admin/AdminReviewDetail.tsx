@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { AdminReviewPlayback } from "@/components/admin/AdminReviewPlayback";
 import { Link } from "@/i18n/navigation";
 
 export interface AdminReviewDetailApplication {
@@ -100,7 +101,20 @@ interface AdminReviewDetailCopy {
   videoFailed: string;
   noVideo: string;
   playbackHeading: string;
-  playbackDeferred: string;
+  playbackDescription: string;
+  playbackStart: string;
+  playbackRefresh: string;
+  playbackLoading: string;
+  playbackActive: string;
+  playbackExpiresSoon: string;
+  playbackExpired: string;
+  playbackUnavailableState: string;
+  playbackUnauthorized: string;
+  playbackForbidden: string;
+  playbackConflict: string;
+  playbackUnavailable: string;
+  playbackGenericError: string;
+  playbackPlayerTitle: string;
   actionsDeferred: string;
 }
 
@@ -179,6 +193,13 @@ export function AdminReviewDetail({
   formatDuration,
 }: AdminReviewDetailProps) {
   const video = application.introVideo;
+  const playbackEnabled = Boolean(
+    application.snapshotAligned &&
+      application.applicationStatus === "PENDING_REVIEW" &&
+      application.user.accountStatus === "ACTIVE" &&
+      video &&
+      ["READY_FOR_REVIEW", "APPROVED"].includes(video.status),
+  );
 
   return (
     <section aria-labelledby="admin-review-detail-title">
@@ -374,10 +395,27 @@ export function AdminReviewDetail({
             <h2 className="text-lg font-semibold text-zinc-950">
               {copy.playbackHeading}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-zinc-600">
-              {copy.playbackDeferred}
-            </p>
-            <p className="mt-3 text-xs font-medium leading-6 text-zinc-500">
+            <AdminReviewPlayback
+              applicationId={application.id}
+              enabled={playbackEnabled}
+              copy={{
+                description: copy.playbackDescription,
+                start: copy.playbackStart,
+                refresh: copy.playbackRefresh,
+                loading: copy.playbackLoading,
+                active: copy.playbackActive,
+                expiresSoon: copy.playbackExpiresSoon,
+                expired: copy.playbackExpired,
+                unavailableState: copy.playbackUnavailableState,
+                unauthorized: copy.playbackUnauthorized,
+                forbidden: copy.playbackForbidden,
+                conflict: copy.playbackConflict,
+                unavailable: copy.playbackUnavailable,
+                genericError: copy.playbackGenericError,
+                playerTitle: copy.playbackPlayerTitle,
+              }}
+            />
+            <p className="mt-4 border-t border-zinc-200 pt-4 text-xs font-medium leading-6 text-zinc-500">
               {copy.actionsDeferred}
             </p>
           </aside>

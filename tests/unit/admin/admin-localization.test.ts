@@ -85,6 +85,12 @@ describe("admin localization catalogs", () => {
     expect(en.AdminReviewDetail.eyebrow).toBe(
       "Application detail",
     );
+    expect(en.AdminReviewDetail.playbackStart).toBe(
+      "Load private playback",
+    );
+    expect(fa.AdminReviewDetail.playbackStart).toBe(
+      "بارگذاری پخش خصوصی",
+    );
     expect(fa.AdminReviewDetail.eyebrow).toBe(
       "جزئیات درخواست",
     );
