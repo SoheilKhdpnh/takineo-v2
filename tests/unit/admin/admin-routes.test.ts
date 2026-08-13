@@ -3,9 +3,11 @@
 const mocks = vi.hoisted(() => ({
   getApiSession: vi.fn(),
   requireAdminAccess: vi.fn(),
+  getCurrentAdminCapabilities: vi.fn(),
   listPendingTeacherApplications: vi.fn(),
   getAdminTeacherApplication: vi.fn(),
   createAdminReviewPlayback: vi.fn(),
+  setTeacherSuspension: vi.fn(),
   hasTrustedRequestOrigin: vi.fn(),
 }));
 
@@ -15,6 +17,8 @@ vi.mock("@/lib/auth/api-session", () => ({
 
 vi.mock("@/lib/auth/admin-access", () => ({
   requireAdminAccess: mocks.requireAdminAccess,
+  getCurrentAdminCapabilities:
+    mocks.getCurrentAdminCapabilities,
 }));
 
 vi.mock("@/lib/services/admin-review.service", () => ({
@@ -24,6 +28,8 @@ vi.mock("@/lib/services/admin-review.service", () => ({
     mocks.getAdminTeacherApplication,
   createAdminReviewPlayback:
     mocks.createAdminReviewPlayback,
+  setTeacherSuspension:
+    mocks.setTeacherSuspension,
 }));
 
 vi.mock("@/lib/security/same-origin", () => ({
@@ -35,11 +41,18 @@ import {
   GET as getTeacherApplication,
 } from "@/app/api/admin/teacher-applications/[applicationId]/route";
 import {
+  POST as moderateTeacherApplication,
+} from "@/app/api/admin/teacher-applications/[applicationId]/moderation/route";
+import {
   POST as createPlayback,
 } from "@/app/api/admin/teacher-applications/[applicationId]/playback/route";
 import {
   GET as listTeacherApplications,
 } from "@/app/api/admin/teacher-applications/route";
+import {
+  dynamic as adminSessionDynamic,
+  GET as getAdminSession,
+} from "@/app/api/admin/session/route";
 import { AdminForbiddenError } from "@/lib/errors/admin-errors";
 
 const validApplicationId = "cjld2cjxh0000qzrmn831i7rn";
@@ -64,14 +77,28 @@ describe("admin teacher application routes", () => {
   beforeEach(() => {
     mocks.getApiSession.mockReset();
     mocks.requireAdminAccess.mockReset();
+    mocks.getCurrentAdminCapabilities.mockReset();
     mocks.listPendingTeacherApplications.mockReset();
     mocks.getAdminTeacherApplication.mockReset();
     mocks.createAdminReviewPlayback.mockReset();
+    mocks.setTeacherSuspension.mockReset();
     mocks.hasTrustedRequestOrigin.mockReset();
 
     mocks.getApiSession.mockResolvedValue(session());
     mocks.requireAdminAccess.mockResolvedValue({
       permission: "REVIEWER",
+    });
+
+    mocks.getCurrentAdminCapabilities.mockResolvedValue({
+      userId: "admin-user",
+      permission: "REVIEWER",
+      capabilities: {
+        reviewTeacherApplications: true,
+        moderateTeachers: false,
+        moderateAccounts: false,
+        manageAdminAccess: false,
+        manageSessions: false,
+      },
     });
 
     mocks.hasTrustedRequestOrigin.mockReturnValue(true);
@@ -89,6 +116,130 @@ describe("admin teacher application routes", () => {
       playbackId: "playback-id",
       token: "signed-token",
       expiresInSeconds: 300,
+    });
+
+    mocks.setTeacherSuspension.mockResolvedValue({
+      id: validApplicationId,
+      applicationStatus: "SUSPENDED",
+    });
+  });
+
+  describe("admin capability session GET", () => {
+    it("is explicitly dynamic", () => {
+      expect(
+        adminSessionDynamic,
+      ).toBe(
+        "force-dynamic",
+      );
+    });
+
+    it("returns a private 401 without consulting capabilities when unauthenticated", async () => {
+      mocks.getApiSession.mockResolvedValue(null);
+
+      const response = await getAdminSession(
+        new Request(
+          "http://localhost:3000/api/admin/session",
+        ),
+      );
+
+      expect(response.status).toBe(401);
+
+      await expect(response.json()).resolves.toEqual({
+        error: "UNAUTHORIZED",
+      });
+
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
+
+      expect(
+        mocks.getCurrentAdminCapabilities,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("returns the server-derived reviewer capabilities without public caching", async () => {
+      const response = await getAdminSession(
+        new Request(
+          "http://localhost:3000/api/admin/session",
+        ),
+      );
+
+      expect(response.status).toBe(200);
+
+      await expect(response.json()).resolves.toEqual({
+        admin: {
+          userId: "admin-user",
+          permission: "REVIEWER",
+          capabilities: {
+            reviewTeacherApplications: true,
+            moderateTeachers: false,
+            moderateAccounts: false,
+            manageAdminAccess: false,
+            manageSessions: false,
+          },
+        },
+      });
+
+      expect(
+        mocks.getCurrentAdminCapabilities,
+      ).toHaveBeenCalledWith(
+        "admin-user",
+      );
+
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
+    });
+
+    it("returns a private stable 403 when administrative access was revoked", async () => {
+      mocks.getCurrentAdminCapabilities.mockRejectedValue(
+        new AdminForbiddenError(),
+      );
+
+      const response = await getAdminSession(
+        new Request(
+          "http://localhost:3000/api/admin/session",
+        ),
+      );
+
+      expect(response.status).toBe(403);
+
+      await expect(response.json()).resolves.toEqual({
+        error: "ADMIN_FORBIDDEN",
+      });
+
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
+    });
+
+    it("fails closed without leaking an unexpected capability error", async () => {
+      vi.spyOn(
+        console,
+        "error",
+      ).mockImplementation(() => undefined);
+
+      mocks.getCurrentAdminCapabilities.mockRejectedValue(
+        new Error(
+          "database credentials were rejected",
+        ),
+      );
+
+      const response = await getAdminSession(
+        new Request(
+          "http://localhost:3000/api/admin/session",
+        ),
+      );
+
+      expect(response.status).toBe(500);
+
+      await expect(response.json()).resolves.toEqual({
+        error: "INTERNAL_SERVER_ERROR",
+      });
+
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
     });
   });
 
@@ -338,6 +489,118 @@ describe("admin teacher application routes", () => {
       });
 
       expect(response.status).not.toBe(502);
+    });
+  });
+
+  describe("teacher moderation POST", () => {
+    function moderationRequest() {
+      return new Request(
+        `http://localhost:3000/api/admin/teacher-applications/${validApplicationId}/moderation`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "SUSPEND",
+            reviewCycle: 1,
+            reason: "Confirmed policy violation.",
+          }),
+        },
+      );
+    }
+
+    it("returns 401 before moderation authorization without an active session", async () => {
+      mocks.getApiSession.mockResolvedValue(null);
+
+      const response = await moderateTeacherApplication(
+        moderationRequest(),
+        context(),
+      );
+
+      expect(response.status).toBe(401);
+
+      expect(
+        mocks.requireAdminAccess,
+      ).not.toHaveBeenCalled();
+
+      expect(
+        mocks.hasTrustedRequestOrigin,
+      ).not.toHaveBeenCalled();
+
+      expect(
+        mocks.setTeacherSuspension,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("denies a REVIEWER before origin, validation, or target lookup", async () => {
+      mocks.requireAdminAccess.mockRejectedValue(
+        new AdminForbiddenError(),
+      );
+
+      const response = await moderateTeacherApplication(
+        moderationRequest(),
+        context(),
+      );
+
+      expect(response.status).toBe(403);
+
+      await expect(response.json()).resolves.toEqual({
+        error: "ADMIN_FORBIDDEN",
+      });
+
+      expect(
+        mocks.requireAdminAccess,
+      ).toHaveBeenCalledWith(
+        "admin-user",
+        "MODERATE_TEACHER",
+      );
+
+      expect(
+        mocks.hasTrustedRequestOrigin,
+      ).not.toHaveBeenCalled();
+
+      expect(
+        mocks.setTeacherSuspension,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("dispatches valid moderation only after SUPER_ADMIN authorization", async () => {
+      mocks.requireAdminAccess.mockResolvedValue({
+        userId: "admin-user",
+        permission: "SUPER_ADMIN",
+      });
+
+      const response = await moderateTeacherApplication(
+        moderationRequest(),
+        context(),
+      );
+
+      expect(response.status).toBe(200);
+
+      expect(
+        mocks.requireAdminAccess,
+      ).toHaveBeenCalledWith(
+        "admin-user",
+        "MODERATE_TEACHER",
+      );
+
+      expect(
+        mocks.setTeacherSuspension,
+      ).toHaveBeenCalledWith(
+        "admin-user",
+        validApplicationId,
+        true,
+        {
+          action: "SUSPEND",
+          reviewCycle: 1,
+          reason: "Confirmed policy violation.",
+        },
+      );
+
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
     });
   });
 });
