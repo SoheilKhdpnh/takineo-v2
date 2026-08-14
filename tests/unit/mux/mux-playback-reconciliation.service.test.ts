@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
 
   reconciliationFindUnique: vi.fn(),
   reconciliationFindMany: vi.fn(),
+  reconciliationFindFirst: vi.fn(),
+  reconciliationCount: vi.fn(),
   reconciliationUpdateMany: vi.fn(),
   reconciliationUpsert: vi.fn(),
 
@@ -33,6 +35,8 @@ vi.mock("@/lib/db/prisma", () => ({
     muxPlaybackReconciliation: {
       findUnique: mocks.reconciliationFindUnique,
       findMany: mocks.reconciliationFindMany,
+      findFirst: mocks.reconciliationFindFirst,
+      count: mocks.reconciliationCount,
       updateMany: mocks.reconciliationUpdateMany,
       upsert: mocks.reconciliationUpsert,
     },
@@ -53,6 +57,7 @@ vi.mock("@/lib/video/mux-client", () => ({
 }));
 
 import {
+  getMuxPlaybackReconciliationOperationalHealth,
   processDueMuxPlaybackReconciliations,
   queueMuxPlaybackIntent,
   reconcileMuxPlayback,
@@ -137,6 +142,8 @@ describe("Mux playback reconciliation fencing", () => {
 
     mocks.reconciliationFindUnique.mockReset();
     mocks.reconciliationFindMany.mockReset();
+    mocks.reconciliationFindFirst.mockReset();
+    mocks.reconciliationCount.mockReset();
     mocks.reconciliationUpdateMany.mockReset();
     mocks.reconciliationUpsert.mockReset();
 
@@ -576,6 +583,8 @@ describe("Mux playback provider convergence", () => {
 
     mocks.reconciliationFindUnique.mockReset();
     mocks.reconciliationFindMany.mockReset();
+    mocks.reconciliationFindFirst.mockReset();
+    mocks.reconciliationCount.mockReset();
     mocks.reconciliationUpdateMany.mockReset();
     mocks.reconciliationUpsert.mockReset();
 
@@ -1152,6 +1161,75 @@ describe("Mux playback provider convergence", () => {
       select: {
         id: true,
       },
+    });
+  });
+});
+
+describe("Mux playback reconciliation operational health", () => {
+  beforeEach(() => {
+    mocks.reconciliationCount.mockReset();
+    mocks.reconciliationFindFirst.mockReset();
+  });
+
+  it("reports healthy when due work is within the operational window", async () => {
+    mocks.reconciliationCount
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    mocks.reconciliationFindFirst.mockResolvedValue({
+      nextAttemptAt: new Date("2026-08-09T09:25:00.000Z"),
+    });
+
+    const health = await getMuxPlaybackReconciliationOperationalHealth(NOW);
+
+    expect(health).toEqual({
+      status: "HEALTHY",
+      sampledAt: NOW.toISOString(),
+      due: 3,
+      overdue: 0,
+      durableFailures: 0,
+      oldestDueAt: "2026-08-09T09:25:00.000Z",
+      thresholds: {
+        overdueSeconds: 900,
+        durableFailureAttempts: 5,
+      },
+    });
+  });
+
+  it("reports degraded when due work is older than the schedule-lag threshold", async () => {
+    mocks.reconciliationCount
+      .mockResolvedValueOnce(7)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(0);
+    mocks.reconciliationFindFirst.mockResolvedValue({
+      nextAttemptAt: new Date("2026-08-09T09:00:00.000Z"),
+    });
+
+    await expect(
+      getMuxPlaybackReconciliationOperationalHealth(NOW),
+    ).resolves.toMatchObject({
+      status: "DEGRADED",
+      due: 7,
+      overdue: 2,
+      durableFailures: 0,
+    });
+  });
+
+  it("reports degraded after five failed attempts even when retry backoff is in the future", async () => {
+    mocks.reconciliationCount
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
+    mocks.reconciliationFindFirst.mockResolvedValue(null);
+
+    await expect(
+      getMuxPlaybackReconciliationOperationalHealth(NOW),
+    ).resolves.toMatchObject({
+      status: "DEGRADED",
+      due: 0,
+      overdue: 0,
+      durableFailures: 1,
+      oldestDueAt: null,
     });
   });
 });

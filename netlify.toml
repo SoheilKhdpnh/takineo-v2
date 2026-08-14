@@ -4,3 +4,6 @@
 
 [context.production]
   command = "npm run db:migrate:deploy && npm run build"
+
+[functions."mux-playback-reconciliation"]
+  schedule = "* * * * *"

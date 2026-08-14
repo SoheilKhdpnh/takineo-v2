@@ -10,6 +10,16 @@ const LEASE_SECONDS = 60;
 const MAX_BACKOFF_SECONDS = 3600;
 const TERMINAL_REVERIFY_SECONDS = 300;
 
+const OPERATIONAL_OVERDUE_SECONDS = 15 * 60;
+const DURABLE_FAILURE_ATTEMPTS = 5;
+
+const RECONCILIATION_ACTIVE_STATUSES = [
+  "PENDING",
+  "FAILED",
+  "PROCESSING",
+  "SUCCEEDED",
+] as const;
+
 type PlaybackIntentInput = {
   introVideoId: string;
   videoRevision: number;
@@ -259,4 +269,67 @@ export async function processDueMuxPlaybackReconciliations(limit = 20) {
     }
   }
   return counts;
+}
+
+export type MuxPlaybackReconciliationOperationalHealth = {
+  status: "HEALTHY" | "DEGRADED";
+  sampledAt: string;
+  due: number;
+  overdue: number;
+  durableFailures: number;
+  oldestDueAt: string | null;
+  thresholds: {
+    overdueSeconds: number;
+    durableFailureAttempts: number;
+  };
+};
+
+export async function getMuxPlaybackReconciliationOperationalHealth(
+  now = new Date(),
+): Promise<MuxPlaybackReconciliationOperationalHealth> {
+  const overdueBefore = new Date(
+    now.getTime() - OPERATIONAL_OVERDUE_SECONDS * 1000,
+  );
+
+  const [due, overdue, durableFailures, oldestDue] = await Promise.all([
+    prisma.muxPlaybackReconciliation.count({
+      where: {
+        nextAttemptAt: { lte: now },
+        status: { in: [...RECONCILIATION_ACTIVE_STATUSES] },
+      },
+    }),
+    prisma.muxPlaybackReconciliation.count({
+      where: {
+        nextAttemptAt: { lte: overdueBefore },
+        status: { in: [...RECONCILIATION_ACTIVE_STATUSES] },
+      },
+    }),
+    prisma.muxPlaybackReconciliation.count({
+      where: {
+        status: "FAILED",
+        attemptCount: { gte: DURABLE_FAILURE_ATTEMPTS },
+      },
+    }),
+    prisma.muxPlaybackReconciliation.findFirst({
+      where: {
+        nextAttemptAt: { lte: now },
+        status: { in: [...RECONCILIATION_ACTIVE_STATUSES] },
+      },
+      orderBy: [{ nextAttemptAt: "asc" }, { id: "asc" }],
+      select: { nextAttemptAt: true },
+    }),
+  ]);
+
+  return {
+    status: overdue > 0 || durableFailures > 0 ? "DEGRADED" : "HEALTHY",
+    sampledAt: now.toISOString(),
+    due,
+    overdue,
+    durableFailures,
+    oldestDueAt: oldestDue?.nextAttemptAt.toISOString() ?? null,
+    thresholds: {
+      overdueSeconds: OPERATIONAL_OVERDUE_SECONDS,
+      durableFailureAttempts: DURABLE_FAILURE_ATTEMPTS,
+    },
+  };
 }
