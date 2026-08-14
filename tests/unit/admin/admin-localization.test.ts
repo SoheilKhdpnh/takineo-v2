@@ -35,6 +35,7 @@ describe("admin localization catalogs", () => {
       "AdminDashboard",
       "AdminReviewQueue",
       "AdminReviewDetail",
+      "AdminModerationIndex",
     ]) {
       expect(fa[namespace]).toBeDefined();
       expect(en[namespace]).toBeDefined();
@@ -69,6 +70,18 @@ describe("admin localization catalogs", () => {
     );
     expect(fa.AdminShell.teacherApplications).toBe(
       "درخواست‌های مدرس‌ها",
+    );
+    expect(en.AdminShell.teacherModeration).toBe(
+      "Teachers",
+    );
+    expect(fa.AdminShell.teacherModeration).toBe(
+      "مدرس‌ها",
+    );
+    expect(en.AdminModerationIndex.title).toBe(
+      "Approved and suspended teachers",
+    );
+    expect(fa.AdminModerationIndex.title).toBe(
+      "مدرس‌های تأییدشده و تعلیق‌شده",
     );
     expect(en.AdminDashboard.eyebrow).toBe(
       "Administration overview",

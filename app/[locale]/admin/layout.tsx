@@ -47,6 +47,7 @@ export default async function AdminLayout({
         navigationLabel: t("navigationLabel"),
         overview: t("overview"),
         teacherApplications: t("teacherApplications"),
+        teacherModeration: t("teacherModeration"),
         signedInAs: t("signedInAs"),
         permissionLabel: t("permissionLabel"),
         reviewerPermission: t("reviewerPermission"),

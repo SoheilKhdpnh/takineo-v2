@@ -39,6 +39,7 @@ const copy = {
   navigationLabel: "Administration",
   overview: "Overview",
   teacherApplications: "Teacher applications",
+  teacherModeration: "Teachers",
   signedInAs: "Signed in as",
   permissionLabel: "Access level",
   reviewerPermission: "Reviewer",
@@ -93,6 +94,16 @@ describe("AdminShell", () => {
           expectedPermissionLabel,
         ).length,
       ).toBeGreaterThan(0);
+
+      if (permission === "SUPER_ADMIN") {
+        expect(
+          screen.getByRole("link", { name: "Teachers" }),
+        ).toHaveAttribute("href", "/admin/teachers?status=APPROVED");
+      } else {
+        expect(
+          screen.queryByRole("link", { name: "Teachers" }),
+        ).not.toBeInTheDocument();
+      }
 
       expect(
         screen.getByRole("heading", {

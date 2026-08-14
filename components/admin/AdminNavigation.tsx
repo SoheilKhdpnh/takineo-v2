@@ -6,6 +6,8 @@ interface AdminNavigationProps {
   label: string;
   overviewLabel: string;
   teacherApplicationsLabel: string;
+  teacherModerationLabel: string;
+  showTeacherModeration: boolean;
 }
 
 const baseLinkClass =
@@ -15,12 +17,15 @@ export function AdminNavigation({
   label,
   overviewLabel,
   teacherApplicationsLabel,
+  teacherModerationLabel,
+  showTeacherModeration,
 }: AdminNavigationProps) {
   const pathname = usePathname();
   const teacherApplicationsActive = pathname.startsWith(
     "/admin/teacher-applications",
   );
   const overviewActive = pathname === "/admin";
+  const teacherModerationActive = pathname.startsWith("/admin/teachers");
 
   return (
     <nav aria-label={label} className="mt-7 lg:mt-12">
@@ -60,6 +65,25 @@ export function AdminNavigation({
             />
           ) : null}
         </Link>
+        {showTeacherModeration ? (
+          <Link
+            href="/admin/teachers?status=APPROVED"
+            aria-current={teacherModerationActive ? "page" : undefined}
+            className={`${baseLinkClass} ${
+              teacherModerationActive
+                ? "border-white/10 bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                : "border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
+            }`}
+          >
+            <span>{teacherModerationLabel}</span>
+            {teacherModerationActive ? (
+              <span
+                aria-hidden="true"
+                className="size-1.5 shrink-0 rounded-full bg-white"
+              />
+            ) : null}
+          </Link>
+        ) : null}
       </div>
     </nav>
   );

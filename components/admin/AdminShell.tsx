@@ -12,6 +12,7 @@ type AdminShellCopy = {
   navigationLabel: string;
   overview: string;
   teacherApplications: string;
+  teacherModeration: string;
   signedInAs: string;
   permissionLabel: string;
   reviewerPermission: string;
@@ -84,6 +85,8 @@ export function AdminShell({
               label={copy.navigationLabel}
               overviewLabel={copy.overview}
               teacherApplicationsLabel={copy.teacherApplications}
+              teacherModerationLabel={copy.teacherModeration}
+              showTeacherModeration={permission === "SUPER_ADMIN"}
             />
 
             <div className="mt-6 border-t border-white/10 pt-5 lg:mt-auto">

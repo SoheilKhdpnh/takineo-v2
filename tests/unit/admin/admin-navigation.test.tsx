@@ -29,6 +29,8 @@ const props = {
   label: "Administration",
   overviewLabel: "Overview",
   teacherApplicationsLabel: "Teacher applications",
+  teacherModerationLabel: "Teachers",
+  showTeacherModeration: false,
 };
 
 describe("AdminNavigation", () => {
@@ -43,6 +45,7 @@ describe("AdminNavigation", () => {
     expect(
       screen.getByRole("link", { name: "Teacher applications" }),
     ).not.toHaveAttribute("aria-current");
+    expect(screen.queryByRole("link", { name: "Teachers" })).toBeNull();
   });
 
   it.each([
@@ -58,5 +61,23 @@ describe("AdminNavigation", () => {
     expect(
       screen.getByRole("link", { name: "Teacher applications" }),
     ).toHaveAttribute("aria-current", "page");
+  });
+
+  it("shows the moderation index only when the shell grants discoverability", () => {
+    mocks.usePathname.mockReturnValue("/admin/teachers");
+    render(
+      <AdminNavigation
+        {...props}
+        showTeacherModeration
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Teachers" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      screen.getByRole("link", { name: "Teacher applications" }),
+    ).not.toHaveAttribute("aria-current");
   });
 });
