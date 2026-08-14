@@ -211,6 +211,14 @@ export function TeacherApplicationSubmit({
   const rejected =
     applicationStatus === "REJECTED";
 
+  // Applicant rejection feedback is deliberately scoped to REJECTED.
+  // Moderation reasons may share latest-note storage server-side, but are
+  // internal operator/audit data and must not become applicant content.
+  const visibleRejectionFeedback =
+    rejected
+      ? rejectionFeedback
+      : null;
+
   return (
     <section className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
       {rejected ? (
@@ -237,7 +245,7 @@ export function TeacherApplicationSubmit({
             </h3>
 
             <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-900">
-              {rejectionFeedback?.trim() ||
+              {visibleRejectionFeedback?.trim() ||
                 t("reviewerFeedbackUnavailable")}
             </p>
           </div>

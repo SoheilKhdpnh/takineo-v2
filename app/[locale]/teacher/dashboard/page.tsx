@@ -189,7 +189,9 @@ export default async function TeacherDashboardPage({
               null
             }
             rejectionFeedback={
-              teacherProfile.applicationReviewNote
+              applicationStatus === "REJECTED"
+                ? teacherProfile.applicationReviewNote
+                : null
             }
           />
         </div>

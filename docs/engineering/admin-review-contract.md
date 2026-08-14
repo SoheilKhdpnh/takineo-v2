@@ -130,6 +130,23 @@ Teacher-specific `TeacherApplicationStatus.SUSPENDED` and account-level
 - Account suspension applies to the account as a whole and overrides teacher
   eligibility.
 
+### Applicant-facing suspension and reinstatement feedback
+
+The administrator-entered reason required for teacher suspension or
+reinstatement is internal operator/audit data. It is not applicant-facing
+content and must not be serialized into teacher-facing client payloads.
+
+Applicant presentation is intentionally status-based:
+
+- `SUSPENDED` shows a localized generic explanation that teaching access and
+  public teacher visibility are paused, with a support path for next steps.
+- Reinstatement returns the application to `APPROVED`; the applicant sees the
+  normal localized approved/active state, not the administrator-entered
+  reinstatement reason or moderation history.
+- Exact applicant review feedback remains visible only for `REJECTED` review
+  outcomes. A latest-note field that contains moderation text must be gated
+  server-side before data crosses into a client component.
+
 Administrative capabilities must not remain usable by a suspended or disabled
 linked account.
 

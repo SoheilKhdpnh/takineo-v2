@@ -156,6 +156,14 @@ Applicant may make required changes and resubmit.
 
 Existing teacher access/public visibility is restricted by Takineo.
 
+Suspension and reinstatement use a privacy-preserving applicant-feedback
+policy. The exact administrator-entered moderation reason remains internal
+and auditable. A suspended teacher sees a localized generic status explanation
+and support path. After reinstatement the teacher sees the ordinary `APPROVED`
+active state; Takineo does not expose the internal reinstatement reason or
+moderation history in the teacher product. Exact review notes remain
+applicant-facing only for `REJECTED` application review.
+
 Profile and introduction-video review decisions are logically separate. Final
 application approval requires both to be acceptable, and the current video must
 be `APPROVED`. Profile-only rejection preserves an already approved unchanged
