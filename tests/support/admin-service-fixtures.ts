@@ -31,6 +31,21 @@ export type AdminFixtureAdministrator = AdminFixtureUser & {
   teacherProfileId: string | null;
 };
 
+export type AdminReviewableTeacherFixture = AdminFixtureTeacher & {
+  introVideoId: string;
+  uploadId: string;
+  assetId: string;
+  reviewCycle: number;
+  profileRevision: number;
+  videoRevision: number;
+  guard: {
+    reviewCycle: number;
+    profileRevision: number;
+    videoId: string;
+    videoRevision: number;
+  };
+};
+
 type TestDatabaseIdentity = {
   database_name: string;
   user_name: string;
@@ -122,6 +137,37 @@ export class AdminServiceFixtures {
 
     // Preserve foreign-key cleanup order for every prefix-scoped fixture set.
     await client.query(
+      `DELETE FROM "mux_playback_reconciliation"
+       WHERE "introVideoId" IN (
+         SELECT v."id"
+         FROM "teacher_intro_video" v
+         JOIN "teacher_profile" p ON p."id" = v."teacherProfileId"
+         WHERE left(p."userId", length($1)) = $1
+       )`,
+      [this.prefix],
+    );
+
+    await this.cleanupImmutableAuditEvents();
+
+    await client.query(
+      `DELETE FROM "teacher_intro_video"
+       WHERE "teacherProfileId" IN (
+         SELECT "id" FROM "teacher_profile"
+         WHERE left("userId", length($1)) = $1
+       )`,
+      [this.prefix],
+    );
+    await client.query(
+      `DELETE FROM "session"
+       WHERE left("userId", length($1)) = $1`,
+      [this.prefix],
+    );
+    await client.query(
+      `DELETE FROM "account"
+       WHERE left("userId", length($1)) = $1`,
+      [this.prefix],
+    );
+    await client.query(
       `DELETE FROM "admin_access"
        WHERE left("userId", length($1)) = $1`,
       [this.prefix],
@@ -195,6 +241,82 @@ export class AdminServiceFixtures {
     return { ...user, teacherProfileId };
   }
 
+  async createReviewableTeacherApplicant(input: {
+    key: string;
+    accountStatus?: AccountStatus;
+    reviewCycle?: number;
+    profileRevision?: number;
+    videoRevision?: number;
+  }): Promise<AdminReviewableTeacherFixture> {
+    const user = await this.createUser({
+      key: input.key,
+      role: "TEACHER",
+      accountStatus: input.accountStatus,
+    });
+    const teacherProfileId = this.id(`${input.key}_profile`);
+    const introVideoId = this.id(`${input.key}_video`);
+    const uploadId = this.id(`${input.key}_upload`);
+    const assetId = this.id(`${input.key}_asset`);
+    const reviewCycle = input.reviewCycle ?? 2;
+    const profileRevision = input.profileRevision ?? 3;
+    const videoRevision = input.videoRevision ?? 4;
+
+    await this.requireClient().query(
+      `INSERT INTO "teacher_profile" (
+         "id", "userId", "headline", "bio", "profileCompletedAt",
+         "applicationStatus", "applicationSubmittedAt", "reviewCycle",
+         "profileRevision", "submittedProfileRevision", "submittedVideoId",
+         "submittedVideoRevision", "submittedVideoUploadId",
+         "submittedVideoAssetId", "createdAt", "updatedAt"
+       ) VALUES (
+         $1, $2, $3, $4, CURRENT_TIMESTAMP,
+         'PENDING_REVIEW', CURRENT_TIMESTAMP, $5,
+         $6, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       )`,
+      [
+        teacherProfileId,
+        user.userId,
+        `Reviewable teacher ${input.key}`,
+        "Integration review fixture",
+        reviewCycle,
+        profileRevision,
+        introVideoId,
+        videoRevision,
+        uploadId,
+        assetId,
+      ],
+    );
+
+    await this.requireClient().query(
+      `INSERT INTO "teacher_intro_video" (
+         "id", "teacherProfileId", "provider", "uploadId", "assetId",
+         "revision", "status", "durationSeconds", "submittedAt",
+         "createdAt", "updatedAt"
+       ) VALUES (
+         $1, $2, 'mux', $3, $4, $5, 'READY_FOR_REVIEW', 90,
+         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       )`,
+      [introVideoId, teacherProfileId, uploadId, assetId, videoRevision],
+    );
+
+    return {
+      ...user,
+      teacherProfileId,
+      introVideoId,
+      uploadId,
+      assetId,
+      reviewCycle,
+      profileRevision,
+      videoRevision,
+      guard: {
+        reviewCycle,
+        profileRevision,
+        videoId: introVideoId,
+        videoRevision,
+      },
+    };
+  }
+
   async createAdministrator(input: {
     key: string;
     permission: AdminPermission;
@@ -245,6 +367,50 @@ export class AdminServiceFixtures {
     );
 
     return { ...user, teacherProfileId };
+  }
+
+  private async cleanupImmutableAuditEvents(): Promise<void> {
+    const client = this.requireClient();
+    const existing = await client.query(
+      `SELECT 1
+       FROM "admin_audit_event"
+       WHERE left("actorUserId", length($1)) = $1
+          OR left(COALESCE("targetUserId", ''), length($1)) = $1
+       LIMIT 1`,
+      [this.prefix],
+    );
+
+    if (existing.rowCount === 0) return;
+
+    await client.query("BEGIN");
+    try {
+      // The production audit table is deliberately append-only. Test cleanup
+      // takes an ACCESS EXCLUSIVE lock, disables only the row mutation trigger
+      // inside this transaction, deletes this suite's rows, and re-enables the
+      // trigger before commit. Other sessions cannot observe a writable audit
+      // table while the lock is held.
+      await client.query(
+        `LOCK TABLE "admin_audit_event" IN ACCESS EXCLUSIVE MODE`,
+      );
+      await client.query(
+        `ALTER TABLE "admin_audit_event"
+         DISABLE TRIGGER admin_audit_event_immutable`,
+      );
+      await client.query(
+        `DELETE FROM "admin_audit_event"
+         WHERE left("actorUserId", length($1)) = $1
+            OR left(COALESCE("targetUserId", ''), length($1)) = $1`,
+        [this.prefix],
+      );
+      await client.query(
+        `ALTER TABLE "admin_audit_event"
+         ENABLE TRIGGER admin_audit_event_immutable`,
+      );
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
   }
 
   private requireClient(): Client {

@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   listPendingTeacherApplications: vi.fn(),
   getAdminTeacherApplication: vi.fn(),
   createAdminReviewPlayback: vi.fn(),
+  approveTeacherApplication: vi.fn(),
+  rejectTeacherApplication: vi.fn(),
   setTeacherSuspension: vi.fn(),
   hasTrustedRequestOrigin: vi.fn(),
 }));
@@ -28,6 +30,10 @@ vi.mock("@/lib/services/admin-review.service", () => ({
     mocks.getAdminTeacherApplication,
   createAdminReviewPlayback:
     mocks.createAdminReviewPlayback,
+  approveTeacherApplication:
+    mocks.approveTeacherApplication,
+  rejectTeacherApplication:
+    mocks.rejectTeacherApplication,
   setTeacherSuspension:
     mocks.setTeacherSuspension,
 }));
@@ -41,11 +47,17 @@ import {
   GET as getTeacherApplication,
 } from "@/app/api/admin/teacher-applications/[applicationId]/route";
 import {
+  POST as approveTeacherApplicationRoute,
+} from "@/app/api/admin/teacher-applications/[applicationId]/approve/route";
+import {
   POST as moderateTeacherApplication,
 } from "@/app/api/admin/teacher-applications/[applicationId]/moderation/route";
 import {
   POST as createPlayback,
 } from "@/app/api/admin/teacher-applications/[applicationId]/playback/route";
+import {
+  POST as rejectTeacherApplicationRoute,
+} from "@/app/api/admin/teacher-applications/[applicationId]/reject/route";
 import {
   GET as listTeacherApplications,
 } from "@/app/api/admin/teacher-applications/route";
@@ -53,7 +65,10 @@ import {
   dynamic as adminSessionDynamic,
   GET as getAdminSession,
 } from "@/app/api/admin/session/route";
-import { AdminForbiddenError } from "@/lib/errors/admin-errors";
+import {
+  AdminForbiddenError,
+  AdminReviewConflictError,
+} from "@/lib/errors/admin-errors";
 
 const validApplicationId = "cjld2cjxh0000qzrmn831i7rn";
 
@@ -81,6 +96,8 @@ describe("admin teacher application routes", () => {
     mocks.listPendingTeacherApplications.mockReset();
     mocks.getAdminTeacherApplication.mockReset();
     mocks.createAdminReviewPlayback.mockReset();
+    mocks.approveTeacherApplication.mockReset();
+    mocks.rejectTeacherApplication.mockReset();
     mocks.setTeacherSuspension.mockReset();
     mocks.hasTrustedRequestOrigin.mockReset();
 
@@ -116,6 +133,16 @@ describe("admin teacher application routes", () => {
       playbackId: "playback-id",
       token: "signed-token",
       expiresInSeconds: 300,
+    });
+
+    mocks.approveTeacherApplication.mockResolvedValue({
+      id: validApplicationId,
+      applicationStatus: "APPROVED",
+    });
+
+    mocks.rejectTeacherApplication.mockResolvedValue({
+      id: validApplicationId,
+      applicationStatus: "REJECTED",
     });
 
     mocks.setTeacherSuspension.mockResolvedValue({
@@ -489,6 +516,110 @@ describe("admin teacher application routes", () => {
       });
 
       expect(response.status).not.toBe(502);
+    });
+  });
+
+  describe("review decision POST routes", () => {
+    const guard = {
+      reviewCycle: 2,
+      profileRevision: 3,
+      videoId: "cjld2cjxh0001qzrmn831i7rn",
+      videoRevision: 4,
+    };
+
+    function decisionRequest(
+      path: "approve" | "reject",
+      body: Record<string, unknown>,
+    ) {
+      return new Request(
+        `http://localhost:3000/api/admin/teacher-applications/${validApplicationId}/${path}`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+      );
+    }
+
+    it("maps an approval review-state conflict to a private stable 409", async () => {
+      mocks.approveTeacherApplication.mockRejectedValue(
+        new AdminReviewConflictError(),
+      );
+
+      const response = await approveTeacherApplicationRoute(
+        decisionRequest("approve", guard),
+        context(),
+      );
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toEqual({
+        error: "REVIEW_STATE_CONFLICT",
+      });
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
+    });
+
+    it("maps a rejection review-state conflict to a private stable 409", async () => {
+      mocks.rejectTeacherApplication.mockRejectedValue(
+        new AdminReviewConflictError(),
+      );
+
+      const response = await rejectTeacherApplicationRoute(
+        decisionRequest("reject", {
+          ...guard,
+          target: "PROFILE",
+          profileReason: "Profile reason for route acceptance.",
+        }),
+        context(),
+      );
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toEqual({
+        error: "REVIEW_STATE_CONFLICT",
+      });
+      expect(response.headers.get("cache-control")).toBe(
+        "private, no-store",
+      );
+    });
+
+    it("rejects an untrusted approval origin before body validation or service access", async () => {
+      mocks.hasTrustedRequestOrigin.mockReturnValue(false);
+
+      const response = await approveTeacherApplicationRoute(
+        decisionRequest("approve", { invalid: true }),
+        context(),
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        error: "UNTRUSTED_ORIGIN",
+      });
+      expect(mocks.approveTeacherApplication).not.toHaveBeenCalled();
+    });
+
+    it("dispatches a targeted rejection only after authentication, authorization, origin, and validation", async () => {
+      const body = {
+        ...guard,
+        target: "VIDEO",
+        videoReason: "The submitted audio is not reviewable.",
+      };
+
+      const response = await rejectTeacherApplicationRoute(
+        decisionRequest("reject", body),
+        context(),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mocks.requireAdminAccess).toHaveBeenCalledWith("admin-user");
+      expect(mocks.hasTrustedRequestOrigin).toHaveBeenCalledTimes(1);
+      expect(mocks.rejectTeacherApplication).toHaveBeenCalledWith(
+        "admin-user",
+        validApplicationId,
+        body,
+      );
     });
   });
 
