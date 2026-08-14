@@ -127,7 +127,19 @@
   "headlinePlaceholder": "For example: English speaking coach for intermediate learners",
   "bio": "Professional biography",
   "bioPlaceholder": "Describe your experience, teaching approach, preferred learners, and the speaking skills you focus on.",
-  "experienceYears": "Years of teaching experience"
+  "experienceYears": "Years of teaching experience",
+  "lockedTitle": "Your teaching profile is read-only",
+  "lockedPendingDescription": "Your application is under review. Profile editing is locked until Takineo completes the review.",
+  "lockedApprovedDescription": "This approved profile is locked to preserve the reviewed information associated with your teacher account.",
+  "lockedSuspendedDescription": "This teacher profile is suspended. Profile editing remains locked while the suspension is active.",
+  "statusPendingReview": "Under review",
+  "statusApproved": "Approved",
+  "statusSuspended": "Suspended",
+  "profileSnapshot": "Reviewed profile",
+  "notProvided": "Not provided",
+  "lockedPendingFootnote": "If Takineo requests changes during review, your application will return to an editable state before resubmission.",
+  "lockedApprovedFootnote": "Profile editing remains unavailable while this approved review snapshot is active.",
+  "lockedSuspendedFootnote": "Profile editing remains unavailable while the teacher suspension is active."
 },
 "TeacherVideo": {
   "eyebrow": "Teacher application",
