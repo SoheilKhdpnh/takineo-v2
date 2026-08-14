@@ -23,6 +23,8 @@ interface TeacherApplicationSubmitProps {
 
   videoStatus:
     TeacherIntroVideoStatus | null;
+
+  rejectionFeedback: string | null;
 }
 
 function isSubmissionVideoReady(
@@ -39,6 +41,7 @@ export function TeacherApplicationSubmit({
   applicationStatus,
   profileCompleted,
   videoStatus,
+  rejectionFeedback,
 }: TeacherApplicationSubmitProps) {
   const router = useRouter();
 
@@ -205,8 +208,42 @@ export function TeacherApplicationSubmit({
     );
   }
 
+  const rejected =
+    applicationStatus === "REJECTED";
+
   return (
     <section className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
+      {rejected ? (
+        <section
+          aria-labelledby="teacher-application-review-feedback"
+          className="mb-7 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950"
+        >
+          <h2
+            id="teacher-application-review-feedback"
+            className="text-xl font-semibold"
+          >
+            {t("rejectedTitle")}
+          </h2>
+
+          <p className="mt-2 leading-7 text-amber-900">
+            {videoStatus === "REJECTED"
+              ? t("rejectedVideoDescription")
+              : t("rejectedProfileDescription")}
+          </p>
+
+          <div className="mt-4 rounded-xl border border-amber-200/80 bg-white/70 p-4">
+            <h3 className="text-sm font-semibold text-amber-950">
+              {t("reviewerFeedback")}
+            </h3>
+
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-900">
+              {rejectionFeedback?.trim() ||
+                t("reviewerFeedbackUnavailable")}
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       <h2 className="text-2xl font-semibold text-zinc-950">
         {t("title")}
       </h2>

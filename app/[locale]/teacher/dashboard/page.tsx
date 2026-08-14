@@ -11,6 +11,7 @@ import {
   redirect,
 } from "@/i18n/navigation";
 import { requireRolePage } from "@/lib/auth/page-guards";
+import { getTeacherProfileForUser } from "@/lib/services/teacher-profile.service";
 
 interface TeacherDashboardPageProps {
   params: Promise<{
@@ -47,16 +48,18 @@ export default async function TeacherDashboardPage({
 
   setRequestLocale(locale);
 
-  const { access } =
+  const { session } =
     await requireRolePage(
       "TEACHER",
       locale,
     );
 
   const teacherProfile =
-    access.teacherProfile;
+    await getTeacherProfileForUser(
+      session.user.id,
+    );
 
-  if (!teacherProfile?.profileCompletedAt) {
+  if (!teacherProfile.profileCompletedAt) {
     redirect({
       href: "/teacher/profile",
       locale,
@@ -184,6 +187,9 @@ export default async function TeacherDashboardPage({
             videoStatus={
               teacherProfile.introVideo?.status ??
               null
+            }
+            rejectionFeedback={
+              teacherProfile.applicationReviewNote
             }
           />
         </div>

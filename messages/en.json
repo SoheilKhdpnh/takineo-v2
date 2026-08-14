@@ -179,6 +179,11 @@
   "pendingDescription": "Your professional profile and introduction video are temporarily locked while Takineo reviews your application.",
   "approvedTitle": "Your teaching application is approved",
   "approvedDescription": "Your application has been approved. Approved teachers will gain access to availability and booking features.",
+  "rejectedTitle": "Changes requested before resubmission",
+  "rejectedProfileDescription": "Takineo reviewed your application and requested changes to your professional profile. Review the feedback below, update the relevant information, then resubmit when your application is ready.",
+  "rejectedVideoDescription": "Takineo reviewed your application and requested changes that include your introduction video. Review the feedback below and update the required application items before resubmitting.",
+  "reviewerFeedback": "Review feedback",
+  "reviewerFeedbackUnavailable": "Takineo requested changes, but no detailed feedback is available for this review. Update the required application items or contact support before resubmitting.",
   "suspendedTitle": "Your teaching profile is suspended",
   "suspendedDescription": "Your teacher profile is currently unavailable. Contact Takineo support if you believe this is an error."
 },
