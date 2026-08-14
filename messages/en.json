@@ -142,6 +142,8 @@
   "statusRejected": "Your video needs to be replaced before you can submit the application.",
   "statusFailed": "The upload or video processing failed. Upload the video again.",
   "durationRejected": "The processed video is outside the required 60–120 second duration. Please replace it.",
+  "reviewFeedbackTitle": "Review feedback",
+  "reviewFeedbackUnavailable": "Takineo requested a new video, but no detailed reviewer feedback is available for this review.",
   "duration": "Processed duration: {seconds} seconds",
   "requirementsTitle": "Recording guide",
   "requirementDuration": "Keep the final video between 60 and 120 seconds.",

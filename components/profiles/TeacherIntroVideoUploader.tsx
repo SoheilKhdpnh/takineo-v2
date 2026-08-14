@@ -286,6 +286,18 @@ export function TeacherIntroVideoUploader({
     }
   }
 
+  const isDurationRejection =
+    video.status === "REJECTED" &&
+    video.rejectionReason ===
+      "VIDEO_DURATION_OUT_OF_RANGE";
+
+  const applicantRejectionFeedback =
+    video.status === "REJECTED" &&
+    !isDurationRejection
+      ? video.rejectionReason?.trim() ||
+        t("reviewFeedbackUnavailable")
+      : null;
+
   const statusMessage = (() => {
     switch (video.status) {
       case "UPLOAD_PENDING":
@@ -301,8 +313,7 @@ export function TeacherIntroVideoUploader({
         return t("statusApproved");
 
       case "REJECTED":
-        return video.rejectionReason ===
-          "VIDEO_DURATION_OUT_OF_RANGE"
+        return isDurationRejection
           ? t("durationRejected")
           : t("statusRejected");
 
@@ -359,6 +370,24 @@ export function TeacherIntroVideoUploader({
           </p>
         ) : null}
       </section>
+
+      {applicantRejectionFeedback ? (
+        <section
+          aria-labelledby="teacher-video-review-feedback-title"
+          className="rounded-3xl border border-amber-200 bg-amber-50 p-6"
+        >
+          <p
+            id="teacher-video-review-feedback-title"
+            className="text-sm font-semibold text-amber-900"
+          >
+            {t("reviewFeedbackTitle")}
+          </p>
+
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-amber-950">
+            {applicantRejectionFeedback}
+          </p>
+        </section>
+      ) : null}
 
       <section className="rounded-3xl border border-zinc-200 bg-white p-6">
         <h2 className="text-xl text-zinc-950">
