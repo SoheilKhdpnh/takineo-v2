@@ -17,10 +17,11 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "ops:mux-reconcile": "node --conditions=react-server --import tsx scripts/reconcile-mux-playback.ts",
     "ops:admin": "node --conditions=react-server --import tsx scripts/admin-operator.ts",
+    "e2e:prepare": "npm run db:generate && node --conditions=react-server --import tsx tests/e2e/setup/prepare-e2e-database.ts && node --conditions=react-server --import tsx tests/e2e/setup/seed-e2e-personas.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
