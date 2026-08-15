@@ -62,3 +62,152 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Unit tests
+        run: npm run test:unit
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-root-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+
+      DATABASE_URL: postgresql://takineo_ci_app:ci-app-password@127.0.0.1:5432/takineo_ci_app
+      DIRECT_URL: postgresql://takineo_ci_app:ci-app-password@127.0.0.1:5432/takineo_ci_app
+      TEST_DATABASE_URL: postgresql://takineo_test:ci-test-password@127.0.0.1:5432/takineo_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Provision isolated PostgreSQL identities
+        env:
+          PGPASSWORD: ci-root-password
+        run: |
+          psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE takineo_ci_app LOGIN PASSWORD 'ci-app-password';
+          CREATE DATABASE takineo_ci_app OWNER takineo_ci_app;
+          CREATE ROLE takineo_test LOGIN PASSWORD 'ci-test-password';
+          CREATE DATABASE takineo_test OWNER takineo_test;
+          SQL
+
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
+      - name: Apply migrations to isolated integration database
+        env:
+          DIRECT_URL: ${{ env.TEST_DATABASE_URL }}
+        run: npm run db:migrate:deploy
+
+      - name: Verify isolated integration identity
+        env:
+          PGPASSWORD: ci-test-password
+        run: |
+          psql -h 127.0.0.1 -p 5432 -U takineo_test -d takineo_test -v ON_ERROR_STOP=1 \
+            -c "SELECT current_database(), current_user, inet_server_addr(), inet_server_port();"
+
+      - name: Integration tests
+        run: npm run test:integration
+
+  e2e:
+    name: Browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-root-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+
+      DATABASE_URL: postgresql://takineo_ci_app:ci-app-password@127.0.0.1:5432/takineo_ci_app
+      DIRECT_URL: postgresql://takineo_ci_app:ci-app-password@127.0.0.1:5432/takineo_ci_app
+      TEST_DATABASE_URL: postgresql://takineo_test:ci-test-password@127.0.0.1:5432/takineo_test
+      E2E_DATABASE_URL: postgresql://takineo_e2e:ci-e2e-password@127.0.0.1:5432/takineo_e2e
+      E2E_DATABASE_RESET_ACK: RESET_TAKINEO_E2E_DATABASE
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Provision isolated PostgreSQL identities
+        env:
+          PGPASSWORD: ci-root-password
+        run: |
+          psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE takineo_ci_app LOGIN PASSWORD 'ci-app-password';
+          CREATE DATABASE takineo_ci_app OWNER takineo_ci_app;
+          CREATE ROLE takineo_test LOGIN PASSWORD 'ci-test-password';
+          CREATE DATABASE takineo_test OWNER takineo_test;
+          CREATE ROLE takineo_e2e LOGIN PASSWORD 'ci-e2e-password';
+          CREATE DATABASE takineo_e2e OWNER takineo_e2e;
+          SQL
+
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser acceptance
+        run: npm run test:e2e
+
+      - name: Upload Playwright diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
