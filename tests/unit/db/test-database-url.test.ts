@@ -10,6 +10,9 @@ import {
   type TestDatabaseEnvironment,
 } from "@/tests/support/test-database-url";
 
+const safeUrl =
+  "postgresql://takineo_test:secret@127.0.0.1:5432/takineo_test";
+
 function environment(
   overrides: TestDatabaseEnvironment = {},
 ): TestDatabaseEnvironment {
@@ -72,43 +75,61 @@ describe("TEST_DATABASE_URL safety guard", () => {
     },
   );
 
-  it("rejects TEST_DATABASE_URL equal to DATABASE_URL", () => {
-    const DATABASE_URL =
-      "postgresql://app:secret@production.example.com:5432/takineo";
-
+  it.each([
+    "postgresql://wrong:secret@127.0.0.1:5432/takineo_test",
+    "postgresql://takineo_test:secret@localhost:5432/takineo_test",
+    "postgresql://takineo_test:secret@127.0.0.1:5433/takineo_test",
+    "postgresql://takineo_test:secret@127.0.0.1:5432/wrong",
+  ])("rejects noncanonical test identity %s", (TEST_DATABASE_URL) => {
     expect(() =>
-      getTestDatabaseUrl({
-        DATABASE_URL,
-        DIRECT_URL:
-          "postgresql://app:secret@direct.example.com:5432/takineo",
-        TEST_DATABASE_URL: DATABASE_URL,
-      }),
+      getTestDatabaseUrl(environment({ TEST_DATABASE_URL })),
     ).toThrow(
-      "TEST_DATABASE_URL must not equal DATABASE_URL.",
+      "TEST_DATABASE_URL must target the isolated local takineo_test database identity.",
     );
   });
 
-  it("rejects TEST_DATABASE_URL equal to DIRECT_URL", () => {
-    const DIRECT_URL =
-      "postgresql://app:secret@direct.example.com:5432/takineo";
+  it("rejects a canonical test URL without the dedicated role password", () => {
+    expect(() =>
+      getTestDatabaseUrl(
+        environment({
+          TEST_DATABASE_URL:
+            "postgresql://takineo_test@127.0.0.1:5432/takineo_test",
+        }),
+      ),
+    ).toThrow(
+      "TEST_DATABASE_URL must include the dedicated test-role password.",
+    );
+  });
 
+  it("rejects DATABASE_URL targeting the same database through different credentials", () => {
     expect(() =>
       getTestDatabaseUrl({
+        TEST_DATABASE_URL: safeUrl,
         DATABASE_URL:
-          "postgresql://app:secret@production.example.com:5432/takineo",
-        DIRECT_URL,
-        TEST_DATABASE_URL: DIRECT_URL,
+          "postgresql://application_role:different-password@127.0.0.1:5432/takineo_test?application_name=app",
       }),
     ).toThrow(
-      "TEST_DATABASE_URL must not equal DIRECT_URL.",
+      "TEST_DATABASE_URL must not target the same database identity as DATABASE_URL.",
+    );
+  });
+
+  it("rejects DIRECT_URL targeting the same database through a different URL spelling", () => {
+    expect(() =>
+      getTestDatabaseUrl({
+        TEST_DATABASE_URL: safeUrl,
+        DIRECT_URL:
+          "postgres://direct_role:other@127.0.0.1:5432/takineo_test",
+      }),
+    ).toThrow(
+      "TEST_DATABASE_URL must not target the same database identity as DIRECT_URL.",
     );
   });
 
   it.each([
-    "postgresql://tester:secret@localhost:5432/takineo_test",
-    "postgres://tester:secret@localhost:5432/takineo_test",
+    safeUrl,
+    "postgres://takineo_test:secret@127.0.0.1:5432/takineo_test",
   ])(
-    "accepts isolated PostgreSQL test URL using %s",
+    "accepts the isolated local test identity using %s",
     (TEST_DATABASE_URL) => {
       expect(
         getTestDatabaseUrl(

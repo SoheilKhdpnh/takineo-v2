@@ -47,6 +47,27 @@ function normalizeDatabaseUrl(value: string): string {
   }
 }
 
+function databaseIdentity(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    if (!["postgres:", "postgresql:"].includes(parsed.protocol)) return null;
+
+    return [
+      parsed.hostname,
+      parsed.port || "5432",
+      decodeURIComponent(parsed.pathname.replace(/^\//, "")),
+    ].join("|");
+  } catch {
+    return null;
+  }
+}
+
+function targetsSameDatabaseIdentity(left: string, right: string): boolean {
+  const leftIdentity = databaseIdentity(left);
+  const rightIdentity = databaseIdentity(right);
+  return Boolean(leftIdentity && rightIdentity && leftIdentity === rightIdentity);
+}
+
 export function getE2EDatabaseUrl(
   environment: E2EDatabaseEnvironment = getProcessE2EDatabaseEnvironment(),
 ): string {
@@ -114,9 +135,9 @@ export function getE2EDatabaseUrl(
       ["TEST_DATABASE_URL", environment.TEST_DATABASE_URL],
     ] as const) {
       if (!value?.trim()) continue;
-      if (normalizeDatabaseUrl(value) === normalized) {
+      if (targetsSameDatabaseIdentity(value, rawUrl)) {
         throw new E2EDatabaseConfigurationError(
-          `E2E_DATABASE_URL must not equal ${name}.`,
+          `E2E_DATABASE_URL must not target the same database identity as ${name}.`,
         );
       }
     }
@@ -127,9 +148,9 @@ export function getE2EDatabaseUrl(
       ["TEST_DATABASE_URL", environment.TEST_DATABASE_URL],
     ] as const) {
       if (!value?.trim()) continue;
-      if (normalizeDatabaseUrl(value) === normalized) {
+      if (targetsSameDatabaseIdentity(value, rawUrl)) {
         throw new E2EDatabaseConfigurationError(
-          `E2E_DATABASE_URL must not equal ${name}.`,
+          `E2E_DATABASE_URL must not target the same database identity as ${name}.`,
         );
       }
     }

@@ -71,6 +71,25 @@ describe("Mux reconciliation internal job route", () => {
     expect(dynamic).toBe("force-dynamic");
   });
 
+  it("denies a missing scheduler secret before parsing the body or doing work", async () => {
+    const response = await runMuxReconciliationJob(
+      new Request(
+        "http://localhost:3000/api/internal/jobs/mux-playback-reconciliation",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: "{not-json",
+        },
+      ),
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      error: "INTERNAL_JOB_UNAUTHORIZED",
+    });
+    expect(mocks.processDue).not.toHaveBeenCalled();
+  });
+
   it("denies a scheduler with the wrong secret before doing work", async () => {
     const response = await runMuxReconciliationJob(request("x".repeat(32)));
 
@@ -92,6 +111,18 @@ describe("Mux reconciliation internal job route", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       error: "INTERNAL_JOB_NOT_CONFIGURED",
+    });
+    expect(mocks.processDue).not.toHaveBeenCalled();
+  });
+
+  it("rejects extra job fields after authentication", async () => {
+    const response = await runMuxReconciliationJob(
+      request(undefined, { limit: 10, actorUserId: "forged-admin" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "INVALID_REQUEST",
     });
     expect(mocks.processDue).not.toHaveBeenCalled();
   });

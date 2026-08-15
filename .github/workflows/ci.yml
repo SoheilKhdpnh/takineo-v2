@@ -163,6 +163,10 @@ jobs:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
 
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+      BETTER_AUTH_URL: http://127.0.0.1:3100
+      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
+
       DATABASE_URL: postgresql://takineo_ci_app:ci-app-password@127.0.0.1:5432/takineo_ci_app
       DIRECT_URL: postgresql://takineo_ci_app:ci-app-password@127.0.0.1:5432/takineo_ci_app
       TEST_DATABASE_URL: postgresql://takineo_test:ci-test-password@127.0.0.1:5432/takineo_test

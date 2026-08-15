@@ -52,9 +52,23 @@ describe("E2E_DATABASE_URL safety guard", () => {
             [protectedVariable]: safeUrl,
           }),
         ),
-      ).toThrow(`must not equal ${protectedVariable}`);
+      ).toThrow(`must not target the same database identity as ${protectedVariable}`);
     },
   );
+
+  it("rejects TEST_DATABASE_URL pointing at the same E2E database through different credentials", () => {
+    expect(() =>
+      getE2EDatabaseUrl(
+        env({
+          E2E_DATABASE_URL: safeUrl,
+          TEST_DATABASE_URL:
+            "postgresql://integration_role:different@127.0.0.1:5432/takineo_e2e?application_name=integration",
+        }),
+      ),
+    ).toThrow(
+      "must not target the same database identity as TEST_DATABASE_URL",
+    );
+  });
 
   it("rejects an E2E URL without the dedicated role password", () => {
     expect(() =>
@@ -126,7 +140,27 @@ describe("E2E_DATABASE_URL safety guard", () => {
           E2E_BASE_DATABASE_URL: safeUrl,
         }),
       ),
-    ).toThrow("must not equal E2E_BASE_DATABASE_URL");
+    ).toThrow("must not target the same database identity as E2E_BASE_DATABASE_URL");
+  });
+
+  it("rejects a Playwright runtime whose original app database targets E2E through different credentials", () => {
+    expect(() =>
+      getE2EDatabaseUrl(
+        env({
+          E2E_DATABASE_URL: safeUrl,
+          PLAYWRIGHT_TEST: "1",
+          TAKINEO_E2E_RUNTIME: "1",
+          DATABASE_URL: safeUrl,
+          DIRECT_URL: safeUrl,
+          E2E_BASE_DATABASE_URL:
+            "postgres://application_role:other@127.0.0.1:5432/takineo_e2e?sslmode=disable",
+          E2E_BASE_DIRECT_URL:
+            "postgresql://app:secret@direct.example.com:5432/takineo",
+        }),
+      ),
+    ).toThrow(
+      "must not target the same database identity as E2E_BASE_DATABASE_URL",
+    );
   });
 
   it("rejects a Playwright runtime that does not remap DATABASE_URL to E2E", () => {
@@ -162,7 +196,7 @@ describe("E2E_DATABASE_URL safety guard", () => {
             "postgresql://app:secret@direct.example.com:5432/takineo",
         }),
       ),
-    ).toThrow("must not equal TEST_DATABASE_URL");
+    ).toThrow("must not target the same database identity as TEST_DATABASE_URL");
   });
 
   it("requires an explicit destructive-reset acknowledgement", () => {
