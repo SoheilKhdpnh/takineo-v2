@@ -16,6 +16,7 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "ops:mux-reconcile": "node --conditions=react-server --import tsx scripts/reconcile-mux-playback.ts",
+    "ops:admin": "node --conditions=react-server --import tsx scripts/admin-operator.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run",

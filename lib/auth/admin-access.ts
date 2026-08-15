@@ -10,6 +10,8 @@ import {
 export type AdminCapability =
   | "REVIEW"
   | "MODERATE_TEACHER"
+  | "MODERATE_ACCOUNT"
+  | "MANAGE_ADMIN_ACCESS"
   | "MANAGE_SESSIONS";
 
 export type AdminPermissionValue =

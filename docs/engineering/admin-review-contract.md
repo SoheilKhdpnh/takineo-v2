@@ -97,9 +97,11 @@ The bootstrap mechanism must:
 There must be no public admin-registration page, `ADMIN` onboarding choice,
 public "become admin" endpoint, or client-controlled administrative assignment.
 
-The bootstrap mechanism is not implemented by this document. After bootstrap,
-administrative permission changes require `SUPER_ADMIN` authorization and an
-audit record.
+The bootstrap mechanism is implemented as the privileged server-side operator
+CLI documented in `docs/operations/admin-operator-workflows.md`. It is not
+exposed through ordinary browser UI. After bootstrap, administrative permission
+changes require `SUPER_ADMIN` authorization, explicit operator confirmation, and
+an immutable audit record.
 
 ## 4. Account activity model
 

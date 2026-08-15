@@ -16,8 +16,13 @@ async function assertNotLastActiveSuperAdmin(
   if (activeSuperAdmins <= 1) throw new AdminReviewConflictError();
 }
 
-export async function setAdministrativeAccess(actorUserId: string, targetUserId: string, permission: "REVIEWER" | "SUPER_ADMIN" | null) {
-  await requireAdminAccess(actorUserId, "MODERATE_TEACHER");
+export async function setAdministrativeAccess(
+  actorUserId: string,
+  targetUserId: string,
+  permission: "REVIEWER" | "SUPER_ADMIN" | null,
+  reason: string,
+) {
+  await requireAdminAccess(actorUserId, "MANAGE_ADMIN_ACCESS");
   return runSerializableAdminTransaction(async (tx) => {
     const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { accountStatus: true, adminAccess: true } });
     if (!target) throw new AdminTargetNotFoundError();
@@ -28,13 +33,13 @@ export async function setAdministrativeAccess(actorUserId: string, targetUserId:
     const access = permission
       ? await tx.adminAccess.upsert({ where: { userId: targetUserId }, create: { userId: targetUserId, permission }, update: { permission, revokedAt: null } })
       : target.adminAccess ? await tx.adminAccess.update({ where: { userId: targetUserId }, data: { revokedAt: new Date() } }) : null;
-    await tx.adminAuditEvent.create({ data: { actorUserId, targetUserId, action: !permission ? "ADMIN_ACCESS_REVOKED" : previousPermission ? "ADMIN_PERMISSION_CHANGED" : "ADMIN_ACCESS_GRANTED", metadata: { previousPermission, newPermission: permission } } });
+    await tx.adminAuditEvent.create({ data: { actorUserId, targetUserId, action: !permission ? "ADMIN_ACCESS_REVOKED" : previousPermission ? "ADMIN_PERMISSION_CHANGED" : "ADMIN_ACCESS_GRANTED", reason, metadata: { previousPermission, newPermission: permission } } });
     return access;
   });
 }
 
 export async function setAccountStatus(actorUserId: string, targetUserId: string, accountStatus: "ACTIVE" | "SUSPENDED" | "DISABLED", reason: string) {
-  await requireAdminAccess(actorUserId, "MODERATE_TEACHER");
+  await requireAdminAccess(actorUserId, "MODERATE_ACCOUNT");
   const reconciliationId = await runSerializableAdminTransaction(async (tx) => {
     const target = await tx.user.findUnique({ where: { id: targetUserId }, select: { accountStatus: true, teacherProfile: { select: { applicationStatus: true, profileCompletedAt: true, introVideo: { select: { id: true, revision: true, status: true, assetId: true, publicPlaybackId: true } } } } } });
     if (!target) throw new AdminTargetNotFoundError();
