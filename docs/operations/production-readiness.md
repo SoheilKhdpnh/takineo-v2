@@ -3,6 +3,13 @@
 This document is the release gate for Takineo. A feature-complete application
 is not automatically production-ready.
 
+## Current closure status
+
+Wave 1 Teacher Trust is code/review complete after its M18 closure gate. That
+does **not** make Takineo public-beta ready. The Wave 1 evidence and remaining
+blockers are recorded in
+[`wave1-production-readiness-closure.md`](wave1-production-readiness-closure.md).
+
 ## 1. Frontend foundation
 
 Status: FOUNDATION EXISTS
@@ -73,13 +80,16 @@ multiple competing migration execution paths.
 
 ## 4. Storage and media
 
-Status: PARTIAL
+Status: WAVE 1 TRUST LIFECYCLE IMPLEMENTED / BROADER MEDIA STRATEGY PARTIAL
 
 Current:
 
 - direct-to-Mux teacher video foundation
 - signed Mux webhook handling
 - provider-sync fallback
+- signed/private admin review playback
+- separate approved public-playback lifecycle with reconciliation/revocation
+- scheduled reconciliation health monitoring boundary
 
 Required:
 
@@ -96,7 +106,7 @@ Pending/rejected videos must never become publicly playable.
 
 ## 5. Authentication, account state, and permissions
 
-Status: PARTIAL / STRONG FOUNDATION
+Status: WAVE 1 ADMIN/AUTHORIZATION IMPLEMENTED / PRODUCT-WIDE POLICY PARTIAL
 
 Current:
 
@@ -145,15 +155,19 @@ Prefer managed infrastructure. Required decisions include:
 
 ## 8. Testing and CI/CD
 
-Status: TEST TOOLING NOT YET IMPLEMENTED / BASIC BUILD FOUNDATION
+Status: IMPLEMENTED FOR CURRENT WAVES / DEPLOYMENT ENFORCEMENT EVIDENCE PENDING
 
-Wave 1 tooling contract:
+Current enforced tooling:
 
 - Vitest
 - React Testing Library
 - Playwright
 - database integration tests using only `TEST_DATABASE_URL`
 - fail-closed behavior when a safe test database is absent
+- isolated `takineo_test` integration database identity
+- separate destructive-reset-guarded `takineo_e2e` browser database identity
+- GitHub jobs named `Quality`, `Integration`, and `Browser E2E`
+- production dependency audit command in the quality gate
 
 `DATABASE_URL` and `DIRECT_URL` must never be test fallbacks.
 
@@ -172,7 +186,11 @@ Required CI/CD gates:
 
 ## 9. Rate limiting and abuse prevention
 
-Status: NOT IMPLEMENTED
+Status: PUBLIC-BETA BLOCKER
+
+Do not satisfy this gate with process-local counters on a horizontally scaled or
+serverless runtime. The production design must use a shared enforcement boundary
+and must cover non-auth application mutations as well as authentication.
 
 Required before public beta:
 
@@ -187,7 +205,7 @@ Abuse prevention and business quotas must remain separate concepts.
 
 ## 10. Security and RLS
 
-Status: PARTIAL
+Status: WAVE 1 ADVERSARIAL REVIEW COMPLETE / PUBLIC-BETA HARDENING PARTIAL
 
 Existing:
 
@@ -208,6 +226,11 @@ Required:
 - sensitive logging review
 - table-specific RLS evaluation
 - threat-model review
+
+Current Wave 1 evidence additionally includes adversarial authorization/origin/
+logging/database-isolation tests, baseline browser security headers, and a
+Mux-aware production CSP in report-only mode. CSP enforcement remains pending
+deployed report review.
 
 RLS is introduced only where a table-specific threat model shows meaningful
 defense in depth. Application authorization remains the primary current
@@ -242,7 +265,7 @@ balancing. Application responsibilities include:
 
 ## 13. Error tracking, logs, and audit
 
-Status: NOT IMPLEMENTED
+Status: PARTIAL — IMMUTABLE ADMIN AUDIT EXISTS; PLATFORM OBSERVABILITY PENDING
 
 Required:
 
@@ -257,7 +280,7 @@ Required:
 
 ## 14. Availability and recovery
 
-Status: NOT IMPLEMENTED
+Status: PARTIAL — HEALTH/SCHEDULER BOUNDARIES EXIST; RECOVERY EVIDENCE PENDING
 
 Required:
 

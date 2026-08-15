@@ -32,6 +32,8 @@ Canonical Wave 1 contract:
 
 # Wave 1 — Teacher Trust Completion
 
+Status: COMPLETE AFTER M18 CLOSURE / PUBLIC-BETA GATE REMAINS SEPARATE
+
 All Wave 1 agents must follow:
 
 `docs/engineering/admin-review-contract.md`

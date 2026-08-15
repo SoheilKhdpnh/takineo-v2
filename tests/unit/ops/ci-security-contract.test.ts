@@ -53,4 +53,16 @@ describe("CI browser security contract", () => {
       "E2E_DATABASE_RESET_ACK: RESET_TAKINEO_E2E_DATABASE",
     );
   });
+
+  it("keeps the production dependency audit in the quality gate", async () => {
+    const workflow = (
+      await readFile(
+        join(process.cwd(), ".github", "workflows", "ci.yml"),
+        "utf8",
+      )
+    ).replace(/\r\n/g, "\n");
+
+    expect(workflow).toContain("- name: Production dependency audit");
+    expect(workflow).toContain("run: npm run security:audit:prod");
+  });
 });
