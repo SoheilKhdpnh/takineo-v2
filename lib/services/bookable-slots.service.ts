@@ -102,7 +102,7 @@ function toDateKey(
     .slice(0, 10);
 }
 
-function validateRange(
+export function validateBookableSlotsRange(
   range:
     BookableSlotsDateRange,
 ): ValidatedRange {
@@ -204,7 +204,7 @@ export async function getBookableSlotsForTeacher(
   );
 
   const validatedRange =
-    validateRange(
+    validateBookableSlotsRange(
       range,
     );
 
@@ -430,4 +430,438 @@ export async function getBookableSlotsForTeacher(
 
     slots,
   };
+}
+/*
+ * Batch projection for teacher discovery.
+ *
+ * This function intentionally does not resolve public-teacher
+ * eligibility itself. The discovery layer supplies an already-batched
+ * eligible candidate set, which keeps this projection path at three
+ * database reads regardless of teacher count.
+ *
+ * This is a read/projection operation only. Booking creation remains
+ * authoritative and independently re-checks teacher/slot eligibility.
+ */
+export async function getNextBookableAvailabilityForTeachers(
+  teacherProfileIds: readonly string[],
+  range: BookableSlotsDateRange,
+  options: {
+    now?: Date;
+  } = {},
+): Promise<Map<string, Date | null>> {
+  const validatedRange =
+    validateBookableSlotsRange(
+      range,
+    );
+
+  /*
+   * Set preserves first-seen insertion order, which also makes the
+   * returned Map deterministic for duplicate candidate identifiers.
+   */
+  const uniqueTeacherProfileIds =
+    [
+      ...new Set(
+        teacherProfileIds,
+      ),
+    ];
+
+  for (
+    const teacherProfileId
+    of uniqueTeacherProfileIds
+  ) {
+    assertTeacherProfileId(
+      teacherProfileId,
+    );
+  }
+
+  const result =
+    new Map<
+      string,
+      Date | null
+    >(
+      uniqueTeacherProfileIds.map(
+        (
+          teacherProfileId,
+        ) => [
+          teacherProfileId,
+          null,
+        ],
+      ),
+    );
+
+  /*
+   * Empty discovery pages must not touch PostgreSQL.
+   */
+  if (
+    uniqueTeacherProfileIds.length ===
+    0
+  ) {
+    return result;
+  }
+
+  const rangeStartAt =
+    iranLocalDateMinuteToInstant(
+      range.fromDate,
+      0,
+    );
+
+  const rangeEndExclusive =
+    iranLocalDateMinuteToInstant(
+      range.toDate,
+      1440,
+    );
+
+  /*
+   * Constant query shape:
+   *
+   * 1. recurring availability
+   * 2. date exceptions
+   * 3. occupied speaking sessions
+   *
+   * Never replace this with one call to
+   * getBookableSlotsForTeacher() per teacher.
+   */
+  const [
+    rules,
+    exceptions,
+    sessions,
+  ] =
+    await Promise.all([
+      prisma
+        .teacherAvailabilityRule
+        .findMany({
+          where: {
+            teacherProfileId: {
+              in:
+                uniqueTeacherProfileIds,
+            },
+
+            isActive:
+              true,
+          },
+
+          select: {
+            teacherProfileId:
+              true,
+
+            weekday:
+              true,
+
+            startMinute:
+              true,
+
+            endMinute:
+              true,
+
+            isActive:
+              true,
+          },
+        }),
+
+      prisma
+        .teacherAvailabilityException
+        .findMany({
+          where: {
+            teacherProfileId: {
+              in:
+                uniqueTeacherProfileIds,
+            },
+
+            date: {
+              gte:
+                validatedRange
+                  .fromDate,
+
+              lte:
+                validatedRange
+                  .toDate,
+            },
+          },
+
+          select: {
+            teacherProfileId:
+              true,
+
+            date:
+              true,
+
+            startMinute:
+              true,
+
+            endMinute:
+              true,
+
+            type:
+              true,
+          },
+        }),
+
+      prisma
+        .speakingSession
+        .findMany({
+          where: {
+            teacherProfileId: {
+              in:
+                uniqueTeacherProfileIds,
+            },
+
+            status: {
+              not:
+                "CANCELLED",
+            },
+
+            startAt: {
+              gte:
+                rangeStartAt,
+
+              lt:
+                rangeEndExclusive,
+            },
+          },
+
+          select: {
+            teacherProfileId:
+              true,
+
+            startAt:
+              true,
+          },
+        }),
+    ]);
+
+  type BatchRule = {
+    weekday:
+      (typeof rules)[number]["weekday"];
+
+    startMinute:
+      number;
+
+    endMinute:
+      number;
+
+    isActive:
+      boolean;
+  };
+
+  type BatchException = {
+    date:
+      string;
+
+    startMinute:
+      number;
+
+    endMinute:
+      number;
+
+    type:
+      (typeof exceptions)[number]["type"];
+  };
+
+  const rulesByTeacher =
+    new Map<
+      string,
+      BatchRule[]
+    >();
+
+  for (
+    const rule
+    of rules
+  ) {
+    const grouped =
+      rulesByTeacher.get(
+        rule.teacherProfileId,
+      ) ??
+      [];
+
+    grouped.push({
+      weekday:
+        rule.weekday,
+
+      startMinute:
+        rule.startMinute,
+
+      endMinute:
+        rule.endMinute,
+
+      isActive:
+        rule.isActive,
+    });
+
+    rulesByTeacher.set(
+      rule.teacherProfileId,
+      grouped,
+    );
+  }
+
+  const exceptionsByTeacher =
+    new Map<
+      string,
+      BatchException[]
+    >();
+
+  for (
+    const exception
+    of exceptions
+  ) {
+    const grouped =
+      exceptionsByTeacher.get(
+        exception.teacherProfileId,
+      ) ??
+      [];
+
+    grouped.push({
+      date:
+        toDateKey(
+          exception.date,
+        ),
+
+      startMinute:
+        exception.startMinute,
+
+      endMinute:
+        exception.endMinute,
+
+      type:
+        exception.type,
+    });
+
+    exceptionsByTeacher.set(
+      exception.teacherProfileId,
+      grouped,
+    );
+  }
+
+  /*
+   * teacherProfileId -> Tehran date -> occupied starts
+   */
+  const occupiedByTeacherAndDate =
+    new Map<
+      string,
+      Map<
+        string,
+        Date[]
+      >
+    >();
+
+  for (
+    const session
+    of sessions
+  ) {
+    const date =
+      instantToIranDateKey(
+        session.startAt,
+      );
+
+    const teacherDates =
+      occupiedByTeacherAndDate.get(
+        session.teacherProfileId,
+      ) ??
+      new Map<
+        string,
+        Date[]
+      >();
+
+    const occupiedStarts =
+      teacherDates.get(
+        date,
+      ) ??
+      [];
+
+    occupiedStarts.push(
+      session.startAt,
+    );
+
+    teacherDates.set(
+      date,
+      occupiedStarts,
+    );
+
+    occupiedByTeacherAndDate.set(
+      session.teacherProfileId,
+      teacherDates,
+    );
+  }
+
+  const now =
+    options.now ??
+    new Date();
+
+  /*
+   * Projection is deliberately performed in memory after the three
+   * batched reads. projectAvailabilityForDate() remains the single
+   * source of truth for recurring + AVAILABLE - UNAVAILABLE,
+   * occupied slots, lead time, horizon, and half-open behavior.
+   */
+  for (
+    const teacherProfileId
+    of uniqueTeacherProfileIds
+  ) {
+    const teacherRules =
+      rulesByTeacher.get(
+        teacherProfileId,
+      ) ??
+      [];
+
+    const teacherExceptions =
+      exceptionsByTeacher.get(
+        teacherProfileId,
+      ) ??
+      [];
+
+    const occupiedByDate =
+      occupiedByTeacherAndDate.get(
+        teacherProfileId,
+      );
+
+    let nextAvailableAt:
+      Date | null =
+        null;
+
+    for (
+      const date
+      of validatedRange
+        .dateKeys
+    ) {
+      const slots =
+        projectAvailabilityForDate({
+          date,
+
+          now,
+
+          rules:
+            teacherRules,
+
+          exceptions:
+            teacherExceptions,
+
+          occupiedStartTimes:
+            occupiedByDate?.get(
+              date,
+            ) ??
+            [],
+        });
+
+      for (
+        const slot
+        of slots
+      ) {
+        if (
+          nextAvailableAt ===
+            null ||
+          slot.startAt.getTime() <
+            nextAvailableAt.getTime()
+        ) {
+          nextAvailableAt =
+            slot.startAt;
+        }
+      }
+    }
+
+    result.set(
+      teacherProfileId,
+      nextAvailableAt,
+    );
+  }
+
+  return result;
 }
