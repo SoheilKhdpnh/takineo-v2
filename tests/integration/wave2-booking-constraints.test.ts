@@ -597,7 +597,7 @@ describe.sequential(
     );
 
     test(
-      "date exceptions cannot overlap and require clean notes",
+      "date exceptions may overlap, exact duplicate windows stay unique, and notes stay clean",
       async () => {
         await setupClient!.query(`
           INSERT INTO
@@ -623,6 +623,9 @@ describe.sequential(
           )
         `);
 
+        /*
+         * Adjacent exception windows remain legal.
+         */
         await setupClient!.query(`
           INSERT INTO
             "teacher_availability_exception" (
@@ -645,6 +648,101 @@ describe.sequential(
           )
         `);
 
+        /*
+         * Partial overlap is intentionally legal.
+         *
+         * UNAVAILABLE 09:00 - 10:00
+         * AVAILABLE   09:30 - 10:30
+         *
+         * The availability projection owns precedence;
+         * the database must permit both rows to exist.
+         */
+        await setupClient!.query(`
+          INSERT INTO
+            "teacher_availability_exception" (
+              "id",
+              "teacherProfileId",
+              "date",
+              "startMinute",
+              "endMinute",
+              "type",
+              "updatedAt"
+            )
+          VALUES (
+            'it_wave2_exception_overlap',
+            '${IDS.teacherProfileA}',
+            DATE '2026-08-15',
+            570,
+            630,
+            'AVAILABLE',
+            CURRENT_TIMESTAMP
+          )
+        `);
+
+        const stored =
+          await setupClient!.query<{
+            id: string;
+            type: string;
+            startMinute: number;
+            endMinute: number;
+          }>(`
+            SELECT
+              "id",
+              "type"::text AS type,
+              "startMinute",
+              "endMinute"
+            FROM
+              "teacher_availability_exception"
+            WHERE
+              "id" IN (
+                'it_wave2_exception_1',
+                'it_wave2_exception_adjacent',
+                'it_wave2_exception_overlap'
+              )
+            ORDER BY
+              "startMinute" ASC,
+              "id" ASC
+          `);
+
+        expect(
+          stored.rows,
+        ).toEqual([
+          {
+            id:
+              "it_wave2_exception_1",
+            type:
+              "UNAVAILABLE",
+            startMinute:
+              540,
+            endMinute:
+              600,
+          },
+          {
+            id:
+              "it_wave2_exception_overlap",
+            type:
+              "AVAILABLE",
+            startMinute:
+              570,
+            endMinute:
+              630,
+          },
+          {
+            id:
+              "it_wave2_exception_adjacent",
+            type:
+              "AVAILABLE",
+            startMinute:
+              600,
+            endMinute:
+              660,
+          },
+        ]);
+
+        /*
+         * Exact duplicate teacher/date/window rows remain
+         * prohibited by tae_exact_window_key.
+         */
         await expectPgFailure(
           () =>
             setupClient!.query(`
@@ -659,19 +757,23 @@ describe.sequential(
                   "updatedAt"
                 )
               VALUES (
-                'it_wave2_exception_overlap',
+                'it_wave2_exception_exact_duplicate',
                 '${IDS.teacherProfileA}',
                 DATE '2026-08-15',
-                570,
-                630,
+                540,
+                600,
                 'AVAILABLE',
                 CURRENT_TIMESTAMP
               )
             `),
-          "23P01",
-          "tae_no_overlap",
+          "23505",
+          "tae_exact_window_key",
         );
 
+        /*
+         * Notes retain their existing canonical formatting
+         * constraint independently of overlap semantics.
+         */
         await expectPgFailure(
           () =>
             setupClient!.query(`
@@ -702,7 +804,6 @@ describe.sequential(
         );
       },
     );
-
     test(
       "sessions must start on the 15-minute grid and last exactly 15 minutes",
       async () => {
