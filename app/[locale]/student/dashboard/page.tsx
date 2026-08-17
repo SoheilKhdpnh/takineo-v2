@@ -5,6 +5,7 @@ import {
 
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { UpcomingSessionsPanel } from "@/components/sessions/UpcomingSessionsPanel";
+import { TeacherDiscoveryPanel } from "@/components/teachers/TeacherDiscoveryPanel";
 import { requireAppLocale } from "@/i18n/locale";
 import {
   Link,
@@ -85,6 +86,10 @@ export default async function StudentDashboardPage({
           <UpcomingSessionsPanel
             viewerRole="STUDENT"
           />
+        </div>
+
+        <div className="mt-6">
+          <TeacherDiscoveryPanel />
         </div>
       </section>
     </main>

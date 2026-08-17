@@ -417,6 +417,28 @@
   "moderationGenericError": "The moderation change could not be confirmed. No success is assumed; reload the page before trying again.",
   "moderationReload": "Reload teacher state"
 },
+  "TeacherDiscovery": {
+    "eyebrow": "Teacher discovery",
+    "title": "Find a teacher for your next conversation",
+    "description": "Browse Takineo teachers and compare the next speaking openings currently projected by the schedule.",
+    "advisory": "Next-available times are a live preview, not a reservation. The final slot is rechecked when a booking is created.",
+    "headlineFallback": "English speaking teacher",
+    "nativeLanguage": "Native language",
+    "teachingLanguage": "Teaches in",
+    "experienceYears": "{years, plural, =1 {# year of teaching experience} other {# years of teaching experience}}",
+    "nextAvailability": "Next opening",
+    "noAvailability": "No opening in the current booking window",
+    "tehranTime": "Tehran time · availability may change",
+    "loading": "Loading teachers…",
+    "emptyTitle": "No teachers are available to show right now",
+    "emptyDescription": "Takineo could not find a teacher to show in the current booking window. Try again later as teacher availability changes.",
+    "loadErrorTitle": "Teachers could not be loaded",
+    "loadErrorDescription": "We could not verify the current teacher list. Try again to load a fresh discovery page.",
+    "tryAgain": "Try again",
+    "loadMore": "Show more teachers",
+    "loadingMore": "Loading…",
+    "loadMoreError": "More teachers could not be loaded. Try again."
+  },
   "UpcomingSessions": {
     "eyebrow": "15-minute speaking",
     "title": "Upcoming sessions",
