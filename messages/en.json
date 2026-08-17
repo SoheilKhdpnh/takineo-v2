@@ -57,13 +57,13 @@
   "StudentDashboard": {
     "eyebrow": "Student workspace",
     "title": "Welcome to Takineo",
-    "description": "Your student profile is ready. Teacher discovery and session booking will be added in upcoming milestones.",
+    "description": "Manage your learner profile and upcoming speaking sessions from one focused workspace.",
     "editProfile": "Edit profile"
   },
   "TeacherDashboard": {
     "eyebrow": "Teacher workspace",
     "title": "Welcome to Takineo",
-    "description": "Your teacher profile is ready. Availability management and teacher verification will be added in upcoming milestones.",
+    "description": "Manage your teaching profile and the speaking sessions already assigned to you from one protected workspace.",
     "editProfile": "Edit profile",
     "applicationHeading": "Teaching application",
     "applicationDescription": "Complete each application step before submitting your profile for review.",
@@ -416,5 +416,48 @@
   "moderationInvalidRequest": "The moderation change was not accepted. Check the reason and current state, then try again.",
   "moderationGenericError": "The moderation change could not be confirmed. No success is assumed; reload the page before trying again.",
   "moderationReload": "Reload teacher state"
-}
+},
+  "UpcomingSessions": {
+    "eyebrow": "15-minute speaking",
+    "title": "Upcoming sessions",
+    "description": "Your confirmed speaking schedule, shown in Tehran time.",
+    "teacherLabel": "Teacher",
+    "studentLabel": "Student",
+    "speakingSession": "Speaking session",
+    "tehranTime": "Tehran time",
+    "emptyTitle": "No upcoming sessions",
+    "emptyDescription": "When a speaking session is scheduled, it will appear here with its confirmed time and participant.",
+    "loadErrorTitle": "Sessions could not be loaded",
+    "loadErrorDescription": "We could not retrieve your current session list. Try again to see the latest schedule.",
+    "tryAgain": "Try again",
+    "loadMore": "Show more sessions",
+    "loadingMore": "Loading more…",
+    "loadMoreError": "We could not load more sessions. Try again.",
+    "cancelAction": "Cancel session",
+    "cancelTitle": "Cancel this session?",
+    "cancelStudentDescription": "Takineo will confirm the cancellation before changing this session. If it can no longer be cancelled, the session will stay unchanged.",
+    "cancelTeacherDescription": "Takineo will confirm the cancellation before changing this session. Teachers must include a reason.",
+    "reasonRequiredLabel": "Reason for cancellation",
+    "reasonOptionalLabel": "Reason (optional)",
+    "reasonPlaceholder": "Add a short note…",
+    "reasonRequired": "Enter a cancellation reason before continuing.",
+    "confirmCancel": "Confirm cancellation",
+    "cancelling": "Cancelling…",
+    "keepSession": "Keep session",
+    "cancelSuccess": "The session was cancelled successfully.",
+    "invalidSessionData": "This session response does not match the expected participant contract. Refresh and try again.",
+    "errors": {
+      "cutoff": "This session can no longer be cancelled under the current cancellation policy.",
+      "started": "This session has already started, so it can no longer be cancelled.",
+      "stateChanged": "The session state changed before cancellation completed. Refresh the list and review its current state.",
+      "conflict": "Another session change happened at the same time. Review the current session state and try again if appropriate.",
+      "stale": "This session is no longer available in its previous state. Refresh your sessions.",
+      "forbidden": "Your account is not allowed to cancel this session.",
+      "invalidRequest": "The cancellation request was rejected. Review the information and try again.",
+      "network": "We could not reach Takineo. The session is still shown as scheduled; try again.",
+      "generic": "The session could not be cancelled. Its current schedule remains unchanged.",
+      "invalidResponse": "Takineo could not confirm the cancellation result. The session remains unchanged."
+    },
+    "loading": "Loading upcoming sessions…"
+  }
 }

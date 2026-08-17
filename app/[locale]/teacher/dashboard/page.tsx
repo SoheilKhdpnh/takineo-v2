@@ -5,6 +5,7 @@ import {
 
 import { TeacherApplicationSubmit } from "@/components/profiles/TeacherApplicationSubmit";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { UpcomingSessionsPanel } from "@/components/sessions/UpcomingSessionsPanel";
 import { requireAppLocale } from "@/i18n/locale";
 import {
   Link,
@@ -106,6 +107,12 @@ export default async function TeacherDashboardPage({
 
           <SignOutButton />
         </header>
+
+        <div className="mt-6">
+          <UpcomingSessionsPanel
+            viewerRole="TEACHER"
+          />
+        </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <article className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">

@@ -53,6 +53,12 @@ vi.mock("@/components/auth/SignOutButton", () => ({
   SignOutButton: () => null,
 }));
 
+vi.mock("@/components/sessions/UpcomingSessionsPanel", () => ({
+  UpcomingSessionsPanel: () => (
+    <div data-testid="upcoming-sessions" />
+  ),
+}));
+
 vi.mock("@/components/profiles/TeacherApplicationSubmit", () => ({
   TeacherApplicationSubmit: ({
     applicationStatus,
