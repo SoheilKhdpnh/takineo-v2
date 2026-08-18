@@ -9,9 +9,9 @@ import {
  * It deliberately has NO latency threshold because 1k/10k/50k synthetic
  * datasets are complexity probes, not Wave 2 launch SLAs.
  *
- * Bind only after Track A M3 exists:
+ * Bind to the canonical M3 endpoint:
  *
- *   k6 run -e DISCOVERY_TARGET_URL="http://localhost:3000/<actual-m3-route>" \
+ *   k6 run -e DISCOVERY_TARGET_URL="http://localhost:3000/api/teachers?fromDate=2026-08-18&toDate=2026-08-24" \
  *          -e DISCOVERY_DATASET_LABEL="10k" \
  *          -e VUS="25" \
  *          -e DURATION="30s" \
@@ -23,7 +23,7 @@ const targetUrl =
 
 if (!targetUrl) {
   throw new Error(
-    "DISCOVERY_TARGET_URL is required. Do not guess the M3 discovery route.",
+    "DISCOVERY_TARGET_URL is required.",
   );
 }
 
@@ -41,7 +41,7 @@ export const options = {
   duration,
 };
 
-export default function () {
+export default function discoveryLoadIteration() {
   const response =
     http.get(
       targetUrl,
