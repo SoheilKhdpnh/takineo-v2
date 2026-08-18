@@ -19,6 +19,7 @@ import {
   type SessionViewerRole,
 } from "@/components/sessions/session-api";
 import {
+  Link,
   useRouter,
 } from "@/i18n/navigation";
 import {
@@ -34,6 +35,11 @@ type LoadState =
   | "loading"
   | "ready"
   | "error";
+
+type PanelNotice = {
+  kind: "success" | "error";
+  message: string;
+};
 
 const PAGE_LIMIT = 20;
 
@@ -95,7 +101,10 @@ export function UpcomingSessionsPanel({
   viewerRole,
 }: UpcomingSessionsPanelProps) {
   const locale = useLocale();
-  const router = useRouter();
+  const {
+    push,
+    refresh,
+  } = useRouter();
   const t = useTranslations(
     "UpcomingSessions",
   );
@@ -119,7 +128,11 @@ export function UpcomingSessionsPanel({
   const [isCancelling, setIsCancelling] =
     useState(false);
   const [notice, setNotice] =
-    useState<string | null>(null);
+    useState<PanelNotice | null>(null);
+  const [
+    rebookTeacherProfileId,
+    setRebookTeacherProfileId,
+  ] = useState<string | null>(null);
 
   const dateFormatter = useMemo(
     () =>
@@ -179,8 +192,8 @@ export function UpcomingSessionsPanel({
       );
 
       if (response.status === 401) {
-        router.push("/sign-in");
-        router.refresh();
+        push("/sign-in");
+        refresh();
         return null;
       }
 
@@ -203,7 +216,7 @@ export function UpcomingSessionsPanel({
 
       return parsed;
     },
-    [router],
+    [push, refresh],
   );
 
   const loadInitial = useCallback(
@@ -245,11 +258,15 @@ export function UpcomingSessionsPanel({
     const controller =
       new AbortController();
 
-    void Promise.resolve().then(() =>
-      loadInitial(
+    void Promise.resolve().then(() => {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      return loadInitial(
         controller.signal,
-      ),
-    );
+      );
+    });
 
     return () => {
       controller.abort();
@@ -266,6 +283,7 @@ export function UpcomingSessionsPanel({
 
     setIsLoadingMore(true);
     setNotice(null);
+    setRebookTeacherProfileId(null);
 
     try {
       const result =
@@ -288,9 +306,11 @@ export function UpcomingSessionsPanel({
         result.nextCursor,
       );
     } catch {
-      setNotice(
-        t("loadMoreError"),
-      );
+      setNotice({
+        kind: "error",
+        message:
+          t("loadMoreError"),
+      });
     } finally {
       setIsLoadingMore(false);
     }
@@ -305,6 +325,7 @@ export function UpcomingSessionsPanel({
     setReason("");
     setCancelError(null);
     setNotice(null);
+    setRebookTeacherProfileId(null);
   }
 
   function closeCancellation() {
@@ -386,8 +407,8 @@ export function UpcomingSessionsPanel({
       );
 
       if (response.status === 401) {
-        router.push("/sign-in");
-        router.refresh();
+        push("/sign-in");
+        refresh();
         return;
       }
 
@@ -427,6 +448,12 @@ export function UpcomingSessionsPanel({
         return;
       }
 
+      const cancelledSession =
+        sessions.find(
+          (session) =>
+            session.id === sessionId,
+        );
+
       setSessions((current) =>
         current.filter(
           (session) =>
@@ -435,9 +462,19 @@ export function UpcomingSessionsPanel({
       );
       setActiveCancelId(null);
       setReason("");
-      setNotice(
-        t("cancelSuccess"),
+      setRebookTeacherProfileId(
+        viewerRole === "STUDENT" &&
+          cancelledSession?.counterparty.type ===
+            "TEACHER"
+          ? cancelledSession.counterparty
+              .teacherProfileId
+          : null,
       );
+      setNotice({
+        kind: "success",
+        message:
+          t("cancelSuccess"),
+      });
     } catch {
       setCancelError(
         t("errors.network"),
@@ -528,6 +565,7 @@ export function UpcomingSessionsPanel({
               onClick={() => {
                 setLoadState("loading");
                 setNotice(null);
+                setRebookTeacherProfileId(null);
                 void loadInitial();
               }}
               className="mt-4 rounded-full bg-red-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-950"
@@ -549,12 +587,39 @@ export function UpcomingSessionsPanel({
 
       <div className="p-5 sm:p-7">
         {notice ? (
-          <p
-            role="status"
-            className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900"
+          <div
+            role={
+              notice.kind === "error"
+                ? "alert"
+                : "status"
+            }
+            className={[
+              "mb-4 rounded-2xl border px-4 py-3 text-sm leading-6",
+              notice.kind === "error"
+                ? "border-red-100 bg-red-50 text-red-900"
+                : "border-emerald-100 bg-emerald-50 text-emerald-900",
+            ].join(" ")}
           >
-            {notice}
-          </p>
+            <p>
+              {notice.message}
+            </p>
+
+            {notice.kind === "success" &&
+            viewerRole === "STUDENT" &&
+            rebookTeacherProfileId ? (
+              <div className="mt-3 border-t border-emerald-200/70 pt-3">
+                <p className="text-emerald-900/80">
+                  {t("rebookDescription")}
+                </p>
+                <Link
+                  href={`/teachers/${rebookTeacherProfileId}`}
+                  className="mt-2 inline-flex rounded-full bg-emerald-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-950"
+                >
+                  {t("bookAnotherTime")}
+                </Link>
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {sessions.length === 0 ? (

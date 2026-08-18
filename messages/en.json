@@ -539,6 +539,8 @@
     "cancelling": "Cancelling…",
     "keepSession": "Keep session",
     "cancelSuccess": "The session was cancelled successfully.",
+    "rebookDescription": "The cancelled session stays cancelled. Choosing another time starts a separate new booking.",
+    "bookAnotherTime": "Choose another time with this teacher",
     "invalidSessionData": "This session response does not match the expected participant contract. Refresh and try again.",
     "errors": {
       "cutoff": "This session can no longer be cancelled under the current cancellation policy.",

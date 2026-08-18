@@ -8,6 +8,10 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
+  StrictMode,
+  type ReactNode,
+} from "react";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -26,10 +30,6 @@ const mocks = vi.hoisted(() => {
   return {
     push,
     refresh,
-    router: {
-      push,
-      refresh,
-    },
   };
 });
 
@@ -40,8 +40,25 @@ vi.mock("next-intl", () => ({
 }));
 
 vi.mock("@/i18n/navigation", () => ({
-  useRouter: () =>
-    mocks.router,
+  Link: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: ReactNode;
+  }) => (
+    <a
+      href={href}
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+  useRouter: () => ({
+    push: mocks.push,
+    refresh: mocks.refresh,
+  }),
 }));
 
 import {
@@ -137,6 +154,37 @@ describe("UpcomingSessionsPanel", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "/api/sessions?bucket=upcoming&limit=20",
     );
+  });
+
+
+  it("loads only once under effect replay even when the router object identity changes", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        jsonResponse({
+          items: [studentSession],
+          hasMore: false,
+          nextCursor: null,
+        }),
+      );
+
+    render(
+      <StrictMode>
+        <UpcomingSessionsPanel
+          viewerRole="STUDENT"
+        />
+      </StrictMode>,
+    );
+
+    expect(
+      await screen.findByText(
+        "Teacher One",
+      ),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 
 
@@ -349,6 +397,19 @@ describe("UpcomingSessionsPanel", () => {
     ).toHaveTextContent(
       "cancelSuccess",
     );
+    expect(
+      screen.getByRole("status"),
+    ).toHaveTextContent(
+      "rebookDescription",
+    );
+    expect(
+      screen.getByRole("link", {
+        name: "bookAnotherTime",
+      }),
+    ).toHaveAttribute(
+      "href",
+      "/teachers/teacher-profile",
+    );
 
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/sessions/session-1/cancel",
@@ -476,6 +537,58 @@ describe("UpcomingSessionsPanel", () => {
       "/api/sessions?bucket=upcoming&limit=20&cursor=cursor-2",
     );
   });
+
+  it("surfaces a later-page failure as an error while preserving already loaded sessions", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [studentSession],
+          hasMore: true,
+          nextCursor: "cursor-2",
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            error:
+              "INTERNAL_SERVER_ERROR",
+          },
+          500,
+        ),
+      );
+
+    const user = userEvent.setup();
+
+    render(
+      <UpcomingSessionsPanel
+        viewerRole="STUDENT"
+      />,
+    );
+
+    await screen.findByText(
+      "Teacher One",
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "loadMore",
+      }),
+    );
+
+    expect(
+      await screen.findByRole(
+        "alert",
+      ),
+    ).toHaveTextContent(
+      "loadMoreError",
+    );
+    expect(
+      screen.getByText(
+        "Teacher One",
+      ),
+    ).toBeInTheDocument();
+  });
+
 
   it("keeps upcoming-session copy in Persian and English catalog parity", () => {
     expect(
