@@ -2,13 +2,23 @@ import {
   getApiSession,
 } from "@/lib/auth/api-session";
 import {
+  bookingMutationErrorResponse,
+  bookingPrivateJson,
+  serializeCreatedBookingSession,
+} from "@/lib/errors/booking-http";
+import {
   serializeSpeakingSessionList,
   sessionReadErrorResponse,
   sessionReadPrivateJson,
 } from "@/lib/errors/session-read-http";
+
+
 import {
   listSpeakingSessions,
 } from "@/lib/services/speaking-session-read.service";
+import {
+  createSpeakingSessionSchema,
+} from "@/lib/validations/booking";
 import {
   listSpeakingSessionsQuerySchema,
 } from "@/lib/validations/session-read";
@@ -132,7 +142,10 @@ export async function GET(
         result,
       ),
     );
-  } catch (error) {
+  }
+  catch (
+    error
+  ) {
     const response =
       sessionReadErrorResponse(
         error,
@@ -155,8 +168,146 @@ export async function GET(
           "INTERNAL_SERVER_ERROR",
       },
       {
-        status: 500,
+        status:
+          500,
       },
+    );
+  }
+}
+
+export async function POST(
+  request:
+    Request,
+): Promise<Response> {
+  /*
+   * This dependency is mutation-only.
+   *
+   * Keep it out of module initialization so the existing GET
+   * session-read surface remains independently importable and does
+   * not require mutation-origin configuration merely to be read.
+   */
+  const {
+    hasTrustedRequestOrigin,
+  } =
+    await import(
+      "@/lib/security/same-origin"
+    );
+
+  if (
+    !hasTrustedRequestOrigin(
+      request,
+    )
+  ) {
+    return bookingPrivateJson(
+      {
+        error:
+          "UNTRUSTED_ORIGIN",
+      },
+      {
+        status:
+          403,
+      },
+    );
+  }
+
+  const session =
+    await getApiSession(
+      request,
+    );
+
+  if (
+    !session
+  ) {
+    return bookingPrivateJson(
+      {
+        error:
+          "UNAUTHORIZED",
+      },
+      {
+        status:
+          401,
+      },
+    );
+  }
+
+  let body:
+    unknown;
+
+  try {
+    body =
+      await request.json();
+  }
+  catch {
+    return bookingPrivateJson(
+      {
+        error:
+          "INVALID_JSON",
+      },
+      {
+        status:
+          400,
+      },
+    );
+  }
+
+  const parsed =
+    createSpeakingSessionSchema
+      .safeParse(
+        body,
+      );
+
+  if (
+    !parsed.success
+  ) {
+    return bookingPrivateJson(
+      {
+        error:
+          "INVALID_REQUEST",
+
+        fields:
+          parsed.error
+            .flatten()
+            .fieldErrors,
+      },
+      {
+        status:
+          400,
+      },
+    );
+  }
+
+  try {
+    /*
+     * Booking persistence is also POST-only. Loading it here keeps
+     * GET /api/sessions free from booking-mutation/database module
+     * initialization and avoids widening the read route's runtime
+     * dependencies.
+     */
+    const {
+      createSpeakingSession,
+    } =
+      await import(
+        "@/lib/services/booking.service"
+      );
+
+    const result =
+      await createSpeakingSession(
+        session.user.id,
+        parsed.data,
+      );
+
+    return bookingPrivateJson({
+      session:
+        serializeCreatedBookingSession(
+          result,
+        ),
+    });
+  }
+  catch (
+    error
+  ) {
+    return bookingMutationErrorResponse(
+      error,
     );
   }
 }
