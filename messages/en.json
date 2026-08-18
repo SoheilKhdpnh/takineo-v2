@@ -438,6 +438,8 @@
     "loadMore": "Show more teachers",
     "loadingMore": "Loading…",
     "loadMoreError": "More teachers could not be loaded. Try again."
+,
+    "viewProfileAndBook": "View profile & book"
   },
   "TeacherAvailability": {
     "eyebrow": "Teacher schedule",
@@ -551,5 +553,91 @@
       "invalidResponse": "Takineo could not confirm the cancellation result. The session remains unchanged."
     },
     "loading": "Loading upcoming sessions…"
+  },
+  "StudentBooking": {
+    "loadingProfile": "Loading teacher profile and current slots…",
+    "profileEyebrow": "Public teacher profile",
+    "headlineFallback": "English speaking teacher",
+    "aboutTeacher": "About this teacher",
+    "bioFallback": "This teacher has not added a public biography yet.",
+    "nativeLanguage": "Native language",
+    "teachingLanguage": "Teaches in",
+    "experience": "Experience",
+    "experienceYears": "{years, plural, =1 {# year} other {# years}}",
+    "authorityTitle": "Availability is rechecked when you book",
+    "authorityDescription": "These times come directly from Takineo’s booking service, but another booking or schedule change can make a displayed slot unavailable before confirmation.",
+    "slotsEyebrow": "Authoritative availability",
+    "slotsTitle": "Choose a 15-minute speaking time",
+    "slotsDescription": "Select one of the currently projected Tehran-time slots. Your booking exists only after Takineo confirms a persisted scheduled session.",
+    "tehranTime": "Asia/Tehran",
+    "loadingSlots": "Loading current bookable slots…",
+    "slotsLoadErrorTitle": "Current slots could not be verified",
+    "slotsLoadErrorDescription": "Takineo could not load the authoritative slot list. Try again before selecting a time.",
+    "tryAgain": "Try again",
+    "noSlotsTitle": "No bookable times are available right now",
+    "noSlotsDescription": "This teacher has no authoritative opening in the current booking window. Availability can change as schedules and bookings change.",
+    "slotCount": "{count, plural, =1 {# time} other {# times}}",
+    "slotsForDate": "Available times for {date}",
+    "selectedSlot": "Selected time",
+    "confirmBooking": "Confirm this booking",
+    "booking": "Confirming…",
+    "confirmedTitle": "Your speaking session is booked",
+    "confirmedDescription": "Takineo confirmed a scheduled session for {time}.",
+    "viewUpcoming": "View upcoming sessions",
+    "teacherUnavailableTitle": "This teacher is no longer available to book",
+    "teacherUnavailableDescription": "The profile may have changed since discovery. Return to the teacher list for a fresh, server-verified option.",
+    "backToDiscovery": "Back to teacher discovery",
+    "profileLoadErrorTitle": "Teacher profile could not be verified",
+    "profileLoadErrorDescription": "Takineo could not load a fresh public profile. Try again before choosing a time.",
+    "signIn": "Sign in to book",
+    "retrySameAttempt": "Retry the same booking attempt",
+    "notices": {
+      "networkRetry": {
+        "title": "The booking result is not confirmed yet",
+        "description": "The response was interrupted or could not be verified. Retry the same attempt so Takineo can safely recover the same durable booking if it already succeeded."
+      },
+      "slotUnavailable": {
+        "title": "That time is no longer available",
+        "description": "Takineo refreshed the authoritative slots. Choose a new time from the updated list."
+      },
+      "bookingConflict": {
+        "title": "The schedule changed while you were booking",
+        "description": "Takineo refreshed the authoritative slots after a concurrent booking conflict. Choose a fresh time before trying again."
+      },
+      "idempotencyConflict": {
+        "title": "This booking attempt can no longer be reused",
+        "description": "Takineo refreshed the authoritative slots. Select a time again to begin a genuinely new booking attempt with a new request key."
+      },
+      "limitExceeded": {
+        "title": "You have reached the upcoming-session limit",
+        "description": "Takineo cannot accept another booking for this account right now. Review your upcoming sessions before booking again."
+      },
+      "studentIneligible": {
+        "title": "This account cannot book student sessions right now",
+        "description": "Your current account state is not eligible for student booking. Takineo’s server remains the authority for booking access."
+      },
+      "selfBooking": {
+        "title": "You cannot book your own teacher profile",
+        "description": "Choose a different teacher for your speaking session."
+      },
+      "authRequired": {
+        "title": "Sign in before confirming a booking",
+        "description": "Teacher profiles and slots are public, but creating a speaking session requires an authenticated active student account."
+      },
+      "untrustedOrigin": {
+        "title": "Takineo could not verify this booking request",
+        "description": "The secure booking request was rejected. Reload Takineo from its normal application address before trying again."
+      },
+      "invalidRequest": {
+        "title": "This booking selection could not be submitted",
+        "description": "The selected request no longer matches the booking contract. Reload the profile and select a fresh authoritative slot."
+      },
+      "internalError": {
+        "title": "Takineo could not confirm the booking result",
+        "description": "A server error interrupted confirmation. Retrying the same attempt preserves the same request key and cannot turn it into a different booking."
+      }
+    },
+    "checkUpcoming": "Check upcoming sessions",
+    "selectSlot": "Select {time}"
   }
 }

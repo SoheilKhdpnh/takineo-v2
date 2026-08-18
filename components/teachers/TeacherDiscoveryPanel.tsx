@@ -19,6 +19,9 @@ import {
   type PublicTeacherDiscoveryItem,
 } from "@/components/teachers/teacher-discovery-api";
 import {
+  Link,
+} from "@/i18n/navigation";
+import {
   BOOKING_OPERATIONAL_TIMEZONE,
 } from "@/lib/domain/booking-policy";
 
@@ -448,6 +451,13 @@ export function TeacherDiscoveryPanel() {
                     {t("tehranTime")}
                   </p>
                 </div>
+
+                <Link
+                  href={`/teachers/${teacher.teacherProfileId}`}
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+                >
+                  {t("viewProfileAndBook")}
+                </Link>
               </article>
             ))}
           </div>

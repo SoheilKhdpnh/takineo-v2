@@ -6,6 +6,7 @@ import {
   screen,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import {
   afterEach,
   beforeEach,
@@ -34,6 +35,21 @@ vi.mock("next-intl", () => ({
 
       return key;
     },
+}));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: ReactNode;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock(
@@ -168,6 +184,14 @@ describe("TeacherDiscoveryPanel", () => {
         "noAvailability",
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", {
+        name: "viewProfileAndBook",
+      })[0],
+    ).toHaveAttribute(
+      "href",
+      "/teachers/teacher-profile-a",
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
