@@ -3,6 +3,7 @@ import {
   setRequestLocale,
 } from "next-intl/server";
 
+import { TeacherAvailabilityPanel } from "@/components/availability/TeacherAvailabilityPanel";
 import { TeacherApplicationSubmit } from "@/components/profiles/TeacherApplicationSubmit";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { UpcomingSessionsPanel } from "@/components/sessions/UpcomingSessionsPanel";
@@ -112,6 +113,10 @@ export default async function TeacherDashboardPage({
           <UpcomingSessionsPanel
             viewerRole="TEACHER"
           />
+        </div>
+
+        <div className="mt-6">
+          <TeacherAvailabilityPanel />
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">

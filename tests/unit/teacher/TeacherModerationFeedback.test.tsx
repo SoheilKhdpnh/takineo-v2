@@ -59,6 +59,12 @@ vi.mock("@/components/sessions/UpcomingSessionsPanel", () => ({
   ),
 }));
 
+vi.mock("@/components/availability/TeacherAvailabilityPanel", () => ({
+  TeacherAvailabilityPanel: () => (
+    <div data-testid="teacher-availability" />
+  ),
+}));
+
 vi.mock("@/components/profiles/TeacherApplicationSubmit", () => ({
   TeacherApplicationSubmit: ({
     applicationStatus,
