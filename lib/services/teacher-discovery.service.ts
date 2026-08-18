@@ -4,6 +4,9 @@ import {
   isPublicTeacher,
 } from "@/lib/domain/teacher-application";
 import {
+  BookableTeacherNotFoundError,
+} from "@/lib/errors/booking-errors";
+import {
   Prisma,
 } from "@/lib/generated/prisma/client";
 import {
@@ -388,5 +391,162 @@ export async function listPublicTeachers(
             null
           )
         : null,
+  };
+}
+export type PublicTeacherDetail = {
+  teacherProfileId:
+    string;
+
+  name:
+    string;
+
+  image:
+    string | null;
+
+  headline:
+    string | null;
+
+  bio:
+    string | null;
+
+  experienceYears:
+    number | null;
+
+  nativeLanguage:
+    string;
+
+  teachingLanguage:
+    string;
+};
+
+function assertPublicTeacherDetailId(
+  teacherProfileId:
+    string,
+): void {
+  if (
+    teacherProfileId.length ===
+      0 ||
+    teacherProfileId !==
+      teacherProfileId.trim() ||
+    teacherProfileId.length >
+      128 ||
+    /\s/.test(
+      teacherProfileId,
+    )
+  ) {
+    throw new BookableTeacherNotFoundError();
+  }
+}
+
+/*
+ * Public single-teacher detail.
+ *
+ * Keep this select intentionally independent from applicant/admin
+ * profile reads. Public callers receive only the explicit DTO below.
+ *
+ * Missing and non-public teachers deliberately share the same error.
+ */
+export async function getPublicTeacherDetail(
+  teacherProfileId:
+    string,
+): Promise<PublicTeacherDetail> {
+  assertPublicTeacherDetailId(
+    teacherProfileId,
+  );
+
+  const teacher =
+    await prisma
+      .teacherProfile
+      .findUnique({
+        where: {
+          id:
+            teacherProfileId,
+        },
+
+        select: {
+          id:
+            true,
+
+          headline:
+            true,
+
+          bio:
+            true,
+
+          experienceYears:
+            true,
+
+          nativeLanguage:
+            true,
+
+          teachingLanguage:
+            true,
+
+          applicationStatus:
+            true,
+
+          profileCompletedAt:
+            true,
+
+          user: {
+            select: {
+              name:
+                true,
+
+              image:
+                true,
+
+              accountStatus:
+                true,
+            },
+          },
+
+          introVideo: {
+            select: {
+              status:
+                true,
+            },
+          },
+        },
+      });
+
+  if (
+    !teacher ||
+    !isPublicTeacher(
+      teacher.user.accountStatus,
+      teacher.applicationStatus,
+      teacher.profileCompletedAt,
+      teacher.introVideo
+        ?.status ??
+        null,
+    )
+  ) {
+    throw new BookableTeacherNotFoundError();
+  }
+
+  return {
+    teacherProfileId:
+      teacher.id,
+
+    name:
+      teacher.user.name,
+
+    image:
+      teacher.user.image,
+
+    headline:
+      teacher.headline,
+
+    bio:
+      teacher.bio,
+
+    experienceYears:
+      teacher.experienceYears,
+
+    nativeLanguage:
+      teacher.nativeLanguage,
+
+    teachingLanguage:
+      teacher.teachingLanguage,
   };
 }
