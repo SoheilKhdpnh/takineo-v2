@@ -105,6 +105,11 @@ let listPublicTeachers:
     "@/lib/services/teacher-discovery.service"
   ).listPublicTeachers;
 
+let reconcilePublicTeacherDiscoveryEligibility:
+  typeof import(
+    "@/lib/services/public-teacher-discovery-eligibility.service"
+  ).reconcilePublicTeacherDiscoveryEligibility;
+
 function fixture():
   Client {
   if (!fixtureClient) {
@@ -114,6 +119,33 @@ function fixture():
   }
 
   return fixtureClient;
+}
+
+async function reconcileFixtureTeacher(
+  teacherProfileId:
+    string,
+): Promise<boolean> {
+  const prismaClient =
+    applicationPrisma;
+
+  if (
+    !prismaClient
+  ) {
+    throw new Error(
+      "Track D discovery Prisma client is unavailable for projection reconciliation.",
+    );
+  }
+
+  return prismaClient
+    .$transaction(
+      async (
+        tx,
+      ) =>
+        reconcilePublicTeacherDiscoveryEligibility(
+          teacherProfileId,
+          tx,
+        ),
+    );
 }
 
 async function cleanup():
@@ -467,6 +499,30 @@ async function seedFixtures():
     videoStatus:
       "READY_FOR_REVIEW",
   });
+
+  /*
+   * Public discovery is projection-backed after the remediation.
+   * These fixtures intentionally seed source tables with raw SQL, so
+   * materialize membership using the canonical production reconciler.
+   */
+  for (
+    const teacherProfileId
+    of [
+      IDS.public1,
+      IDS.public2,
+      IDS.public3,
+      IDS.public4,
+      IDS.applicationSuspended,
+      IDS.accountSuspended,
+      IDS.incomplete,
+      IDS.videoPending,
+    ]
+  ) {
+    await reconcileFixtureTeacher(
+      teacherProfileId,
+    );
+  }
+
 }
 
 async function seedHistoricalSessions(
@@ -835,6 +891,13 @@ describe.sequential(
           await import(
             "@/lib/services/teacher-discovery.service"
           ));
+
+        ({
+          reconcilePublicTeacherDiscoveryEligibility,
+        } =
+          await import(
+            "@/lib/services/public-teacher-discovery-eligibility.service"
+          ));
       },
     );
 
@@ -1013,6 +1076,19 @@ describe.sequential(
               IDS.public1,
             ],
           );
+
+      /*
+       * The storage-level mutation above bypasses the normal application
+       * write boundary. Reconcile projection membership exactly as the
+       * production mutation transaction would.
+       */
+      await expect(
+        reconcileFixtureTeacher(
+          IDS.public1,
+        ),
+      ).resolves.toBe(
+        false,
+      );
 
         const secondPage =
           await listPublicTeachers(
