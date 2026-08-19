@@ -33,35 +33,12 @@ const publicTeacherDiscoverySelect = {
   teachingLanguage:
     true,
 
-  /*
-   * Eligibility-only fields.
-   *
-   * They are intentionally selected so the central
-   * isPublicTeacher() policy can be reused defensively,
-   * but they never survive public DTO mapping.
-   */
-  applicationStatus:
-    true,
-
-  profileCompletedAt:
-    true,
-
   user: {
     select: {
       name:
         true,
 
       image:
-        true,
-
-      accountStatus:
-        true,
-    },
-  },
-
-  introVideo: {
-    select: {
-      status:
         true,
     },
   },
@@ -170,10 +147,8 @@ export async function listPublicTeachers(
   );
 
   /*
-   * Validate request semantics independently of database contents.
-   *
-   * An invalid range must fail even when discovery currently has
-   * zero eligible teachers.
+   * Validate bounded Tehran-slot query semantics before touching
+   * candidate storage, including when no public teachers exist.
    */
   validateBookableSlotsRange({
     fromDate:
@@ -183,62 +158,32 @@ export async function listPublicTeachers(
       input.toDate,
   });
 
-  const where:
-    Prisma.TeacherProfileWhereInput =
-      {
-        /*
-         * Push public eligibility into PostgreSQL so
-         * undiscoverable teachers never enter the page.
-         */
-        applicationStatus:
-          "APPROVED",
-
-        profileCompletedAt: {
-          not:
-            null,
-        },
-
-        user: {
-          is: {
-            accountStatus:
-              "ACTIVE",
-          },
-        },
-
-        introVideo: {
-          is: {
-            status:
-              "APPROVED",
-          },
-        },
-
-        /*
-         * Explicit keyset boundary instead of Prisma
-         * cursor/skip semantics.
-         *
-         * This keeps pagination valid even if the prior
-         * teacher becomes undiscoverable between requests.
-         */
+  /*
+   * Candidate retrieval is intentionally projection-only.
+   *
+   * This is the architectural performance boundary:
+   * PostgreSQL reads at most limit + 1 membership rows regardless
+   * of how sparse public teachers are in teacher_profile ID space.
+   */
+  const candidateMemberships =
+    await prisma
+      .publicTeacherDiscoveryEligibility
+      .findMany({
         ...(
           input.cursor
             ? {
-                id: {
-                  gt:
-                    input.cursor,
+                where: {
+                  teacherProfileId: {
+                    gt:
+                      input.cursor,
+                  },
                 },
               }
             : {}
         ),
-      };
-
-  const rows =
-    await prisma
-      .teacherProfile
-      .findMany({
-        where,
 
         orderBy: {
-          id:
+          teacherProfileId:
             "asc",
         },
 
@@ -246,49 +191,101 @@ export async function listPublicTeachers(
           input.limit +
           1,
 
+        select: {
+          teacherProfileId:
+            true,
+        },
+      });
+
+  if (
+    candidateMemberships.length ===
+    0
+  ) {
+    return {
+      teachers:
+        [],
+
+      nextCursor:
+        null,
+    };
+  }
+
+  const hasMore =
+    candidateMemberships.length >
+    input.limit;
+
+  const pageMemberships =
+    hasMore
+      ? candidateMemberships.slice(
+          0,
+          input.limit,
+        )
+      : candidateMemberships;
+
+  const pageCandidateIds =
+    pageMemberships.map(
+      (
+        membership,
+      ) =>
+        membership.teacherProfileId,
+    );
+
+  /*
+   * Fetch public presentation fields for only the bounded candidate
+   * IDs. Do not reproduce eligibility predicates here: projection
+   * synchronization owns discovery membership.
+   */
+  const profileRows =
+    await prisma
+      .teacherProfile
+      .findMany({
+        where: {
+          id: {
+            in:
+              pageCandidateIds,
+          },
+        },
+
         select:
           publicTeacherDiscoverySelect,
       });
 
-  const hasMore =
-    rows.length >
-    input.limit;
-
-  const candidateRows =
-    hasMore
-      ? rows.slice(
-          0,
-          input.limit,
-        )
-      : rows;
-
   /*
-   * The PostgreSQL where-clause already enforces these
-   * conditions. Reusing isPublicTeacher() here protects
-   * against future policy drift between discovery and
-   * booking eligibility.
+   * SQL IN does not guarantee result ordering.
+   * Restore projection keyset order explicitly.
    */
-  const pageRows =
-    candidateRows.filter(
-      (
-        teacher,
-      ) =>
-        isPublicTeacher(
-          teacher.user
-            .accountStatus,
-
-          teacher
-            .applicationStatus,
-
-          teacher
-            .profileCompletedAt,
-
-          teacher
-            .introVideo
-            ?.status ??
-            null,
-        ),
+  const profileById =
+    new Map(
+      profileRows.map(
+        (
+          teacher,
+        ) => [
+          teacher.id,
+          teacher,
+        ],
+      ),
     );
+
+  const pageRows =
+    pageCandidateIds
+      .map(
+        (
+          teacherProfileId,
+        ) =>
+          profileById.get(
+            teacherProfileId,
+          ) ??
+          null,
+      )
+      .filter(
+        (
+          teacher,
+        ): teacher is NonNullable<
+          typeof teacher
+        > =>
+          teacher !==
+          null,
+      );
 
   if (
     pageRows.length ===
@@ -298,13 +295,13 @@ export async function listPublicTeachers(
       teachers:
         [],
 
-      /*
-       * Under normal database invariants this is null
-       * because the SQL predicate already matches the
-       * central eligibility policy.
-       */
       nextCursor:
-        null,
+        hasMore
+          ? (
+              pageCandidateIds.at(-1) ??
+              null
+            )
+          : null,
     };
   }
 
@@ -339,35 +336,29 @@ export async function listPublicTeachers(
           teacher,
         ) => ({
           /*
-           * Explicit public allowlist.
-           *
-           * Do not spread teacher/user/video records here.
+           * Explicit public DTO allowlist.
+           * Never spread persistence objects into this response.
            */
           teacherProfileId:
             teacher.id,
 
           name:
-            teacher.user
-              .name,
+            teacher.user.name,
 
           image:
-            teacher.user
-              .image,
+            teacher.user.image,
 
           headline:
             teacher.headline,
 
           experienceYears:
-            teacher
-              .experienceYears,
+            teacher.experienceYears,
 
           nativeLanguage:
-            teacher
-              .nativeLanguage,
+            teacher.nativeLanguage,
 
           teachingLanguage:
-            teacher
-              .teachingLanguage,
+            teacher.teachingLanguage,
 
           nextAvailableAt:
             nextAvailability.get(
@@ -383,8 +374,7 @@ export async function listPublicTeachers(
     nextCursor:
       hasMore
         ? (
-            pageRows.at(-1)
-              ?.id ??
+            pageCandidateIds.at(-1) ??
             null
           )
         : null,
