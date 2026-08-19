@@ -1337,26 +1337,6 @@ function examinedFor(
   );
 }
 
-function loopsFor(
-  report:
-    PlanReport,
-  relation:
-    string,
-): number {
-  return scansFor(
-    report,
-    relation,
-  ).reduce(
-    (
-      sum,
-      scan,
-    ) =>
-      sum +
-      scan.loops,
-    0,
-  );
-}
-
 function percentile(
   values:
     readonly number[],
