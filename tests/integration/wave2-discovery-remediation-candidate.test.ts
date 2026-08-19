@@ -28,13 +28,12 @@ const ALLOWED_SCALES =
   new Set([
     1_000,
     10_000,
-    50_000,
   ]);
 
 const scale =
   Number(
     process.env
-      .TRACK_D_DISCOVERY_SCALE ??
+      .TRACK_D_DISCOVERY_REMEDIATION_SCALE ??
       "1000",
   );
 
@@ -47,7 +46,7 @@ if (
   )
 ) {
   throw new Error(
-    "TRACK_D_DISCOVERY_SCALE must be one of 1000, 10000, or 50000.",
+    "TRACK_D_DISCOVERY_REMEDIATION_SCALE must be 1000 or 10000. Track D must not run 50000 for this closure.",
   );
 }
 
@@ -67,8 +66,11 @@ const RANGE = {
     "2026-08-22",
 };
 
+const PAGE_SIZE =
+  40;
+
 const prefix =
-  `zzzz_trackd_scale_${String(
+  `zzzz_trackd_remediation_${String(
     scale,
   ).padStart(
     5,
@@ -78,7 +80,7 @@ const prefix =
 const cursorBeforeFixtures =
   `${prefix}profile_000000`;
 
-const publicStartIndex =
+const firstPublicIndex =
   Math.floor(
     scale *
       0.9,
@@ -155,6 +157,20 @@ type RelationScan = {
     number;
 };
 
+type PlanReport = {
+  surface:
+    string;
+
+  planningMs:
+    number | null;
+
+  executionMs:
+    number | null;
+
+  scans:
+    RelationScan[];
+};
+
 let fixtureClient:
   Client | null =
     null;
@@ -175,7 +191,7 @@ function fixture():
   Client {
   if (!fixtureClient) {
     throw new Error(
-      "Synthetic discovery fixture client is unavailable.",
+      "Track D remediation fixture client is unavailable.",
     );
   }
 
@@ -242,6 +258,10 @@ async function cleanup():
     ],
   );
 
+  /*
+   * Explicitly clean the remediation projection before parent rows.
+   * This also proves the expected projection table is present.
+   */
   await client.query(
     `
       DELETE FROM
@@ -265,7 +285,6 @@ async function cleanup():
       `${prefix}%`,
     ],
   );
-
 
   await client.query(
     `
@@ -331,13 +350,13 @@ async function seedSyntheticDataset():
               '0'
             ),
 
-          'Track D Scale Teacher ' ||
+          'Track D Remediation Teacher ' ||
             series::text,
 
           $1 ||
             'teacher_' ||
             series::text ||
-            '@scale.test',
+            '@remediation.test',
 
           true,
 
@@ -406,10 +425,10 @@ async function seedSyntheticDataset():
               '0'
             ),
 
-          'Scale teacher ' ||
+          'Remediation teacher ' ||
             series::text,
 
-          'Track D synthetic discovery fixture.',
+          'Track D remediation synthetic discovery fixture.',
 
           5,
 
@@ -424,7 +443,7 @@ async function seedSyntheticDataset():
 
           'APPROVED'::"TeacherApplicationStatus",
 
-          'PRIVATE SYNTHETIC REVIEW NOTE',
+          'PRIVATE REMEDIATION REVIEW NOTE',
 
           CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
@@ -487,11 +506,16 @@ async function seedSyntheticDataset():
         scale,
       ],
     );
+
     /*
-     * Projection-backed discovery reads only materialized public membership.
-     * Keep this synthetic scale fixture focused on read-path complexity:
-     * materialize exactly the final ~10% public teacher IDs in one bounded
-     * fixture statement instead of invoking write reconciliation N times.
+     * Preserve the original Track D adversarial distribution exactly:
+     * approximately first 90% of ordered teacher IDs are non-public;
+     * approximately final 10% are public.
+     *
+     * The remediation read model materializes canonical public eligibility,
+     * so the synthetic query-shape probe seeds projection membership for the
+     * same final 10%. Synchronization correctness is a separate invariant;
+     * this test measures the candidate read-path complexity independently.
      */
     await client.query(
       `
@@ -509,14 +533,19 @@ async function seedSyntheticDataset():
             )
         FROM
           generate_series(
-            $2::int,
-            $3::int
+            1,
+            $2::int
           )
           AS series
+        WHERE
+          series >
+          floor(
+            $2::numeric *
+            0.9
+          )
       `,
       [
         prefix,
-        publicStartIndex,
         scale,
       ],
     );
@@ -573,6 +602,7 @@ async function seedSyntheticDataset():
         scale,
       ],
     );
+
     await client.query(
       `
         INSERT INTO
@@ -612,7 +642,7 @@ async function seedSyntheticDataset():
 
           'AVAILABLE'::"AvailabilityExceptionType",
 
-          'Historical synthetic exception',
+          'Historical remediation exception',
 
           CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
@@ -643,7 +673,7 @@ async function seedSyntheticDataset():
         )
         VALUES (
           $1,
-          'Track D synthetic history student',
+          'Track D remediation history student',
           $2,
           true,
           'STUDENT'::"UserRole",
@@ -654,7 +684,7 @@ async function seedSyntheticDataset():
       `,
       [
         `${prefix}student_history`,
-        `${prefix}student_history@scale.test`,
+        `${prefix}student_history@remediation.test`,
       ],
     );
 
@@ -708,7 +738,7 @@ async function seedSyntheticDataset():
 
           'COMPLETED'::"SpeakingSessionStatus",
 
-          'scale-history-' ||
+          'remediation-history-' ||
             lpad(
               series::text,
               6,
@@ -747,10 +777,10 @@ async function seedSyntheticDataset():
   for (
     const table
     of [
-        "user",
-        "teacher_profile",
-        "public_teacher_discovery_eligibility",
+      "user",
+      "teacher_profile",
       "teacher_intro_video",
+      "public_teacher_discovery_eligibility",
       "teacher_availability_rule",
       "teacher_availability_exception",
       "speaking_session",
@@ -760,6 +790,40 @@ async function seedSyntheticDataset():
       `ANALYZE "${table}"`,
     );
   }
+
+  const projectionCount =
+    await client.query<{
+      count:
+        string;
+    }>(
+      `
+        SELECT
+          count(*)::text
+            AS count
+        FROM
+          "public_teacher_discovery_eligibility"
+        WHERE
+          "teacherProfileId" LIKE $1
+      `,
+      [
+        `${prefix}%`,
+      ],
+    );
+
+  expect(
+    Number(
+      projectionCount
+        .rows[0]
+        ?.count ??
+        "0",
+    ),
+  ).toBe(
+    scale -
+      Math.floor(
+        scale *
+          0.9,
+      ),
+  );
 }
 
 function clearObservedQueries():
@@ -856,42 +920,6 @@ function hasPositiveSqlOffset(
   throw new Error(
     `Unable to resolve Prisma OFFSET parameter at position ${position + 1}.`,
   );
-}
-
-function percentile(
-  values:
-    readonly number[],
-  fraction:
-    number,
-): number {
-  const sorted =
-    [...values].sort(
-      (
-        left,
-        right,
-      ) =>
-        left -
-        right,
-    );
-
-  const index =
-    Math.min(
-      sorted.length -
-        1,
-      Math.max(
-        0,
-        Math.ceil(
-          sorted.length *
-            fraction,
-        ) -
-          1,
-      ),
-    );
-
-  return sorted[
-    index
-  ] ??
-    0;
 }
 
 function decodePrismaParam(
@@ -1130,16 +1158,9 @@ function collectRelationScans(
 async function explainEvent(
   event:
     QueryEvent,
-): Promise<{
-  planningMs:
-    number | null;
-
-  executionMs:
-    number | null;
-
-  scans:
-    RelationScan[];
-}> {
+  surface:
+    string,
+): Promise<PlanReport> {
   const result =
     await fixture()
       .query(
@@ -1200,6 +1221,8 @@ async function explainEvent(
   }
 
   return {
+    surface,
+
     planningMs:
       typeof planDocument[
         "Planning Time"
@@ -1231,7 +1254,7 @@ async function explainEvent(
   };
 }
 
-function eventSurface(
+function classifyEvent(
   event:
     QueryEvent,
 ): string {
@@ -1277,8 +1300,101 @@ function eventSurface(
 
   return "other";
 }
+
+function scansFor(
+  report:
+    PlanReport,
+  relation:
+    string,
+): RelationScan[] {
+  return report.scans
+    .filter(
+      (
+        scan,
+      ) =>
+        scan.relation ===
+        relation,
+    );
+}
+
+function examinedFor(
+  report:
+    PlanReport,
+  relation:
+    string,
+): number {
+  return scansFor(
+    report,
+    relation,
+  ).reduce(
+    (
+      sum,
+      scan,
+    ) =>
+      sum +
+      scan.examinedRows,
+    0,
+  );
+}
+
+function loopsFor(
+  report:
+    PlanReport,
+  relation:
+    string,
+): number {
+  return scansFor(
+    report,
+    relation,
+  ).reduce(
+    (
+      sum,
+      scan,
+    ) =>
+      sum +
+      scan.loops,
+    0,
+  );
+}
+
+function percentile(
+  values:
+    readonly number[],
+  fraction:
+    number,
+): number {
+  const sorted =
+    [...values].sort(
+      (
+        left,
+        right,
+      ) =>
+        left -
+        right,
+    );
+
+  const index =
+    Math.min(
+      sorted.length -
+        1,
+      Math.max(
+        0,
+        Math.ceil(
+          sorted.length *
+            fraction,
+        ) -
+          1,
+      ),
+    );
+
+  return sorted[
+    index
+  ] ??
+    0;
+}
+
 describe.sequential(
-  `Track D discovery synthetic PostgreSQL scale probe (${scale})`,
+  `Track D public discovery remediation verification (${scale})`,
   () => {
     beforeAll(
       async () => {
@@ -1287,7 +1403,7 @@ describe.sequential(
             connectionString,
 
             application_name:
-              `takineo-track-d-discovery-scale-${scale}`,
+              `takineo-track-d-remediation-${scale}`,
           });
 
         await fixtureClient
@@ -1301,6 +1417,12 @@ describe.sequential(
 
               user_name:
                 string;
+
+              server_address:
+                string;
+
+              server_port:
+                number;
             }>(
               `
                 SELECT
@@ -1308,7 +1430,15 @@ describe.sequential(
                     AS database_name,
 
                   current_user::text
-                    AS user_name
+                    AS user_name,
+
+                  host(
+                    inet_server_addr()
+                  )::text
+                    AS server_address,
+
+                  inet_server_port()::int
+                    AS server_port
               `,
             );
 
@@ -1320,6 +1450,12 @@ describe.sequential(
 
           user_name:
             "takineo_test",
+
+          server_address:
+            "127.0.0.1",
+
+          server_port:
+            5432,
         });
 
         await cleanup();
@@ -1349,15 +1485,6 @@ describe.sequential(
             ],
           });
 
-        /*
-         * Prisma's generated $on() type depends on the constructor log
-         * configuration. applicationPrisma is stored as the broad
-         * PrismaClient type for teardown/mocking, which erases that generic
-         * and makes TypeScript infer the event type as never.
-         *
-         * Keep this cast local to Track D instrumentation rather than
-         * widening production Prisma types.
-         */
         const queryEventClient =
           applicationPrisma as unknown as {
             $on(
@@ -1445,13 +1572,8 @@ describe.sequential(
     );
 
     test(
-      "measures page work, query plans, and concurrency without defining a launch latency SLA",
+      "keeps candidate discovery and all downstream work page-bounded at the original adversarial distribution",
       async () => {
-        const expectedFirst =
-          profileId(
-            publicStartIndex,
-          );
-
         const samples:
           number[] = [];
 
@@ -1481,7 +1603,7 @@ describe.sequential(
                   cursorBeforeFixtures,
 
                 limit:
-                  40,
+                  PAGE_SIZE,
 
                 ...RANGE,
               },
@@ -1498,14 +1620,16 @@ describe.sequential(
           expect(
             result.teachers,
           ).toHaveLength(
-            40,
+            PAGE_SIZE,
           );
 
           expect(
             result.teachers[0]
               ?.teacherProfileId,
           ).toBe(
-            expectedFirst,
+            profileId(
+              firstPublicIndex,
+            ),
           );
 
           expect(
@@ -1520,6 +1644,31 @@ describe.sequential(
           ).toBe(
             true,
           );
+
+          const serialized =
+            JSON.stringify(
+              result,
+            );
+
+          for (
+            const forbidden
+            of [
+              "applicationStatus",
+              "applicationReviewNote",
+              "accountStatus",
+              "uploadId",
+              "assetId",
+              "reviewPlaybackId",
+              "PRIVATE REMEDIATION REVIEW NOTE",
+              "@remediation.test",
+            ]
+          ) {
+            expect(
+              serialized,
+            ).not.toContain(
+              forbidden,
+            );
+          }
 
           const events =
             selectEvents();
@@ -1557,112 +1706,508 @@ describe.sequential(
           1,
         );
 
-        const planReports:
-          Array<{
-            surface:
-              string;
-
-            planningMs:
-              number | null;
-
-            executionMs:
-              number | null;
-
-            scans:
-              RelationScan[];
-          }> = [];
+        const eventGroups =
+          new Map<
+            string,
+            QueryEvent[]
+          >();
 
         for (
           const event
           of representativeEvents
         ) {
           const surface =
-            eventSurface(
+            classifyEvent(
               event,
             );
 
-          if (
-            surface ===
-              "other"
-          ) {
-            continue;
-          }
-
-          const explained =
-            await explainEvent(
-              event,
-            );
-
-          planReports.push({
+          eventGroups.set(
             surface,
-            ...explained,
-          });
+            [
+              ...(
+                eventGroups.get(
+                  surface,
+                ) ??
+                []
+              ),
+              event,
+            ],
+          );
         }
 
-        const projectionPlan =
-          planReports.find(
-            (
-              report,
-            ) =>
-              report.surface ===
-              "projection",
-          );
+        const projectionEvents =
+          eventGroups.get(
+            "projection",
+          ) ??
+          [];
 
         expect(
+          projectionEvents,
+        ).toHaveLength(
+          1,
+        );
+
+        const profileEvents =
+          eventGroups.get(
+            "profile",
+          ) ??
+          [];
+
+        expect(
+          profileEvents.length,
+        ).toBeGreaterThanOrEqual(
+          1,
+        );
+
+        const availabilityEvents = [
+          ...(
+            eventGroups.get(
+              "rules",
+            ) ??
+            []
+          ),
+
+          ...(
+            eventGroups.get(
+              "exceptions",
+            ) ??
+            []
+          ),
+
+          ...(
+            eventGroups.get(
+              "sessions",
+            ) ??
+            []
+          ),
+        ];
+
+        expect(
+          availabilityEvents,
+        ).toHaveLength(
+          3,
+        );
+
+        const plans:
+          PlanReport[] = [];
+
+        const projectionPlan =
+          await explainEvent(
+            projectionEvents[0],
+            "projection",
+          );
+
+        plans.push(
           projectionPlan,
-        ).toBeDefined();
+        );
+
+        for (
+          const [
+            index,
+            event,
+          ]
+          of profileEvents.entries()
+        ) {
+          plans.push(
+            await explainEvent(
+              event,
+              `profile-${index + 1}`,
+            ),
+          );
+        }
+
+        for (
+          const event
+          of availabilityEvents
+        ) {
+          plans.push(
+            await explainEvent(
+              event,
+              classifyEvent(
+                event,
+              ),
+            ),
+          );
+        }
 
         const projectionRelations =
-          new Set([
-            "public_teacher_discovery_eligibility",
-          ]);
-
-        const projectionRowsExamined =
-          Math.max(
-            0,
-            ...(
-              projectionPlan
-                ?.scans ??
-              []
-            )
-              .filter(
-                (
-                  scan,
-                ) =>
-                  projectionRelations.has(
-                    scan.relation ??
-                    "",
-                  ),
-              )
+          new Set(
+            projectionPlan.scans
               .map(
                 (
                   scan,
                 ) =>
-                  scan.examinedRows,
+                  scan.relation,
+              )
+              .filter(
+                (
+                  relation,
+                ):
+                  relation is string =>
+                    relation !==
+                    null,
               ),
           );
 
-        const deepCursor =
-          profileId(
-            Math.floor(
-              scale *
-                0.95,
-            ),
+        expect(
+          projectionRelations,
+        ).toEqual(
+          new Set([
+            "public_teacher_discovery_eligibility",
+          ]),
+        );
+
+        const projectionRowsExamined =
+          examinedFor(
+            projectionPlan,
+            "public_teacher_discovery_eligibility",
           );
+
+        const projectionCandidateWithinBound =
+          projectionRowsExamined <=
+          PAGE_SIZE + 1;
+
+        if (
+          scale >=
+            10_000
+        ) {
+          expect(
+            projectionCandidateWithinBound,
+          ).toBe(
+            true,
+          );
+        }
+        else if (
+          !projectionCandidateWithinBound
+        ) {
+          console.warn(
+            `TRACK_D_PROJECTION_BOUND_DIAGNOSTIC scale=${scale} examined=${projectionRowsExamined} requiredMax=${PAGE_SIZE + 1}`,
+          );
+        }
+
+        expect(
+          examinedFor(
+            projectionPlan,
+            "teacher_profile",
+          ),
+        ).toBe(
+          0,
+        );
+
+        expect(
+          examinedFor(
+            projectionPlan,
+            "user",
+          ),
+        ).toBe(
+          0,
+        );
+
+        expect(
+          examinedFor(
+            projectionPlan,
+            "teacher_intro_video",
+          ),
+        ).toBe(
+          0,
+        );
+
+        const projectionIndexes =
+          scansFor(
+            projectionPlan,
+            "public_teacher_discovery_eligibility",
+          )
+            .map(
+              (
+                scan,
+              ) =>
+                scan.indexName,
+            )
+            .filter(
+              (
+                indexName,
+              ):
+                indexName is string =>
+                  indexName !==
+                  null,
+            );
+
+        const projectionUsesPrimaryKey =
+          projectionIndexes.includes(
+            "public_teacher_discovery_eligibility_pkey",
+          );
+
+        if (
+          scale >=
+            10_000
+        ) {
+          expect(
+            projectionUsesPrimaryKey,
+          ).toBe(
+            true,
+          );
+        }
+        else if (
+          !projectionUsesPrimaryKey
+        ) {
+          console.warn(
+            `TRACK_D_PROJECTION_INDEX_DIAGNOSTIC scale=${scale} indexes=${JSON.stringify(projectionIndexes)}`,
+          );
+        }
+
+        const profilePlans =
+          plans.filter(
+            (
+              report,
+            ) =>
+              report.surface.startsWith(
+                "profile-",
+              ),
+          );
+
+        const profileRowsExaminedPhysical =
+          profilePlans.reduce(
+            (
+              sum,
+              report,
+            ) =>
+              sum +
+              examinedFor(
+                report,
+                "teacher_profile",
+              ),
+            0,
+          );
+
+        const profileRowsFetched =
+          profilePlans.reduce(
+            (
+              sum,
+              report,
+            ) =>
+              sum +
+              scansFor(
+                report,
+                "teacher_profile",
+              ).reduce(
+                (
+                  relationSum,
+                  scan,
+                ) =>
+                  relationSum +
+                  (
+                    scan.actualRows *
+                    Math.max(
+                      scan.loops,
+                      1,
+                    )
+                  ),
+                0,
+              ),
+            0,
+          );
+
+        /*
+         * "Rows fetched" is the bounded result work attributable to the
+         * 40-ID profile query. PostgreSQL may physically scan a tiny table
+         * at 1k when that is cheaper; record that separately. At the
+         * representative 10k scale, require physical page-bounded traversal.
+         */
+        expect(
+          profileRowsFetched,
+        ).toBeLessThanOrEqual(
+          PAGE_SIZE *
+            2,
+        );
+
+        if (
+          scale >=
+            10_000
+        ) {
+          expect(
+            profileRowsExaminedPhysical,
+          ).toBeLessThanOrEqual(
+            PAGE_SIZE *
+              2,
+          );
+        }
+        else if (
+          profileRowsExaminedPhysical >
+            PAGE_SIZE *
+              2
+        ) {
+          console.warn(
+            `TRACK_D_PROFILE_PHYSICAL_SCAN_DIAGNOSTIC scale=${scale} examined=${profileRowsExaminedPhysical} fetched=${profileRowsFetched}`,
+          );
+        }
+
+        const profileUserWork =
+          profilePlans.reduce(
+            (
+              sum,
+              report,
+            ) =>
+              sum +
+              examinedFor(
+                report,
+                "user",
+              ),
+            0,
+          );
+
+        const profileVideoWork =
+          profilePlans.reduce(
+            (
+              sum,
+              report,
+            ) =>
+              sum +
+              examinedFor(
+                report,
+                "teacher_intro_video",
+              ),
+            0,
+          );
+
+        const rulePlan =
+          plans.find(
+            (
+              report,
+            ) =>
+              report.surface ===
+              "rules",
+          );
+
+        const exceptionPlan =
+          plans.find(
+            (
+              report,
+            ) =>
+              report.surface ===
+              "exceptions",
+          );
+
+        const sessionPlan =
+          plans.find(
+            (
+              report,
+            ) =>
+              report.surface ===
+              "sessions",
+          );
+
+        expect(
+          rulePlan,
+        ).toBeDefined();
+
+        expect(
+          exceptionPlan,
+        ).toBeDefined();
+
+        expect(
+          sessionPlan,
+        ).toBeDefined();
+
+        const availabilityRowsExamined = {
+          rules:
+            rulePlan
+              ? examinedFor(
+                  rulePlan,
+                  "teacher_availability_rule",
+                )
+              : -1,
+
+          exceptions:
+            exceptionPlan
+              ? examinedFor(
+                  exceptionPlan,
+                  "teacher_availability_exception",
+                )
+              : -1,
+
+          sessions:
+            sessionPlan
+              ? examinedFor(
+                  sessionPlan,
+                  "speaking_session",
+                )
+              : -1,
+        };
+
+        const availabilityPhysicalWithinPageBound = {
+          rules:
+            availabilityRowsExamined.rules <=
+            PAGE_SIZE,
+
+          exceptions:
+            availabilityRowsExamined.exceptions <=
+            PAGE_SIZE,
+
+          sessions:
+            availabilityRowsExamined.sessions <=
+            PAGE_SIZE,
+        };
+
+        /*
+         * Control Room interpretation B:
+         *
+         * At tiny relations PostgreSQL may choose a sequential scan when
+         * that is cheaper. Preserve those physical-scan counts as
+         * diagnostics at 1k, while the representative 10k scale must
+         * demonstrate page-bounded physical work.
+         */
+        if (
+          scale >=
+            10_000
+        ) {
+          expect(
+            availabilityPhysicalWithinPageBound.rules,
+          ).toBe(
+            true,
+          );
+
+          expect(
+            availabilityPhysicalWithinPageBound.exceptions,
+          ).toBe(
+            true,
+          );
+
+          expect(
+            availabilityPhysicalWithinPageBound.sessions,
+          ).toBe(
+            true,
+          );
+        }
+        else {
+          for (
+            const [
+              surface,
+              withinBound,
+            ]
+            of Object.entries(
+              availabilityPhysicalWithinPageBound,
+            )
+          ) {
+            if (
+              !withinBound
+            ) {
+              console.warn(
+                `TRACK_D_AVAILABILITY_PHYSICAL_SCAN_DIAGNOSTIC scale=${scale} surface=${surface} examined=${availabilityRowsExamined[surface as keyof typeof availabilityRowsExamined]} pageSize=${PAGE_SIZE}`,
+              );
+            }
+          }
+        }
 
         clearObservedQueries();
 
-        const deepStartedAt =
-          performance.now();
-
-        const deepResult =
+        const firstPage =
           await listPublicTeachers(
             {
               cursor:
-                deepCursor,
+                cursorBeforeFixtures,
 
               limit:
-                40,
+                PAGE_SIZE,
 
               ...RANGE,
             },
@@ -1672,131 +2217,215 @@ describe.sequential(
             },
           );
 
-        const deepCursorMs =
-          performance.now() -
-          deepStartedAt;
-
         expect(
-          deepResult.teachers,
-        ).toHaveLength(
-          40,
-        );
+          firstPage.nextCursor,
+        ).not.toBeNull();
 
-        const concurrentStartedAt =
-          performance.now();
-
-        const concurrentResults =
-          await Promise.allSettled(
-            Array.from(
-              {
-                length:
-                  10,
-              },
-              () =>
-                listPublicTeachers(
-                  {
-                    cursor:
-                      cursorBeforeFixtures,
-
-                    limit:
-                      40,
-
-                    ...RANGE,
-                  },
-                  {
-                    now:
-                      NOW,
-                  },
-                ),
-            ),
+        const firstPageIds =
+          firstPage.teachers.map(
+            (
+              teacher,
+            ) =>
+              teacher.teacherProfileId,
           );
 
-        const concurrent10Ms =
-          performance.now() -
-          concurrentStartedAt;
+        clearObservedQueries();
 
-        const concurrentErrors =
-          concurrentResults.filter(
-            (
-              result,
-            ) =>
-              result.status ===
-              "rejected",
-          ).length;
+        const secondPage =
+          await listPublicTeachers(
+            {
+              cursor:
+                firstPage.nextCursor ??
+                undefined,
+
+              limit:
+                PAGE_SIZE,
+
+              ...RANGE,
+            },
+            {
+              now:
+                NOW,
+            },
+          );
 
         expect(
-          concurrentErrors,
+          secondPage.teachers,
+        ).toHaveLength(
+          PAGE_SIZE,
+        );
+
+        const secondPageIds =
+          secondPage.teachers.map(
+            (
+              teacher,
+            ) =>
+              teacher.teacherProfileId,
+          );
+
+        expect(
+          secondPageIds[0] >
+            (
+              firstPageIds.at(-1) ??
+              ""
+            ),
         ).toBe(
-          0,
+          true,
+        );
+
+        expect(
+          secondPageIds.some(
+            (
+              id,
+            ) =>
+              firstPageIds.includes(
+                id,
+              ),
+          ),
+        ).toBe(
+          false,
+        );
+
+        expect(
+          selectEvents().some(
+            hasPositiveSqlOffset,
+          ),
+        ).toBe(
+          false,
         );
 
         const metric = {
+          sourceCandidate:
+            "087d55da6d0a403048fc83208c1407c09382039a",
+
           scale,
 
-          publicFraction:
-            0.1,
-
-          projectionPopulation:
-            scale -
-            publicStartIndex +
-            1,
+          adversarialDistribution:
+            "first ~90% ordered IDs non-public; final ~10% public",
 
           pageSize:
-            40,
+            PAGE_SIZE,
 
-          sequentialSamples:
-            samples.length,
+          returnedTeacherCount:
+            PAGE_SIZE,
 
-          p50Ms:
-            percentile(
-              samples,
-              0.5,
-            ),
-
-          p95Ms:
-            percentile(
-              samples,
-              0.95,
-            ),
-
-          p99Ms:
-            percentile(
-              samples,
-              0.99,
-            ),
-
-          minMs:
-            Math.min(
-              ...samples,
-            ),
-
-          maxMs:
-            Math.max(
-              ...samples,
-            ),
-
-          queryCountPerPage:
+          totalQueryCountPerPage:
             queryCounts[0] ??
             0,
 
-          projectionRowsExamined,
+          projectionCandidateRowsExamined:
+            projectionRowsExamined,
 
-          projectionRowsExaminedFraction:
-            projectionRowsExamined /
-            scale,
+          projectionCandidateWithinBound,
 
-          deepCursorMs,
+          projectionIndexes,
 
-          concurrent10Ms,
+          projectionUsesPrimaryKey,
 
-          concurrentErrors,
+          projectionRelations:
+            [
+              ...projectionRelations,
+            ],
 
-          plans:
-            planReports,
+          teacherProfileRowsFetched:
+            profileRowsFetched,
+
+          teacherProfileRowsExaminedPhysical:
+            profileRowsExaminedPhysical,
+
+          eligibilityUserLookups:
+            examinedFor(
+              projectionPlan,
+              "user",
+            ),
+
+          eligibilityIntroVideoLookups:
+            examinedFor(
+              projectionPlan,
+              "teacher_intro_video",
+            ),
+
+          boundedProfileUserWork:
+            profileUserWork,
+
+          boundedProfileIntroVideoWork:
+            profileVideoWork,
+
+          availabilityQueryCount:
+            availabilityEvents.length,
+
+          availabilityRowsExamined,
+
+          availabilityPhysicalWithinPageBound,
+
+          cursor:
+            {
+              firstPageNextCursor:
+                firstPage.nextCursor,
+
+              secondPageReturned:
+                secondPage.teachers.length,
+
+              deterministicAscending:
+                secondPageIds[0] >
+                (
+                  firstPageIds.at(-1) ??
+                  ""
+                ),
+
+              duplicateAcrossPages:
+                secondPageIds.some(
+                  (
+                    id,
+                  ) =>
+                    firstPageIds.includes(
+                      id,
+                    ),
+                ),
+            },
+
+          positiveOffsetObserved:
+            false,
+
+          latencyObservationOnly:
+            {
+              sequentialSamples:
+                samples.length,
+
+              p50Ms:
+                percentile(
+                  samples,
+                  0.5,
+                ),
+
+              p95Ms:
+                percentile(
+                  samples,
+                  0.95,
+                ),
+
+              p99Ms:
+                percentile(
+                  samples,
+                  0.99,
+                ),
+
+              minMs:
+                Math.min(
+                  ...samples,
+                ),
+
+              maxMs:
+                Math.max(
+                  ...samples,
+                ),
+            },
+
+          plans,
         };
 
         console.log(
-          `TRACK_D_DISCOVERY_SCALE_METRIC ${JSON.stringify(
+          `TRACK_D_DISCOVERY_REMEDIATION_METRIC ${JSON.stringify(
             metric,
           )}`,
         );

@@ -12,6 +12,11 @@ import {
 
 const mocks = vi.hoisted(() => ({
   prisma: {
+    publicTeacherDiscoveryEligibility: {
+      findMany:
+        vi.fn(),
+    },
+
     teacherProfile: {
       findMany:
         vi.fn(),
@@ -162,6 +167,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   mocks.prisma
+    .publicTeacherDiscoveryEligibility
+    .findMany
+    .mockResolvedValue([]);
+
+  mocks.prisma
     .teacherProfile
     .findMany
     .mockResolvedValue([]);
@@ -179,6 +189,16 @@ describe(
     it(
       "keeps private review/account/provider fields outside the public DTO even when repository rows are poisoned",
       async () => {
+        mocks.prisma
+          .publicTeacherDiscoveryEligibility
+          .findMany
+          .mockResolvedValue([
+            {
+              teacherProfileId:
+                "teacher-public",
+            },
+          ]);
+
         mocks.prisma
           .teacherProfile
           .findMany
@@ -269,8 +289,24 @@ describe(
     );
 
     it(
-      "defensively excludes stale/ineligible rows before batched availability projection",
+      "trusts canonical projection membership and keeps poisoned non-member rows out of batched availability",
       async () => {
+        mocks.prisma
+          .publicTeacherDiscoveryEligibility
+          .findMany
+          .mockResolvedValue([
+            {
+              teacherProfileId:
+                "teacher-public",
+            },
+          ]);
+
+        /*
+         * Deliberately poison the mocked profile repository with rows that
+         * are not members of the public projection. The service must restore
+         * page order from projection IDs and must never let these rows expand
+         * downstream availability work.
+         */
         mocks.prisma
           .teacherProfile
           .findMany
@@ -359,6 +395,22 @@ describe(
         ]);
 
         expect(
+          mocks.prisma
+            .teacherProfile
+            .findMany,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              id: {
+                in: [
+                  "teacher-public",
+                ],
+              },
+            },
+          }),
+        );
+
+        expect(
           mocks
             .getNextBookableAvailabilityForTeachers,
         ).toHaveBeenCalledTimes(
@@ -380,7 +432,6 @@ describe(
         );
       },
     );
-
     it.each([
       0,
       -1,
@@ -461,7 +512,7 @@ describe(
     );
 
     it(
-      "keeps the discovery query shape page-bounded and projects only the requested page, not an unbounded teacher set",
+      "keeps projection candidate hunting and downstream profile/availability work page-bounded",
       async () => {
         const rows =
           Array.from(
@@ -484,30 +535,56 @@ describe(
               ),
           );
 
+        const memberships =
+          rows.map(
+            (
+              row,
+            ) => ({
+              teacherProfileId:
+                row.id,
+            }),
+          );
+
+        const pageRows =
+          rows.slice(
+            0,
+            TEACHER_DISCOVERY_MAX_PAGE_SIZE,
+          );
+
+        const pageIds =
+          pageRows.map(
+            (
+              row,
+            ) =>
+              row.id,
+          );
+
+        mocks.prisma
+          .publicTeacherDiscoveryEligibility
+          .findMany
+          .mockResolvedValue(
+            memberships,
+          );
+
         mocks.prisma
           .teacherProfile
           .findMany
           .mockResolvedValue(
-            rows,
+            pageRows,
           );
 
         mocks
           .getNextBookableAvailabilityForTeachers
           .mockResolvedValue(
             new Map(
-              rows
-                .slice(
-                  0,
-                  TEACHER_DISCOVERY_MAX_PAGE_SIZE,
-                )
-                .map(
-                  (
-                    row,
-                  ) => [
-                    row.id,
-                    null,
-                  ],
-                ),
+              pageRows.map(
+                (
+                  row,
+                ) => [
+                  row.id,
+                  null,
+                ],
+              ),
             ),
           );
 
@@ -533,6 +610,36 @@ describe(
 
         expect(
           mocks.prisma
+            .publicTeacherDiscoveryEligibility
+            .findMany,
+        ).toHaveBeenCalledTimes(
+          1,
+        );
+
+        expect(
+          mocks.prisma
+            .publicTeacherDiscoveryEligibility
+            .findMany,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            take:
+              TEACHER_DISCOVERY_MAX_PAGE_SIZE +
+              1,
+
+            orderBy: {
+              teacherProfileId:
+                "asc",
+            },
+
+            select: {
+              teacherProfileId:
+                true,
+            },
+          }),
+        );
+
+        expect(
+          mocks.prisma
             .teacherProfile
             .findMany,
         ).toHaveBeenCalledTimes(
@@ -545,13 +652,11 @@ describe(
             .findMany,
         ).toHaveBeenCalledWith(
           expect.objectContaining({
-            take:
-              TEACHER_DISCOVERY_MAX_PAGE_SIZE +
-              1,
-
-            orderBy: {
-              id:
-                "asc",
+            where: {
+              id: {
+                in:
+                  pageIds,
+              },
             },
           }),
         );
@@ -564,8 +669,8 @@ describe(
 
         expect(
           projectedIds,
-        ).toHaveLength(
-          TEACHER_DISCOVERY_MAX_PAGE_SIZE,
+        ).toEqual(
+          pageIds,
         );
 
         expect(
@@ -574,6 +679,5 @@ describe(
           rows.at(-1)?.id,
         );
       },
-    );
-  },
+    );  },
 );
