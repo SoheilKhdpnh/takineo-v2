@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   userFindUnique: vi.fn(),
   teacherProfileUpdateMany: vi.fn(),
+  runTransaction: vi.fn(),
+  reconcilePublicTeacherDiscoveryEligibility: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -13,8 +15,16 @@ vi.mock("@/lib/db/prisma", () => ({
     teacherProfile: {
       updateMany: mocks.teacherProfileUpdateMany,
     },
+    $transaction: mocks.runTransaction,
   },
 }));
+vi.mock(
+  "@/lib/services/public-teacher-discovery-eligibility.service",
+  () => ({
+    reconcilePublicTeacherDiscoveryEligibility:
+      mocks.reconcilePublicTeacherDiscoveryEligibility,
+  }),
+);
 
 import {
   getTeacherApplicationForUser,
@@ -89,10 +99,37 @@ describe("teacher application submission", () => {
   beforeEach(() => {
     mocks.userFindUnique.mockReset();
     mocks.teacherProfileUpdateMany.mockReset();
+    mocks.runTransaction.mockReset();
+    mocks.reconcilePublicTeacherDiscoveryEligibility.mockReset();
 
     mocks.teacherProfileUpdateMany.mockResolvedValue({
       count: 1,
     });
+
+    mocks.reconcilePublicTeacherDiscoveryEligibility.mockResolvedValue(
+      false,
+    );
+
+    mocks.runTransaction.mockImplementation(
+      async (
+        work: (
+          tx: {
+            teacherProfile: {
+              updateMany: typeof mocks.teacherProfileUpdateMany;
+            };
+          },
+        ) => Promise<unknown>,
+      ) => {
+        const tx = {
+          teacherProfile: {
+            updateMany:
+              mocks.teacherProfileUpdateMany,
+          },
+        };
+
+        return work(tx);
+      },
+    );
   });
 
   it("submits a valid DRAFT application", async () => {
@@ -427,5 +464,79 @@ describe("teacher application submission", () => {
     ).rejects.toBeInstanceOf(
       ProfileNotFoundError,
     );
+  });
+
+  it("uses the same transaction client for submission and discovery reconciliation", async () => {
+    mocks.userFindUnique.mockResolvedValue(
+      makeUser(),
+    );
+
+    const tx = {
+      teacherProfile: {
+        updateMany:
+          mocks.teacherProfileUpdateMany,
+      },
+    };
+
+    mocks.runTransaction.mockImplementationOnce(
+      async (
+        work: (
+          transaction:
+            typeof tx,
+        ) => Promise<unknown>,
+      ) =>
+        work(tx),
+    );
+
+    await submitTeacherApplication(
+      "teacher-user",
+    );
+
+    expect(
+      mocks.runTransaction,
+    ).toHaveBeenCalledTimes(
+      1,
+    );
+
+    expect(
+      mocks.teacherProfileUpdateMany,
+    ).toHaveBeenCalledTimes(
+      1,
+    );
+
+    expect(
+      mocks.reconcilePublicTeacherDiscoveryEligibility,
+    ).toHaveBeenCalledTimes(
+      1,
+    );
+
+    expect(
+      mocks.reconcilePublicTeacherDiscoveryEligibility,
+    ).toHaveBeenCalledWith(
+      "teacher-profile-1",
+      tx,
+    );
+  });
+
+  it("does not reconcile discovery membership when the submission compare-and-set loses the race", async () => {
+    mocks.userFindUnique.mockResolvedValue(
+      makeUser(),
+    );
+
+    mocks.teacherProfileUpdateMany.mockResolvedValueOnce({
+      count: 0,
+    });
+
+    await expect(
+      submitTeacherApplication(
+        "teacher-user",
+      ),
+    ).rejects.toBeInstanceOf(
+      TeacherApplicationStateError,
+    );
+
+    expect(
+      mocks.reconcilePublicTeacherDiscoveryEligibility,
+    ).not.toHaveBeenCalled();
   });
 });

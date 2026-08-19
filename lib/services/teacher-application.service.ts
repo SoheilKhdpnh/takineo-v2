@@ -1,4 +1,5 @@
 import "server-only";
+import { reconcilePublicTeacherDiscoveryEligibility } from "@/lib/services/public-teacher-discovery-eligibility.service";
 
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -110,7 +111,9 @@ export async function submitTeacherApplication(
   userId: string,
 ): Promise<TeacherApplicationRecord> {
   const application =
-    await getTeacherApplicationContext(userId);
+    await getTeacherApplicationContext(
+      userId,
+    );
 
   if (
     !canSubmitTeacherApplication(
@@ -120,92 +123,165 @@ export async function submitTeacherApplication(
     throw new TeacherApplicationStateError();
   }
 
-  if (!application.profileCompletedAt) {
+  if (
+    !application.profileCompletedAt
+  ) {
     throw new TeacherApplicationNotReadyError(
       "PROFILE_INCOMPLETE",
     );
   }
 
-  if (!application.introVideo) {
+  if (
+    !application.introVideo
+  ) {
     throw new TeacherApplicationNotReadyError(
       "VIDEO_MISSING",
     );
   }
 
-  const video = application.introVideo;
-  const uploadId = video.uploadId;
-  const assetId = video.assetId;
-  const durationSeconds = video.durationSeconds;
+  const video =
+    application.introVideo;
+
+  const uploadId =
+    video.uploadId;
+
+  const assetId =
+    video.assetId;
+
+  const durationSeconds =
+    video.durationSeconds;
+
   if (
     video.provider !== "mux" ||
-    !uploadId || /\s/.test(uploadId) ||
-    !assetId || /\s/.test(assetId) ||
+    !uploadId ||
+    /\s/.test(uploadId) ||
+    !assetId ||
+    /\s/.test(assetId) ||
     uploadId === assetId ||
-    durationSeconds === null || durationSeconds < 60 || durationSeconds > 120 ||
-    !["READY_FOR_REVIEW", "APPROVED"].includes(video.status)
+    durationSeconds === null ||
+    durationSeconds < 60 ||
+    durationSeconds > 120 ||
+    ![
+      "READY_FOR_REVIEW",
+      "APPROVED",
+    ].includes(
+      video.status,
+    )
   ) {
     throw new TeacherApplicationNotReadyError(
       "VIDEO_NOT_READY",
     );
   }
 
-  /*
-   * Compare-and-set:
-   *
-   * Only change the application if it is still in
-   * the state we just validated.
-   *
-   * This prevents two concurrent requests from
-   * incorrectly submitting the same application.
-   */
-  const submittedAt = new Date();
-  const updateResult =
-    await prisma.teacherProfile.updateMany({
-      where: {
-        id: application.id,
-        applicationStatus:
-          application.applicationStatus,
-        profileRevision: application.profileRevision,
-        user: { accountStatus: "ACTIVE" },
-        introVideo: {
-          is: {
-            id: video.id,
-            revision: video.revision,
-            provider: "mux",
-            uploadId,
-            assetId,
-            status: video.status,
-            durationSeconds,
+  const submittedAt =
+    new Date();
+
+  await prisma.$transaction(
+    async (
+      tx,
+    ) => {
+      /*
+       * Preserve the existing compare-and-set submission boundary:
+       * the exact application/profile/video snapshot observed above
+       * must still be current when the application moves to
+       * PENDING_REVIEW.
+       */
+      const updateResult =
+        await tx.teacherProfile.updateMany({
+          where: {
+            id:
+              application.id,
+
+            applicationStatus:
+              application.applicationStatus,
+
+            profileRevision:
+              application.profileRevision,
+
+            user: {
+              accountStatus:
+                "ACTIVE",
+            },
+
+            introVideo: {
+              is: {
+                id:
+                  video.id,
+
+                revision:
+                  video.revision,
+
+                provider:
+                  "mux",
+
+                uploadId,
+
+                assetId,
+
+                status:
+                  video.status,
+
+                durationSeconds,
+              },
+            },
           },
-        },
-      },
 
-      data: {
-        applicationStatus:
-          "PENDING_REVIEW",
+          data: {
+            applicationStatus:
+              "PENDING_REVIEW",
 
-        applicationSubmittedAt:
-          submittedAt,
-        reviewCycle: { increment: 1 },
-        submittedProfileRevision: application.profileRevision,
-        submittedVideoId: video.id,
-        submittedVideoRevision: video.revision,
-        submittedVideoUploadId: uploadId,
-        submittedVideoAssetId: assetId,
-        updatedAt: submittedAt,
+            applicationSubmittedAt:
+              submittedAt,
 
-        /*
-         * A previous rejection note is retained
-         * until the next administrative review.
-         * Later we will move review history into
-         * a proper audit model.
-         */
-      },
-    });
+            reviewCycle: {
+              increment:
+                1,
+            },
 
-  if (updateResult.count !== 1) {
-    throw new TeacherApplicationStateError();
-  }
+            submittedProfileRevision:
+              application.profileRevision,
+
+            submittedVideoId:
+              video.id,
+
+            submittedVideoRevision:
+              video.revision,
+
+            submittedVideoUploadId:
+              uploadId,
+
+            submittedVideoAssetId:
+              assetId,
+
+            updatedAt:
+              submittedAt,
+
+            /*
+             * Existing rejection feedback intentionally remains
+             * persisted until the next administrative review.
+             */
+          },
+        });
+
+      if (
+        updateResult.count !==
+        1
+      ) {
+        throw new TeacherApplicationStateError();
+      }
+
+      /*
+       * applicationStatus is a canonical discovery eligibility
+       * source field. Moving to PENDING_REVIEW is necessarily
+       * non-public, and reconciliation is committed atomically with
+       * that source transition.
+       */
+      await reconcilePublicTeacherDiscoveryEligibility(
+        application.id,
+        tx,
+      );
+    },
+  );
 
   return getTeacherApplicationForUser(
     userId,
