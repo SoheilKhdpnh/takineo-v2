@@ -256,10 +256,19 @@ model TeacherProfile {
   auditEvents            AdminAuditEvent[]
   availabilityRules      TeacherAvailabilityRule[]
   availabilityExceptions TeacherAvailabilityException[]
-  speakingSessions       SpeakingSession[]
+  speakingSessions             SpeakingSession[]
+  publicDiscoveryEligibility   PublicTeacherDiscoveryEligibility?
 
   @@index([applicationStatus, applicationSubmittedAt, id])
   @@map("teacher_profile")
+}
+
+model PublicTeacherDiscoveryEligibility {
+  teacherProfileId String @id
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("public_teacher_discovery_eligibility")
 }
 
 model TeacherIntroVideo {

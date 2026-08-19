@@ -9,6 +9,11 @@ import {
 const mocks =
   vi.hoisted(() => ({
     prisma: {
+      publicTeacherDiscoveryEligibility: {
+        findMany:
+          vi.fn(),
+      },
+
       teacherProfile: {
         findMany:
           vi.fn(),
@@ -46,6 +51,7 @@ vi.mock(
 import {
   BookableSlotsRangeError,
 } from "@/lib/errors/booking-errors";
+
 import {
   listPublicTeachers,
 } from "@/lib/services/teacher-discovery.service";
@@ -64,7 +70,8 @@ const RANGE = {
 };
 
 function publicTeacherRow(
-  id: string,
+  id:
+    string,
 ) {
   return {
     id,
@@ -81,18 +88,9 @@ function publicTeacherRow(
     teachingLanguage:
       "en",
 
-    applicationStatus:
-      "APPROVED",
-
-    profileCompletedAt:
-      new Date(
-        "2026-08-01T00:00:00.000Z",
-      ),
-
     /*
-     * These fields are intentionally injected into the mock
-     * even though a correct Prisma select must never request them.
-     * Explicit DTO mapping must prevent them from leaking.
+     * Deliberately injected private fields.
+     * The public select / DTO must never expose them.
      */
     applicationReviewNote:
       "PRIVATE ADMIN NOTE",
@@ -110,20 +108,18 @@ function publicTeacherRow(
       image:
         `https://example.test/${id}.jpg`,
 
-      accountStatus:
-        "ACTIVE",
-
       email:
         `${id}@private.example.test`,
     },
+  };
+}
 
-    introVideo: {
-      status:
-        "APPROVED",
-
-      rejectionReason:
-        "PRIVATE REJECTION",
-    },
+function membership(
+  teacherProfileId:
+    string,
+) {
+  return {
+    teacherProfileId,
   };
 }
 
@@ -131,9 +127,18 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   mocks.prisma
+    .publicTeacherDiscoveryEligibility
+    .findMany
+    .mockResolvedValue(
+      [],
+    );
+
+  mocks.prisma
     .teacherProfile
     .findMany
-    .mockResolvedValue([]);
+    .mockResolvedValue(
+      [],
+    );
 
   mocks
     .validateBookableSlotsRange
@@ -153,7 +158,7 @@ describe(
   "public teacher discovery",
   () => {
     test(
-      "validates the booking date range before querying even when discovery is empty",
+      "validates the booking date range before any candidate query",
       async () => {
         mocks
           .validateBookableSlotsRange
@@ -187,14 +192,104 @@ describe(
         );
 
         expect(
-          mocks
-            .validateBookableSlotsRange,
-        ).toHaveBeenCalledWith({
-          fromDate:
-            "2026-08-23",
+          mocks.prisma
+            .publicTeacherDiscoveryEligibility
+            .findMany,
+        ).not.toHaveBeenCalled();
 
-          toDate:
-            "2026-08-17",
+        expect(
+          mocks.prisma
+            .teacherProfile
+            .findMany,
+        ).not.toHaveBeenCalled();
+
+        expect(
+          mocks
+            .getNextBookableAvailabilityForTeachers,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    test(
+      "reads only limit plus one candidate identifiers from the eligibility projection",
+      async () => {
+        await listPublicTeachers(
+          {
+            limit:
+              40,
+
+            cursor:
+              "teacher-previous",
+
+            ...RANGE,
+          },
+          {
+            now:
+              NOW,
+          },
+        );
+
+        expect(
+          mocks.prisma
+            .publicTeacherDiscoveryEligibility
+            .findMany,
+        ).toHaveBeenCalledTimes(
+          1,
+        );
+
+        expect(
+          mocks.prisma
+            .publicTeacherDiscoveryEligibility
+            .findMany,
+        ).toHaveBeenCalledWith({
+          where: {
+            teacherProfileId: {
+              gt:
+                "teacher-previous",
+            },
+          },
+
+          orderBy: {
+            teacherProfileId:
+              "asc",
+          },
+
+          take:
+            41,
+
+          select: {
+            teacherProfileId:
+              true,
+          },
+        });
+      },
+    );
+
+    test(
+      "does not fetch profiles or availability when the projection page is empty",
+      async () => {
+        const result =
+          await listPublicTeachers(
+            {
+              limit:
+                20,
+
+              ...RANGE,
+            },
+            {
+              now:
+                NOW,
+            },
+          );
+
+        expect(
+          result,
+        ).toEqual({
+          teachers:
+            [],
+
+          nextCursor:
+            null,
         });
 
         expect(
@@ -211,8 +306,17 @@ describe(
     );
 
     test(
-      "returns an explicit privacy-safe public DTO and attaches batched next availability",
+      "fetches public DTO fields only for the bounded projected page",
       async () => {
+        mocks.prisma
+          .publicTeacherDiscoveryEligibility
+          .findMany
+          .mockResolvedValue([
+            membership(
+              "teacher-a",
+            ),
+          ]);
+
         mocks.prisma
           .teacherProfile
           .findMany
@@ -287,25 +391,45 @@ describe(
         });
 
         expect(
-          mocks
-            .getNextBookableAvailabilityForTeachers,
-        ).toHaveBeenCalledTimes(
-          1,
-        );
-
-        expect(
-          mocks
-            .getNextBookableAvailabilityForTeachers,
-        ).toHaveBeenCalledWith(
-          [
-            "teacher-a",
-          ],
-          RANGE,
-          {
-            now:
-              NOW,
+          mocks.prisma
+            .teacherProfile
+            .findMany,
+        ).toHaveBeenCalledWith({
+          where: {
+            id: {
+              in: [
+                "teacher-a",
+              ],
+            },
           },
-        );
+
+          select: {
+            id:
+              true,
+
+            headline:
+              true,
+
+            experienceYears:
+              true,
+
+            nativeLanguage:
+              true,
+
+            teachingLanguage:
+              true,
+
+            user: {
+              select: {
+                name:
+                  true,
+
+                image:
+                  true,
+              },
+            },
+          },
+        });
 
         const query =
           mocks.prisma
@@ -314,147 +438,73 @@ describe(
             .mock
             .calls[0]?.[0];
 
-        expect(
-          query,
-        ).toBeDefined();
+        const serialized =
+          JSON.stringify(
+            query,
+          );
 
         expect(
-          query.select,
-        ).not.toHaveProperty(
-          "applicationReviewNote",
+          serialized,
+        ).not.toContain(
+          "applicationStatus",
         );
 
         expect(
-          query.select,
-        ).not.toHaveProperty(
-          "applicationSubmittedAt",
+          serialized,
+        ).not.toContain(
+          "profileCompletedAt",
         );
 
         expect(
-          query.select,
-        ).not.toHaveProperty(
-          "applicationReviewedAt",
+          serialized,
+        ).not.toContain(
+          "accountStatus",
         );
 
         expect(
-          query.select,
-        ).not.toHaveProperty(
-          "reviewCycle",
+          serialized,
+        ).not.toContain(
+          "introVideo",
         );
 
         expect(
-          query.select,
-        ).not.toHaveProperty(
-          "submittedVideoAssetId",
-        );
-
-        expect(
-          query.select.user.select,
-        ).not.toHaveProperty(
+          serialized,
+        ).not.toContain(
           "email",
         );
-
-        expect(
-          query.select.introVideo.select,
-        ).not.toHaveProperty(
-          "rejectionReason",
-        );
       },
     );
 
     test(
-      "queries only bookable public teachers in stable id order",
+      "preserves projection keyset order even when the profile fetch returns rows in another order",
       async () => {
-        await listPublicTeachers(
-          {
-            limit:
-              20,
+        mocks.prisma
+          .publicTeacherDiscoveryEligibility
+          .findMany
+          .mockResolvedValue([
+            membership(
+              "teacher-a",
+            ),
 
-            ...RANGE,
-          },
-          {
-            now:
-              NOW,
-          },
-        );
+            membership(
+              "teacher-b",
+            ),
 
-        expect(
-          mocks.prisma
-            .teacherProfile
-            .findMany,
-        ).toHaveBeenCalledTimes(
-          1,
-        );
+            membership(
+              "teacher-c",
+            ),
+          ]);
 
-        expect(
-          mocks.prisma
-            .teacherProfile
-            .findMany,
-        ).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where:
-              expect.objectContaining({
-                applicationStatus:
-                  "APPROVED",
-
-                profileCompletedAt: {
-                  not:
-                    null,
-                },
-              }),
-
-            orderBy: {
-              id:
-                "asc",
-            },
-
-            take:
-              21,
-          }),
-        );
-
-        const query =
-          mocks.prisma
-            .teacherProfile
-            .findMany
-            .mock
-            .calls[0]?.[0];
-
-        expect(
-          JSON.stringify(
-            query.where,
-          ),
-        ).toContain(
-          '"accountStatus":"ACTIVE"',
-        );
-
-        expect(
-          JSON.stringify(
-            query.where,
-          ),
-        ).toContain(
-          '"status":"APPROVED"',
-        );
-      },
-    );
-
-    test(
-      "uses id keyset pagination and excludes the lookahead row from availability projection",
-      async () => {
         mocks.prisma
           .teacherProfile
           .findMany
           .mockResolvedValue([
             publicTeacherRow(
-              "teacher-a",
-            ),
-
-            publicTeacherRow(
               "teacher-b",
             ),
 
             publicTeacherRow(
-              "teacher-c",
+              "teacher-a",
             ),
           ]);
 
@@ -523,69 +573,11 @@ describe(
               NOW,
           },
         );
-
-        expect(
-          mocks.prisma
-            .teacherProfile
-            .findMany,
-        ).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where:
-              expect.objectContaining({
-                id: {
-                  gt:
-                    "teacher-previous",
-                },
-              }),
-
-            orderBy: {
-              id:
-                "asc",
-            },
-
-            take:
-              3,
-          }),
-        );
       },
     );
 
     test(
-      "does not run availability projection when the discovery page is empty",
-      async () => {
-        const result =
-          await listPublicTeachers(
-            {
-              limit:
-                20,
-
-              ...RANGE,
-            },
-            {
-              now:
-                NOW,
-            },
-          );
-
-        expect(
-          result,
-        ).toEqual({
-          teachers:
-            [],
-
-          nextCursor:
-            null,
-        });
-
-        expect(
-          mocks
-            .getNextBookableAvailabilityForTeachers,
-        ).not.toHaveBeenCalled();
-      },
-    );
-
-    test(
-      "keeps discovery query count constant as the page grows",
+      "keeps candidate, profile, and availability query counts constant as the page grows",
       async () => {
         const rows =
           Array.from(
@@ -605,6 +597,20 @@ describe(
                   "0",
                 )}`,
               ),
+          );
+
+        mocks.prisma
+          .publicTeacherDiscoveryEligibility
+          .findMany
+          .mockResolvedValue(
+            rows.map(
+              (
+                row,
+              ) =>
+                membership(
+                  row.id,
+                ),
+            ),
           );
 
         mocks.prisma
@@ -647,6 +653,14 @@ describe(
           result.teachers,
         ).toHaveLength(
           40,
+        );
+
+        expect(
+          mocks.prisma
+            .publicTeacherDiscoveryEligibility
+            .findMany,
+        ).toHaveBeenCalledTimes(
+          1,
         );
 
         expect(

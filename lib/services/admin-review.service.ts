@@ -6,6 +6,7 @@ import { ADMIN_REVIEW_PLAYBACK_TTL_SECONDS, rejectionIncludesProfile, rejectionI
 import { AdminForbiddenError, AdminReviewConflictError, AdminReviewProviderError, AdminTargetNotFoundError } from "@/lib/errors/admin-errors";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { queueMuxPlaybackIntent, reconcileMuxPlayback } from "@/lib/services/mux-playback-reconciliation.service";
+import { reconcilePublicTeacherDiscoveryEligibility } from "@/lib/services/public-teacher-discovery-eligibility.service";
 import { getMuxClient } from "@/lib/video/mux-client";
 import { getMuxSigningConfiguration } from "@/lib/video/mux-config";
 import { cleanupMuxReviewPlayback } from "@/lib/video/mux-review-playback";
@@ -116,6 +117,7 @@ export async function approveTeacherApplication(actorUserId: string, application
     const videoUpdate = await tx.teacherIntroVideo.updateMany({ where: { id: video.id, revision: input.videoRevision, uploadId: application.submittedVideoUploadId, assetId: application.submittedVideoAssetId, status: { in: ["READY_FOR_REVIEW", "APPROVED"] } }, data: { status: "APPROVED", reviewedAt: new Date(), rejectionReason: null } });
     const profileUpdate = await tx.teacherProfile.updateMany({ where: { id: application.id, applicationStatus: "PENDING_REVIEW", reviewCycle: input.reviewCycle, profileRevision: input.profileRevision, submittedProfileRevision: input.profileRevision, submittedVideoId: input.videoId, submittedVideoRevision: input.videoRevision, submittedVideoUploadId: application.submittedVideoUploadId, submittedVideoAssetId: application.submittedVideoAssetId, user: { accountStatus: "ACTIVE" } }, data: { applicationStatus: "APPROVED", applicationReviewedAt: new Date(), applicationReviewNote: null } });
     if (videoUpdate.count !== 1 || profileUpdate.count !== 1) throw new AdminReviewConflictError();
+    await reconcilePublicTeacherDiscoveryEligibility(application.id, tx);
     const reconciliation = await queueMuxPlaybackIntent(tx, { introVideoId: video.id, videoRevision: video.revision, assetId: video.assetId!, desiredState: "ENABLED" });
     const snapshot = auditSnapshot(application);
     await tx.adminAuditEvent.createMany({ data: [
@@ -149,6 +151,7 @@ export async function rejectTeacherApplication(actorUserId: string, applicationI
     }
     const result = await tx.teacherProfile.updateMany({ where: { id: application.id, applicationStatus: "PENDING_REVIEW", reviewCycle: input.reviewCycle, profileRevision: input.profileRevision, submittedProfileRevision: input.profileRevision, submittedVideoId: input.videoId, submittedVideoRevision: input.videoRevision }, data: { applicationStatus: "REJECTED", applicationReviewedAt: new Date(), applicationReviewNote: reason } });
     if (result.count !== 1) throw new AdminReviewConflictError();
+    await reconcilePublicTeacherDiscoveryEligibility(application.id, tx);
     let reconciliationId: string | null = null;
     if (rejectVideo && video.assetId) {
       const reconciliation = await queueMuxPlaybackIntent(tx, { introVideoId: video.id, videoRevision: video.revision, assetId: video.assetId, playbackId: video.publicPlaybackId, desiredState: "REVOKED" });
@@ -179,6 +182,7 @@ export async function setTeacherSuspension(actorUserId: string, applicationId: s
   const reconciliationId = await runSerializableAdminTransaction(async (tx) => {
     const result = await tx.teacherProfile.updateMany({ where: { id: applicationId, applicationStatus: expected, reviewCycle: input.reviewCycle, ...(suspended ? {} : { user: { accountStatus: "ACTIVE" } }) }, data: { applicationStatus: next, applicationReviewNote: input.reason, applicationReviewedAt: new Date() } });
     if (result.count !== 1) throw new AdminReviewConflictError();
+    await reconcilePublicTeacherDiscoveryEligibility(applicationId, tx);
     const reconciliation = await queueMuxPlaybackIntent(tx, { introVideoId: video.id, videoRevision: video.revision, assetId: video.assetId!, playbackId: video.publicPlaybackId, desiredState: suspended ? "REVOKED" : "ENABLED" });
     await tx.adminAuditEvent.create({ data: { actorUserId, targetUserId: application.userId, teacherProfileId: applicationId, introVideoId: video.id, action: suspended ? "TEACHER_SUSPENDED" : "TEACHER_REINSTATED", reason: input.reason, reviewCycle: input.reviewCycle, profileRevision: application.profileRevision, videoRevision: video.revision, reviewedAssetId: video.assetId, metadata: { previousApplicationStatus: expected, newApplicationStatus: next } } });
     return reconciliation.id;
