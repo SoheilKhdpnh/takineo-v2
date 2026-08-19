@@ -1,3 +1,6 @@
+import {
+  reconcilePublicTeacherDiscoveryEligibility,
+} from "@/lib/services/public-teacher-discovery-eligibility.service";
 import { pathToFileURL } from "node:url";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -196,6 +199,23 @@ export async function seedE2EPersonas() {
         submittedVideoAssetId: approvedVideo.assetId,
       },
     });
+
+    await prisma.$transaction(
+      async (tx) => {
+        const eligible =
+          await reconcilePublicTeacherDiscoveryEligibility(
+            approvedProfile.id,
+            tx,
+          );
+
+        if (!eligible) {
+          throw new Error(
+            "E2E approved teacher did not satisfy public discovery eligibility.",
+          );
+        }
+      },
+    );
+
   } finally {
     await applicationPrisma.$disconnect();
     await prisma.$disconnect();
