@@ -6,6 +6,21 @@ Parallelize independent work.
 
 Do not parallelize several tasks that simultaneously redesign the same schema, authorization primitive, or core API contract unless coordinated by the integration lead.
 
+## Wave numbering reconciliation
+
+Teacher discovery, originally planned as Wave 3 below, was delivered inside
+Wave 2 as Track B. That collapsed the delivery numbering by one relative to the
+headings in this file.
+
+Live speaking work is therefore named **Wave 3** in branches, contracts, and
+tests, even though it appears under the "Wave 4 — Speaking Session MVP" heading
+below. This is already binding upstream in
+`docs/engineering/wave2-domain-contract.md` §8 and §17.
+
+The historical wave headings below are deliberately not renumbered, so existing
+contracts, closure records, and commit history keep resolving. Use the status
+lines to determine actual state.
+
 ---
 
 # Wave 0 — Agent Foundation
@@ -99,6 +114,28 @@ Integration order:
 
 # Wave 2 — Availability and Booking Core
 
+Status: DELIVERED AND INTEGRATED ON `integration/wave2-final` / TRACK A IS
+STABLE-FOR-HANDOFF RATHER THAN FORMALLY CLOSED
+
+Canonical contract:
+
+`docs/engineering/wave2-domain-contract.md`
+
+Delivery notes:
+
+- Track A booking core: `M1 status: CLOSED` in the contract. M3 batch
+  next-available projection was implemented as
+  `getNextBookableAvailabilityForTeachers` and independently verified by Track D,
+  but the contract's own M2/M3 status lines were never recorded, and §16 still
+  assigns booking schema ownership to Track A "while Track A is active".
+  Treat booking schema, `SpeakingSession` columns, and the booking state machine
+  as Track A-owned until an integration lead formally closes Track A.
+- Track B public teacher discovery: delivered. This absorbed the original
+  Wave 3 scope below.
+- Track C product UI: delivered.
+- Track D verification: delivered, recorded under
+  `docs/engineering/track-d-wave2-*.md`.
+
 Primary owner:
 Booking / Backend agent
 
@@ -136,6 +173,23 @@ QA:
 
 # Wave 3 — Teacher Discovery
 
+Status: DELIVERED INSIDE WAVE 2 AS TRACK B
+
+This heading is retained for historical continuity. The scope below shipped with
+Wave 2 rather than as a separate wave, which is the source of the numbering
+reconciliation noted at the top of this file.
+
+Evidence:
+
+- `app/api/teachers/route.ts`
+- `app/api/teachers/[teacherProfileId]/route.ts`
+- `app/api/teachers/[teacherProfileId]/slots/route.ts`
+- `lib/services/teacher-discovery.service.ts`
+- `lib/services/public-teacher-discovery-eligibility.service.ts`
+- `components/teachers/TeacherDiscoveryPanel.tsx`
+- `prisma/migrations/20260818222000_add_public_teacher_discovery_eligibility`
+- `tests/unit/booking/public-teacher-privacy-contract.test.ts`
+
 Deliverables:
 
 - public approved-teacher query
@@ -153,6 +207,28 @@ Public teacher query must require approval conditions.
 ---
 
 # Wave 4 — Speaking Session MVP
+
+Status: IN PROGRESS AS "WAVE 3 — LIVE SPEAKING" ON `feat/wave3-live-speaking`
+
+Canonical contract:
+
+`docs/engineering/wave3-live-session-contract.md`
+
+Milestone state:
+
+- M1-A join authorization and provider identity boundary: CLOSED
+  (`lib/domain/live-session/policy.ts`, `lib/domain/live-session/provider.ts`)
+- M1-B evidence reduction and independent timing policies: CLOSED
+  (`lib/domain/live-session/evidence.ts`). Production values for `REJOIN_GRACE`
+  and `EVIDENCE_HORIZON_GRACE` remain deliberately unfrozen.
+- M2 additive persistence (`SpeakingSessionLiveGrant`,
+  `SpeakingSessionLiveEvent`): NOT STARTED
+- M3 services and transport: NOT STARTED
+- M4 localized join surface: NOT STARTED
+
+This wave owns the durable transition to `COMPLETED`, per
+`docs/engineering/wave2-domain-contract.md` §8. It must not redefine Wave 2
+booking columns or statuses.
 
 Deliverables:
 
@@ -172,6 +248,8 @@ Security review required before integration.
 ---
 
 # Wave 5 — AI Learning Pipeline
+
+Status: NOT STARTED
 
 Deliverables:
 
@@ -197,6 +275,8 @@ AI results must remain distinguishable from teacher-reviewed results.
 
 # Wave 6 — Product Communication
 
+Status: NOT STARTED
+
 Deliverables as needed:
 
 - transactional email
@@ -211,6 +291,25 @@ Provider selection should be isolated behind a notification service.
 ---
 
 # Wave 7 — Production Hardening
+
+Status: PARTIALLY DELIVERED AHEAD OF SEQUENCE
+
+Already in place from earlier waves:
+
+- CI quality gates (`.github/workflows/ci.yml`)
+- security headers helper (`lib/security/browser-security-headers.ts`)
+- admin audit trail with database-level immutability triggers
+- health/readiness probe (`app/api/health/database/route.ts`)
+- database index review for booking and session reads
+- production dependency audit (`npm run security:audit:prod`)
+- backup/restore and rollback records under `docs/operations/`
+
+Still missing:
+
+- rate limiting, which `docs/engineering/security.md` requires before public beta
+- structured logging and error tracking
+- cache policy and CDN review
+- performance testing beyond the Track D discovery complexity probes
 
 Parallel infrastructure/security track.
 
@@ -237,6 +336,8 @@ Deliverables:
 ---
 
 # Wave 8 — Closed Beta
+
+Status: NOT STARTED
 
 Deliverables:
 

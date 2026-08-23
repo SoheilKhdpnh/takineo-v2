@@ -249,9 +249,13 @@ orchestrate bounded specialist subagents. Parallel analysis may share a worktree
 read-only. Parallel edits require disjoint file ownership or isolated Git
 worktrees. The primary agent owns integration and final verification.
 
-The integration target for agent work is:
+The integration target for agent work is per-wave and recorded in
+`docs/agents/playbook.md`. As of 2026-08-23 it is:
 
-`codex/integration`
+`integration/wave2-final`
+
+This replaces the previously named `codex/integration`, which is fully absorbed
+and flagged for deletion. The playbook records the drift and the evidence.
 
 `main` is reserved for intentionally integrated stable releases.
 
