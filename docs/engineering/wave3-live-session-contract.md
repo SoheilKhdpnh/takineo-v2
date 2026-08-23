@@ -6,6 +6,7 @@
 **Upstream handoff:** `docs/engineering/wave2-domain-contract.md` §8, §17
 **M1-A status:** **CLOSED — join authorization, provider identity boundary, and evidence reduction are frozen as pure domain rules with executable invariants.**
 **M1-B status:** **CLOSED — `REJOIN_GRACE` and `EVIDENCE_HORIZON_GRACE` are frozen as two independent policies. Their production values remain deliberately unfrozen.**
+**M1-C status:** **CLOSED — join-window derivation consumes `REJOIN_GRACE`, and the evidence-based completion decision is defined as a pure rule separate from any write.**
 
 This file is the canonical Wave 3 contract. It records decisions that are already
 frozen in `lib/domain/live-session/**` and constrains the persistence, service,
@@ -83,6 +84,45 @@ Consequences:
 Evidence reduction and status transition are deliberately separate concerns. Do
 not fuse them into one function.
 
+### Completion decision
+
+The decision is a pure rule over a session snapshot, a reduction, and an explicit
+`asOf`. It decides; it never writes.
+
+Blocked reasons are evaluated in exactly this order:
+
+1. `ALREADY_COMPLETED` — persisted status is already `COMPLETED`, so a replayed
+   decision is idempotent rather than an error;
+2. `SESSION_CANCELLED` — `CANCELLED` is terminal and is never completed, even
+   with full attendance evidence;
+3. `EVIDENCE_NOT_FINAL` — `asOf < analyticalHorizonAt`, so further authentic
+   evidence can still be attributed;
+4. `EVIDENCE_UNRELIABLE` — any participant reduced to `INVALID_SEQUENCE`;
+5. `NO_PARTICIPANT_PRESENCE` — nobody accumulated presence;
+6. `INCOMPLETE_PARTICIPATION` — only one side attended.
+
+Terminal status is checked before evidence finality so a cancelled session
+produces a stable reason regardless of when the decision runs.
+
+`ROOM_ENDED` alone does **not** make evidence final. It bounds presence, but late
+authentic disconnect evidence may still arrive and change quality, so finality is
+governed only by `analyticalHorizonAt`.
+
+A completable decision reports the evidence-bounded `effectiveAt` plus student
+and teacher presence. `effectiveAt` is **not** persisted on `SpeakingSession`,
+which has no column for it and must not gain one under §1. Persisting it requires
+a Wave 3-owned table.
+
+### Open product decision
+
+A session where only one side attended is a no-show outcome.
+`SpeakingSessionStatus` is Wave 2-owned and has no no-show member, so Wave 3
+reports `INCOMPLETE_PARTICIPATION` rather than inventing a durable state.
+
+How no-shows are settled as a product concern — and whether that requires a
+Wave 2-owned status change — is **unresolved** and must be escalated to the
+integration lead rather than decided inside Wave 3.
+
 ## 3. Timing policy
 
 M1-B freezes two **independent** policies:
@@ -104,7 +144,9 @@ Rules:
   explicitly. Do not invent defaults in domain, service, or route code.
 
 The independence of `REJOIN_GRACE` from reduction is an executable invariant,
-not a stylistic preference.
+not a stylistic preference. It is proven in both directions: changing
+`REJOIN_GRACE` must not move `analyticalHorizonAt`, and changing
+`EVIDENCE_HORIZON_GRACE` must not move the join window.
 
 ## 4. Join authorization
 
@@ -118,6 +160,26 @@ The join window uses the same half-open convention Wave 2 locked in:
 ```
 
 `asOf == closesAt` is closed, not open.
+
+### Window derivation
+
+The window is derived from the booked schedule and frozen policy only:
+
+```text
+opensAt  = session.startAt
+closesAt = session.endAt + REJOIN_GRACE
+```
+
+This is the sole consumer of `REJOIN_GRACE`, which is what makes it a join-side
+concept rather than an unused value.
+
+There is deliberately **no early-join allowance**. No early-join policy has been
+frozen, and choosing one would be a product decision rather than a derivation.
+Adding an early-join grace later is an additive policy change and must be frozen
+in this contract before implementation.
+
+`EVIDENCE_HORIZON_GRACE` must never widen the window. Evidence attribution and
+join authorization are separate boundaries.
 
 ### Frozen denial precedence
 
@@ -348,6 +410,20 @@ Constraint identity, not database message text, must drive error mapping.
 | exact provider retry deduplicated | unit test | green |
 | conflicting `providerEventRef` excluded | unit test | green |
 | reducer is pure and uses explicit `asOf` | unit test | green |
+| window opens at booked start, no early-join | unit test | green |
+| window closes at `endAt + REJOIN_GRACE` | unit test | green |
+| `EVIDENCE_HORIZON_GRACE` cannot widen the window | unit test | green |
+| `REJOIN_GRACE` cannot move `analyticalHorizonAt` | unit test | green |
+| derived window authorizes `opensAt`, denies `closesAt` | unit test | green |
+| rejoin allowed after booked end inside grace | unit test | green |
+| completion requires evidence finality | unit test | green |
+| `ROOM_ENDED` alone does not make evidence final | unit test | green |
+| cancelled session never completes | unit test | green |
+| already-completed decision is idempotent | unit test | green |
+| terminal status outranks evidence finality | unit test | green |
+| unreliable evidence blocks completion | unit test | green |
+| single-side attendance blocks completion | unit test | green |
+| completion decision is pure | unit test | green |
 | grant uniqueness and idempotency at database level | **migration + integration test required** | pending |
 | participant-field CHECK on event type | **migration + integration test required** | pending |
 | duplicate webhook delivery is a database no-op | **integration test required** | pending |
@@ -366,6 +442,15 @@ Closed. `lib/domain/live-session/policy.ts` and
 
 Closed. `lib/domain/live-session/evidence.ts` with executable invariants.
 Production grace values remain deliberately unfrozen.
+
+### M1-C — join-window derivation and completion decision
+
+Closed. `deriveLiveSessionJoinWindow` in `lib/domain/live-session/policy.ts` and
+`decideLiveSessionCompletion` in `lib/domain/live-session/completion.ts`, with
+executable invariants.
+
+This closes the gap where `REJOIN_GRACE` was validated but never consumed, and
+gives §2 an executable completion rule that performs no write.
 
 ### M2 — additive persistence
 

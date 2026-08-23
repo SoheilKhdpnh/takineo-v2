@@ -28,6 +28,21 @@ export type LiveSessionJoinWindow =
       Date;
   }>;
 
+/**
+ * Window derivation only needs the booked schedule.
+ *
+ * Participant identity is deliberately absent so a window can be computed
+ * without resolving authorization.
+ */
+export type LiveSessionScheduleSnapshot =
+  Readonly<{
+    startAt:
+      Date;
+
+    endAt:
+      Date;
+  }>;
+
 export type LiveSessionParticipantRole =
   | "STUDENT"
   | "TEACHER";
@@ -123,6 +138,35 @@ function assertNonNegativeSafeInteger(
   }
 }
 
+function addMilliseconds(
+  valueMs:
+    number,
+  deltaMs:
+    number,
+  label:
+    string,
+): number {
+  const result =
+    valueMs + deltaMs;
+
+  if (
+    !Number.isSafeInteger(
+      result,
+    ) ||
+    Number.isNaN(
+      new Date(
+        result,
+      ).getTime(),
+    )
+  ) {
+    throw new RangeError(
+      `${label} is outside the supported Date range.`,
+    );
+  }
+
+  return result;
+}
+
 export function createLiveSessionEvidenceTimingPolicy(
   input:
     LiveSessionEvidenceTimingPolicy,
@@ -143,6 +187,71 @@ export function createLiveSessionEvidenceTimingPolicy(
 
     evidenceHorizonGraceMs:
       input.evidenceHorizonGraceMs,
+  });
+}
+
+/**
+ * The join window opens at the booked start and closes REJOIN_GRACE after the
+ * booked end, so a participant who drops near the end can still rejoin.
+ *
+ * Only frozen policy values are used. There is deliberately no early-join
+ * allowance, because no early-join policy has been frozen and inventing one
+ * would be a product decision rather than a derivation.
+ *
+ * EVIDENCE_HORIZON_GRACE must never widen this window. It bounds evidence
+ * attribution, not authorization.
+ */
+export function deriveLiveSessionJoinWindow(
+  input: Readonly<{
+    session:
+      LiveSessionScheduleSnapshot;
+
+    policy:
+      LiveSessionEvidenceTimingPolicy;
+  }>,
+): LiveSessionJoinWindow {
+  const {
+    session,
+  } = input;
+
+  assertValidDate(
+    session.startAt,
+    "SpeakingSession startAt",
+  );
+
+  assertValidDate(
+    session.endAt,
+    "SpeakingSession endAt",
+  );
+
+  if (
+    session.endAt.getTime() <=
+    session.startAt.getTime()
+  ) {
+    throw new RangeError(
+      "SpeakingSession endAt must be after startAt.",
+    );
+  }
+
+  const policy =
+    createLiveSessionEvidenceTimingPolicy(
+      input.policy,
+    );
+
+  return Object.freeze({
+    opensAt:
+      new Date(
+        session.startAt.getTime(),
+      ),
+
+    closesAt:
+      new Date(
+        addMilliseconds(
+          session.endAt.getTime(),
+          policy.rejoinGraceMs,
+          "Live-session join window closesAt",
+        ),
+      ),
   });
 }
 
