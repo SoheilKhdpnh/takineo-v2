@@ -386,6 +386,34 @@ checks improve diagnostics; they are not the barrier.
 
 Constraint identity, not database message text, must drive error mapping.
 
+### 8.1 Declarative reach of the Prisma schema
+
+The Prisma schema can express the two unique keys on the grant table, the unique
+key on the event table, and the restrict-based foreign keys. It cannot express a
+CHECK constraint at all.
+
+Therefore the participant-field shape rule is hand-written SQL in the migration,
+not a schema-derived artifact:
+
+- `ss_live_event_participant_shape_check` enforces that
+  `PARTICIPANT_CONNECTED` and `PARTICIPANT_DISCONNECTED` carry a non-blank
+  `providerParticipantRef` and a non-blank `connectionRef`, while `ROOM_ENDED`
+  carries neither.
+
+Because it is hand-written, `prisma migrate diff` against the applied database
+will not report its absence as drift. A regression that silently drops it is only
+detectable by a test that asserts the constraint rejects a malformed row, so
+§9 carries that assertion as an executable invariant rather than a review note.
+
+The same reasoning applies to the non-blank reference checks
+`ss_live_grant_join_attempt_format_check`,
+`ss_live_grant_provider_participant_format_check`, and
+`ss_live_event_provider_event_format_check`. Prisma's `@db.VarChar` bounds length
+only; it cannot reject an empty or untrimmed reference.
+
+The canonical constraint names above are the stable identifiers that error
+mapping keys on.
+
 ## 9. Executable invariant matrix
 
 | Invariant | Expected evidence | Status |
@@ -424,9 +452,16 @@ Constraint identity, not database message text, must drive error mapping.
 | unreliable evidence blocks completion | unit test | green |
 | single-side attendance blocks completion | unit test | green |
 | completion decision is pure | unit test | green |
-| grant uniqueness and idempotency at database level | **migration + integration test required** | pending |
-| participant-field CHECK on event type | **migration + integration test required** | pending |
-| duplicate webhook delivery is a database no-op | **integration test required** | pending |
+| provider participant ref belongs to exactly one grant | integration test | green |
+| replayed join attempt conflicts instead of granting twice | integration test | green |
+| join attempt id is unique per participant, not globally | integration test | green |
+| participant-field CHECK on event type | integration test | green |
+| blank or untrimmed references rejected by database | integration test | green |
+| duplicate webhook delivery is a database no-op | integration test | green |
+| simultaneous connections stay separate rows in storage | integration test | green |
+| live grant and evidence restrict destructive deletion | integration test | green |
+| hand-written CHECK constraints still installed | integration test | green |
+| Wave 2 booking columns and guards unchanged by Wave 3 | catalog integration test | green |
 | join route denies server-side per §4 | **route test required** | pending |
 | elapsed session still not auto-completed | **regression test required** | pending |
 | durable `COMPLETED` only from evidence | **service test required** | pending |
@@ -454,6 +489,23 @@ gives §2 an executable completion rule that performs no write.
 
 ### M2 — additive persistence
 
+Closed. `prisma/migrations/20260823120000_add_live_session_evidence_foundation`
+applies from the integrated baseline with zero drift against
+`prisma/schema.prisma`, and
+`tests/integration/wave3-live-session-constraints.test.ts` carries the database
+level invariants.
+
+Additivity was verified against the live database rather than inferred from the
+schema diff. The nine `speaking_session` columns retain their original names,
+types, and nullability, and the pre-existing booking guards
+`speaking_session_exact_15m_check`, `speaking_session_start_grid_check`,
+`speaking_session_teacher_active_slot_key`,
+`speaking_session_student_active_slot_key`, and `tar_no_active_overlap` are all
+still present. Two of those are partial unique indexes rather than constraints,
+so presence must be checked against `pg_class` as well as `pg_constraint`.
+
+Original scope, retained for review:
+
 1. Add `SpeakingSessionLiveGrant` and `SpeakingSessionLiveEvent` with enums and
    relations, additive only.
 2. Review the generated SQL against §1 and §8 before applying.
@@ -461,6 +513,18 @@ gives §2 an executable completion rule that performs no write.
    isolated PostgreSQL test database.
 4. Prove duplicate webhook delivery is a database-level no-op.
 5. Prove no existing booking constraint, column, or transition changed.
+
+`prisma.config.ts` resolves the migration datasource from `DIRECT_URL`, which
+points at the shared Neon development database. `prisma migrate dev` must
+therefore never be run for this milestone: it would target Neon and it also
+requires a shadow database that the isolated test role is not privileged to
+create.
+
+The supported apply path is the one CI already uses — override `DIRECT_URL` with
+the isolated test URL for the duration of a `prisma migrate deploy` invocation.
+That override must not leak into the test run itself, because
+`getTestDatabaseUrl` deliberately rejects a `TEST_DATABASE_URL` that shares a
+database identity with `DIRECT_URL`.
 
 ### M3 — services and transport
 
