@@ -87,6 +87,17 @@ enum SpeakingSessionCancellationActor {
   SYSTEM
 }
 
+enum SpeakingSessionLiveParticipantRole {
+  STUDENT
+  TEACHER
+}
+
+enum SpeakingSessionLiveEventType {
+  PARTICIPANT_CONNECTED
+  PARTICIPANT_DISCONNECTED
+  ROOM_ENDED
+}
+
 enum EnglishLevel {
   A1
   A2
@@ -154,6 +165,7 @@ model User {
   adminAuditEvents             AdminAuditEvent[]             @relation("AdminAuditActor")
   studentSpeakingSessions      SpeakingSession[]             @relation("SpeakingSessionStudent")
   speakingSessionCancellations SpeakingSessionCancellation[] @relation("SpeakingSessionCancellationActor")
+  speakingSessionLiveGrants    SpeakingSessionLiveGrant[]    @relation("SpeakingSessionLiveParticipant")
 
   @@unique([email])
   @@map("user")
@@ -251,13 +263,13 @@ model TeacherProfile {
   createdAt                    DateTime                  @default(now())
   updatedAt                    DateTime                  @updatedAt
 
-  user                   User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  introVideo             TeacherIntroVideo?
-  auditEvents            AdminAuditEvent[]
-  availabilityRules      TeacherAvailabilityRule[]
-  availabilityExceptions TeacherAvailabilityException[]
-  speakingSessions             SpeakingSession[]
-  publicDiscoveryEligibility   PublicTeacherDiscoveryEligibility?
+  user                       User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  introVideo                 TeacherIntroVideo?
+  auditEvents                AdminAuditEvent[]
+  availabilityRules          TeacherAvailabilityRule[]
+  availabilityExceptions     TeacherAvailabilityException[]
+  speakingSessions           SpeakingSession[]
+  publicDiscoveryEligibility PublicTeacherDiscoveryEligibility?
 
   @@index([applicationStatus, applicationSubmittedAt, id])
   @@map("teacher_profile")
@@ -418,6 +430,8 @@ model SpeakingSession {
   teacherProfile TeacherProfile               @relation(fields: [teacherProfileId], references: [id], onDelete: Restrict)
   studentUser    User                         @relation("SpeakingSessionStudent", fields: [studentUserId], references: [id], onDelete: Restrict)
   cancellation   SpeakingSessionCancellation?
+  liveGrants     SpeakingSessionLiveGrant[]
+  liveEvents     SpeakingSessionLiveEvent[]
 
   @@unique([studentUserId, bookingIdempotencyKey], map: "speaking_session_student_idempotency_key")
   @@index([teacherProfileId, status, startAt], map: "speaking_session_teacher_status_start_idx")
@@ -442,4 +456,47 @@ model SpeakingSessionCancellation {
 
   @@index([actorUserId, cancelledAt], map: "session_cancellation_actor_time_idx")
   @@map("speaking_session_cancellation")
+}
+
+/// Wave 3 live speaking. One row is one credential-issuance authorization.
+/// Carries no credential material and no grant-level expiry: expiry belongs to
+/// the issued credential, not to the grant.
+model SpeakingSessionLiveGrant {
+  id                     String                             @id @default(cuid())
+  sessionId              String
+  participantUserId      String
+  participantRole        SpeakingSessionLiveParticipantRole
+  clientJoinAttemptId    String                             @db.VarChar(128)
+  providerParticipantRef String                             @db.VarChar(256)
+  authorizedAt           DateTime                           @default(now()) @db.Timestamptz(3)
+  createdAt              DateTime                           @default(now()) @db.Timestamptz(3)
+
+  session         SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  participantUser User            @relation("SpeakingSessionLiveParticipant", fields: [participantUserId], references: [id], onDelete: Restrict)
+
+  @@unique([providerParticipantRef], map: "ss_live_grant_provider_participant_key")
+  @@unique([participantUserId, clientJoinAttemptId], map: "ss_live_grant_join_attempt_key")
+  @@index([sessionId, participantRole, authorizedAt], map: "ss_live_grant_session_role_idx")
+  @@map("speaking_session_live_grant")
+}
+
+/// Wave 3 live speaking. Raw provider evidence only; derived presence is never
+/// persisted here. Participant fields are nullable because ROOM_ENDED is
+/// room-scoped, and a hand-written CHECK enforces that shape.
+model SpeakingSessionLiveEvent {
+  id                     String                       @id @default(cuid())
+  sessionId              String
+  providerEventRef       String                       @db.VarChar(256)
+  type                   SpeakingSessionLiveEventType
+  occurredAt             DateTime                     @db.Timestamptz(3)
+  providerParticipantRef String?                      @db.VarChar(256)
+  connectionRef          String?                      @db.VarChar(256)
+  recordedAt             DateTime                     @default(now()) @db.Timestamptz(3)
+
+  session SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@unique([providerEventRef], map: "ss_live_event_provider_event_key")
+  @@index([sessionId, occurredAt, providerEventRef], map: "ss_live_event_session_time_idx")
+  @@index([providerParticipantRef, connectionRef, occurredAt], map: "ss_live_event_connection_idx")
+  @@map("speaking_session_live_event")
 }
