@@ -579,7 +579,12 @@ error, and denied states. No authorization logic may exist only in the UI.
 - rescheduling;
 - any change to Wave 2-owned booking columns, statuses, or transitions;
 - production values for `REJOIN_GRACE` and `EVIDENCE_HORIZON_GRACE`;
-- provider selection, until an adapter implementation task is authorized.
+- provider selection, until an adapter implementation task is authorized;
+- the localized product join UI (M4).
+
+Iran-network signalling and media reachability for a candidate LiveKit/TURN
+host is validated with the standalone operator diagnostic in
+`diagnostics/iran-webrtc/`, not through the Next.js / Netlify app. See §13.
 
 ## 12. Prisma ownership and downstream communication
 
@@ -608,3 +613,35 @@ PRISMA SCHEMA-AFFECTING: NO
 ```
 
 For the M1-A/M1-B domain foundation and this contract document: **NO**.
+
+## 13. Iran network reachability (operator diagnostic)
+
+Vendor selection remains unfrozen. Before a production media host is chosen,
+operators must prove that an Iranian client network can complete a full
+15-minute speaking path to that host.
+
+That proof must not go through the Next.js / Netlify product surface. Hosting
+reachability and media reachability are different questions; mixing them would
+confound the result. M4 join UI is out of scope here.
+
+The standalone diagnostic lives at `diagnostics/iran-webrtc/`. Serve that
+directory with `node server.mjs` or `npx serve` (README in the folder). It is
+not an App Router page and must not be added to `netlify.toml`.
+
+It is configured with `config.json`, gitignored `config.local.json`, or query
+parameters (TURN/STUN URLs, signalling WebSocket URL, `iceTransportPolicy`,
+one transport at a time). No production secrets belong in the repository.
+
+It reports:
+
+- signalling WebSocket time-to-connect;
+- ICE candidate types (host / srflx / relay), then the same gather with
+  `iceTransportPolicy: "relay"`;
+- time-to-first-audio over a TURN loopback;
+- a full 15-minute hold with periodic `getStats()` RTT, jitter, and packet
+  loss, plus every `Reconnecting` / `Reconnected` event.
+
+Transports are isolated so ICE cannot pick silently: UDP/3478, UDP/443,
+UDP/53, TCP/443 TLS, TCP/80.
+
+This diagnostic does not issue join grants, complete sessions, or start M4.
