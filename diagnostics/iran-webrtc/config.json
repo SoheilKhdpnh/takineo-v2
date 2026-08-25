@@ -1,0 +1,22 @@
+{
+  "signallingUrl": "wss://livekit.example.invalid",
+  "stunUrls": ["stun:turn.example.invalid:3478"],
+  "turnHost": "turn.example.invalid",
+  "turnUsername": "",
+  "turnCredential": "",
+  "iceTransportPolicy": "relay",
+  "transport": "udp-3478",
+  "holdMs": 900000,
+  "statsIntervalMs": 5000,
+  "signallingTimeoutMs": 15000,
+  "iceGatherTimeoutMs": 12000,
+  "firstAudioTimeoutMs": 20000,
+  "signallingKeepalive": false,
+  "transportUrls": {
+    "udp-3478": "turn:{host}:3478?transport=udp",
+    "udp-443": "turn:{host}:443?transport=udp",
+    "udp-53": "turn:{host}:53?transport=udp",
+    "tcp-443-tls": "turns:{host}:443?transport=tcp",
+    "tcp-80": "turn:{host}:80?transport=tcp"
+  }
+}

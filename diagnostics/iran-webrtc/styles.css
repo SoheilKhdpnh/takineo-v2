@@ -1,0 +1,272 @@
+:root {
+  color-scheme: dark;
+  --bg: #0c1117;
+  --panel: #141c27;
+  --panel-2: #1b2533;
+  --line: #2a384a;
+  --text: #e8eef6;
+  --muted: #93a4b8;
+  --accent: #7dd3c0;
+  --warn: #e3b341;
+  --fail: #f07178;
+  --ok: #7dcea0;
+  --mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+  --sans: "Segoe UI", "Noto Sans", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+body {
+  background-image:
+    radial-gradient(1200px 500px at 100% -10%, rgba(125, 211, 192, 0.08), transparent 50%),
+    linear-gradient(180deg, #0c1117, #0a0e13);
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+header h1 {
+  font-size: 1.55rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.lede,
+.note,
+.muted,
+.transport-hint,
+.status {
+  color: var(--muted);
+}
+
+.lede {
+  max-width: 62ch;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.banner {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  font-size: 0.92rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+label.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.88rem;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+textarea {
+  min-height: 64px;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.transports {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.transport {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+
+.transport input {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.transport-label {
+  font-weight: 600;
+}
+
+.transport-hint {
+  font-size: 0.8rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent);
+  color: #06251f;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status {
+  font-size: 0.88rem;
+}
+
+.cards {
+  display: grid;
+  gap: 10px;
+}
+
+.card {
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.card p {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.card.ok {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+}
+
+.card.fail {
+  border-color: color-mix(in srgb, var(--fail) 60%, var(--line));
+}
+
+meter {
+  width: 100%;
+  height: 12px;
+  margin-top: 10px;
+}
+
+.log {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  max-height: 420px;
+  overflow: auto;
+  background: #0a1017;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: 88px 150px 1fr;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.log-line time {
+  color: var(--muted);
+}
+
+.log-ok strong {
+  color: var(--ok);
+}
+
+.log-fail strong {
+  color: var(--fail);
+}
+
+.log-warn strong {
+  color: var(--warn);
+}
+
+footer {
+  margin-top: 18px;
+  font-size: 0.82rem;
+}
