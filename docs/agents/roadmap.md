@@ -222,8 +222,10 @@ Milestone state:
   (`lib/domain/live-session/evidence.ts`). Production values for `REJOIN_GRACE`
   and `EVIDENCE_HORIZON_GRACE` remain deliberately unfrozen.
 - M2 additive persistence (`SpeakingSessionLiveGrant`,
-  `SpeakingSessionLiveEvent`): NOT STARTED
-- M3 services and transport: NOT STARTED
+  `SpeakingSessionLiveEvent`): CLOSED
+- M3 services and transport: CLOSED against a fake provider adapter
+  (`lib/services/live-session-*.ts`, join/evidence/webhook/completion-job
+  routes). Vendor selection remains open.
 - M4 localized join surface: NOT STARTED
 
 This wave owns the durable transition to `COMPLETED`, per

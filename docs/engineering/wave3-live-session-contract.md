@@ -7,6 +7,8 @@
 **M1-A status:** **CLOSED — join authorization, provider identity boundary, and evidence reduction are frozen as pure domain rules with executable invariants.**
 **M1-B status:** **CLOSED — `REJOIN_GRACE` and `EVIDENCE_HORIZON_GRACE` are frozen as two independent policies. Their production values remain deliberately unfrozen.**
 **M1-C status:** **CLOSED — join-window derivation consumes `REJOIN_GRACE`, and the evidence-based completion decision is defined as a pure rule separate from any write.**
+**M2 status:** **CLOSED — additive grant and event persistence, with executable database invariants.**
+**M3 status:** **CLOSED — services and transport against a fake provider adapter. Production grace values and vendor selection remain unfrozen.**
 
 This file is the canonical Wave 3 contract. It records decisions that are already
 frozen in `lib/domain/live-session/**` and constrains the persistence, service,
@@ -462,9 +464,12 @@ mapping keys on.
 | live grant and evidence restrict destructive deletion | integration test | green |
 | hand-written CHECK constraints still installed | integration test | green |
 | Wave 2 booking columns and guards unchanged by Wave 3 | catalog integration test | green |
-| join route denies server-side per §4 | **route test required** | pending |
-| elapsed session still not auto-completed | **regression test required** | pending |
-| durable `COMPLETED` only from evidence | **service test required** | pending |
+| join route denies server-side per §4 | unit route + grant service tests | green |
+| elapsed session still not auto-completed | completion service does not write on time-alone | green |
+| durable `COMPLETED` only from evidence | completion service + compare-and-set update | green |
+| grace values fail closed when env is absent | unit env test | green |
+| webhook signature verified before ingest | unit webhook route test | green |
+| duplicate `providerEventRef` is an ingest no-op | unit webhook service test | green |
 
 ## 10. Milestone sequence
 
@@ -528,11 +533,39 @@ database identity with `DIRECT_URL`.
 
 ### M3 — services and transport
 
-1. Grant issuance service with join authorization from §4 and idempotency from §5.
-2. Provider webhook ingestion, signature-verified and idempotent.
-3. Evidence read service composing the pure reducer.
-4. Durable completion transition per §2, serialized per session.
-5. Route handlers as thin adapters with stable machine-readable error codes.
+**Status: CLOSED** against the frozen `LiveSessionProviderAdapter` with a fake
+runtime adapter. Vendor selection remains open and is out of scope.
+
+Production grace values are still unfrozen. Services read them from:
+
+```text
+LIVE_SESSION_REJOIN_GRACE_MS
+LIVE_SESSION_EVIDENCE_HORIZON_GRACE_MS
+LIVE_SESSION_WEBHOOK_SECRET
+```
+
+Absent, blank, or non-integer grace values fail closed. That is configuration,
+not a default.
+
+Delivered:
+
+1. Grant issuance — `lib/services/live-session-grant.service.ts` plus
+   `POST /api/sessions/[sessionId]/join`.
+2. Webhook ingestion — signature seam on the adapter, persist via
+   `lib/services/live-session-webhook.service.ts`,
+   `POST /api/webhooks/live-session`.
+3. Evidence read — `lib/services/live-session-evidence.service.ts` composing
+   the pure reducer with no write,
+   `GET /api/sessions/[sessionId]/live-evidence`.
+4. Durable completion — `completeLiveSpeakingSession` serialized per session
+   with compare-and-set `SCHEDULED → COMPLETED`, plus an internal job at
+   `POST /api/internal/jobs/live-session-completion`.
+5. Thin routes with stable error codes in `lib/errors/live-session-http.ts`.
+
+Database conflicts are classified by constraint identity in
+`lib/live-session/constraint-identity.ts`.
+
+`PRISMA SCHEMA-AFFECTING: NO`
 
 ### M4 — product surface
 
