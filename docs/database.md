@@ -41,6 +41,11 @@ Required local variables:
 - `DIRECT_URL`
 - `NEXT_PUBLIC_APP_URL`
 
+On Netlify, `BETTER_AUTH_URL` falls back to the platform-provided
+`URL` (or `DEPLOY_PRIME_URL` for deploy previews/branch deploys) when
+not set explicitly, so it only needs to be configured manually for
+local development or to override the detected domain.
+
 Never commit real secrets or database connection strings.
 
 ## Routes
