@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
+import { isActiveAccount, isInactiveAccountSelfServicePath } from "@/lib/auth/account-policy";
 import { prisma } from "@/lib/db/prisma";
 import { serverEnv } from "@/lib/env/server";
 
@@ -12,6 +13,24 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          return isActiveAccount(session.userId);
+        },
+      },
+      update: {
+        before: async (_changes, context) => {
+          const userId = context?.context.session?.user.id;
+          if (!userId) return false;
+          if (isInactiveAccountSelfServicePath(context.path)) return true;
+          return isActiveAccount(userId);
+        },
+      },
+    },
+  },
 
   user: {
     additionalFields: {

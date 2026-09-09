@@ -14,21 +14,146 @@ enum UserRole {
   TEACHER
 }
 
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum AdminPermission {
+  REVIEWER
+  SUPER_ADMIN
+}
+
+enum AdminAuditAction {
+  ADMIN_BOOTSTRAPPED
+  ADMIN_ACCESS_GRANTED
+  ADMIN_ACCESS_REVOKED
+  ADMIN_PERMISSION_CHANGED
+  PROFILE_APPROVED
+  PROFILE_REJECTED
+  VIDEO_APPROVED
+  VIDEO_REJECTED
+  APPLICATION_APPROVED
+  APPLICATION_REJECTED
+  TEACHER_SUSPENDED
+  TEACHER_REINSTATED
+  ACCOUNT_STATUS_CHANGED
+}
+
+enum ReviewRejectionTarget {
+  PROFILE
+  VIDEO
+  BOTH
+}
+
+enum PlaybackDesiredState {
+  ENABLED
+  REVOKED
+}
+
+enum PlaybackReconciliationStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum Weekday {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+enum AvailabilityExceptionType {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum SpeakingSessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum SpeakingSessionCancellationActor {
+  STUDENT
+  TEACHER
+  ADMIN
+  SYSTEM
+}
+
+enum EnglishLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum NativeLanguage {
+  fa
+  en
+  ar
+  tr
+  ku
+}
+
+enum TeacherApplicationStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum TeacherIntroVideoStatus {
+  UPLOAD_PENDING
+  PROCESSING
+  READY_FOR_REVIEW
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+enum Timezone {
+  Asia_Tehran         @map("Asia/Tehran")
+  Asia_Dubai          @map("Asia/Dubai")
+  Europe_Berlin       @map("Europe/Berlin")
+  Europe_Istanbul     @map("Europe/Istanbul")
+  Europe_London       @map("Europe/London")
+  America_Toronto     @map("America/Toronto")
+  America_New_York    @map("America/New_York")
+  America_Chicago     @map("America/Chicago")
+  America_Los_Angeles @map("America/Los_Angeles")
+  UTC
+}
+
 model User {
-  id                    String    @id
+  id                    String        @id
   name                  String
   email                 String
   emailVerified         Boolean
   image                 String?
   role                  UserRole?
+  accountStatus         AccountStatus @default(ACTIVE)
   onboardingCompletedAt DateTime?
   createdAt             DateTime
   updatedAt             DateTime
 
-  sessions       Session[]
-  accounts       Account[]
-  studentProfile StudentProfile?
-  teacherProfile TeacherProfile?
+  sessions                     Session[]
+  accounts                     Account[]
+  studentProfile               StudentProfile?
+  teacherProfile               TeacherProfile?
+  adminAccess                  AdminAccess?
+  adminAuditEvents             AdminAuditEvent[]             @relation("AdminAuditActor")
+  studentSpeakingSessions      SpeakingSession[]             @relation("SpeakingSessionStudent")
+  speakingSessionCancellations SpeakingSessionCancellation[] @relation("SpeakingSessionCancellationActor")
 
   @@unique([email])
   @@map("user")
@@ -82,10 +207,15 @@ model Verification {
 }
 
 model StudentProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String         @id @default(cuid())
+  userId             String         @unique
+  englishLevel       EnglishLevel?
+  learningGoal       String?
+  nativeLanguage     NativeLanguage @default(fa)
+  timezone           Timezone       @default(Asia_Tehran)
+  profileCompletedAt DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -93,14 +223,223 @@ model StudentProfile {
 }
 
 model TeacherProfile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                           String                    @id @default(cuid())
+  userId                       String                    @unique
+  headline                     String?
+  bio                          String?
+  experienceYears              Int?
+  nativeLanguage               NativeLanguage            @default(fa)
+  teachingLanguage             String                    @default("en")
+  timezone                     Timezone                  @default(Asia_Tehran)
+  profileCompletedAt           DateTime?
+  applicationStatus            TeacherApplicationStatus  @default(DRAFT)
+  applicationSubmittedAt       DateTime?
+  applicationReviewedAt        DateTime?
+  applicationReviewNote        String?
+  reviewCycle                  Int                       @default(0)
+  profileRevision              Int                       @default(1)
+  submittedProfileRevision     Int?
+  submittedVideoId             String?
+  submittedVideoRevision       Int?
+  submittedVideoUploadId       String?
+  submittedVideoAssetId        String?
+  legacyApplicationStatus      TeacherApplicationStatus?
+  legacyApplicationSubmittedAt DateTime?
+  legacyApplicationReviewedAt  DateTime?
+  legacyApplicationReviewNote  String?
+  legacyTrustMigrationReason   String?
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  introVideo             TeacherIntroVideo?
+  auditEvents            AdminAuditEvent[]
+  availabilityRules      TeacherAvailabilityRule[]
+  availabilityExceptions TeacherAvailabilityException[]
+  speakingSessions             SpeakingSession[]
+  publicDiscoveryEligibility   PublicTeacherDiscoveryEligibility?
 
+  @@index([applicationStatus, applicationSubmittedAt, id])
   @@map("teacher_profile")
 }
 
+model PublicTeacherDiscoveryEligibility {
+  teacherProfileId String @id
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("public_teacher_discovery_eligibility")
+}
+
+model TeacherIntroVideo {
+  id                         String                   @id @default(cuid())
+  teacherProfileId           String                   @unique
+  provider                   String                   @default("mux")
+  uploadId                   String?                  @unique
+  assetId                    String?                  @unique
+  reviewPlaybackId           String?                  @unique
+  publicPlaybackId           String?                  @unique
+  revision                   Int                      @default(1)
+  legacyStatus               TeacherIntroVideoStatus?
+  legacyRejectionReason      String?
+  legacySubmittedAt          DateTime?
+  legacyReviewedAt           DateTime?
+  legacyTrustMigrationReason String?
+  status                     TeacherIntroVideoStatus  @default(UPLOAD_PENDING)
+  durationSeconds            Int?
+  rejectionReason            String?
+  submittedAt                DateTime?
+  reviewedAt                 DateTime?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+
+  teacherProfile          TeacherProfile              @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  auditEvents             AdminAuditEvent[]
+  playbackReconciliations MuxPlaybackReconciliation[]
+
+  @@map("teacher_intro_video")
+}
+
+model AdminAccess {
+  id         String          @id @default(cuid())
+  userId     String          @unique
+  permission AdminPermission
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([permission, revokedAt])
+  @@map("admin_access")
+}
+
+model AdminAuditEvent {
+  id               String                 @id @default(cuid())
+  actorUserId      String
+  targetUserId     String?
+  teacherProfileId String?
+  introVideoId     String?
+  action           AdminAuditAction
+  rejectionTarget  ReviewRejectionTarget?
+  reason           String?
+  reviewCycle      Int?
+  profileRevision  Int?
+  videoRevision    Int?
+  reviewedUploadId String?
+  reviewedAssetId  String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+
+  actorUser      User               @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  teacherProfile TeacherProfile?    @relation(fields: [teacherProfileId], references: [id], onDelete: Restrict)
+  introVideo     TeacherIntroVideo? @relation(fields: [introVideoId], references: [id], onDelete: Restrict)
+
+  @@index([teacherProfileId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@map("admin_audit_event")
+}
+
+model MuxPlaybackReconciliation {
+  id               String                       @id @default(cuid())
+  introVideoId     String
+  videoRevision    Int
+  assetId          String
+  playbackId       String?
+  desiredState     PlaybackDesiredState
+  intentGeneration Int                          @default(1)
+  status           PlaybackReconciliationStatus @default(PENDING)
+  attemptCount     Int                          @default(0)
+  nextAttemptAt    DateTime                     @default(now())
+  leaseToken       String?
+  leaseExpiresAt   DateTime?
+  lastErrorCode    String?
+  lastAttemptAt    DateTime?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  introVideo TeacherIntroVideo @relation(fields: [introVideoId], references: [id], onDelete: Restrict)
+
+  @@unique([introVideoId, videoRevision])
+  @@index([status, nextAttemptAt])
+  @@index([leaseExpiresAt])
+  @@map("mux_playback_reconciliation")
+}
+
+model TeacherAvailabilityRule {
+  id               String   @id @default(cuid())
+  teacherProfileId String
+  weekday          Weekday
+  startMinute      Int
+  endMinute        Int
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherProfileId, weekday, startMinute, endMinute], map: "tar_exact_window_key")
+  @@index([teacherProfileId, weekday, isActive, startMinute], map: "tar_teacher_day_lookup_idx")
+  @@index([weekday, isActive, startMinute, endMinute, teacherProfileId], map: "tar_discovery_lookup_idx")
+  @@map("teacher_availability_rule")
+}
+
+model TeacherAvailabilityException {
+  id               String                    @id @default(cuid())
+  teacherProfileId String
+  date             DateTime                  @db.Date
+  startMinute      Int
+  endMinute        Int
+  type             AvailabilityExceptionType
+  note             String?                   @db.VarChar(500)
+  createdAt        DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime                  @updatedAt @db.Timestamptz(3)
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherProfileId, date, startMinute, endMinute], map: "tae_exact_window_key")
+  @@index([teacherProfileId, date, startMinute, endMinute], map: "tae_teacher_date_lookup_idx")
+  @@index([date, type, teacherProfileId], map: "tae_date_type_lookup_idx")
+  @@map("teacher_availability_exception")
+}
+
+model SpeakingSession {
+  id                    String                @id @default(cuid())
+  teacherProfileId      String
+  studentUserId         String
+  startAt               DateTime              @db.Timestamptz(3)
+  endAt                 DateTime              @db.Timestamptz(3)
+  status                SpeakingSessionStatus @default(SCHEDULED)
+  bookingIdempotencyKey String                @db.VarChar(128)
+  createdAt             DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(3)
+
+  teacherProfile TeacherProfile               @relation(fields: [teacherProfileId], references: [id], onDelete: Restrict)
+  studentUser    User                         @relation("SpeakingSessionStudent", fields: [studentUserId], references: [id], onDelete: Restrict)
+  cancellation   SpeakingSessionCancellation?
+
+  @@unique([studentUserId, bookingIdempotencyKey], map: "speaking_session_student_idempotency_key")
+  @@index([teacherProfileId, status, startAt], map: "speaking_session_teacher_status_start_idx")
+  @@index([studentUserId, status, startAt], map: "speaking_session_student_status_start_idx")
+  @@index([teacherProfileId, startAt, id], map: "speaking_session_teacher_start_id_idx")
+  @@index([studentUserId, startAt, id], map: "speaking_session_student_start_id_idx")
+  @@index([status, startAt], map: "speaking_session_status_start_idx")
+  @@map("speaking_session")
+}
+
+model SpeakingSessionCancellation {
+  id          String                           @id @default(cuid())
+  sessionId   String                           @unique
+  actorType   SpeakingSessionCancellationActor
+  actorUserId String?
+  reason      String?                          @db.VarChar(1000)
+  cancelledAt DateTime                         @default(now()) @db.Timestamptz(3)
+  createdAt   DateTime                         @default(now()) @db.Timestamptz(3)
+
+  session   SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  actorUser User?           @relation("SpeakingSessionCancellationActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, cancelledAt], map: "session_cancellation_actor_time_idx")
+  @@map("speaking_session_cancellation")
+}

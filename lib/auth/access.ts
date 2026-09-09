@@ -1,24 +1,34 @@
 import "server-only";
 
-import type { Prisma } from "@/lib/generated/prisma/client";
-
+import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
-const userAccessSelect = {
+export const userAccessSelect = {
   id: true,
   role: true,
+  accountStatus: true,
   onboardingCompletedAt: true,
 
   studentProfile: {
     select: {
       id: true,
+      profileCompletedAt: true,
     },
   },
 
   teacherProfile: {
     select: {
       id: true,
-      isVerified: true,
+      applicationStatus: true,
+      profileCompletedAt: true,
+
+      introVideo: {
+        select: {
+          id: true,
+          status: true,
+        durationSeconds: true,
+        },
+      },
     },
   },
 } satisfies Prisma.UserSelect;

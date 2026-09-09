@@ -37,6 +37,7 @@ export async function completeOnboarding({
 
     select: {
       role: true,
+      accountStatus: true,
       onboardingCompletedAt: true,
 
       studentProfile: {
@@ -55,6 +56,10 @@ export async function completeOnboarding({
 
   if (!currentUser) {
     throw new UserNotFoundError();
+  }
+
+  if (currentUser.accountStatus !== "ACTIVE") {
+    throw new OnboardingStateConflictError();
   }
 
   if (
@@ -87,6 +92,7 @@ export async function completeOnboarding({
           id: userId,
           role: null,
           onboardingCompletedAt: null,
+          accountStatus: "ACTIVE",
         },
 
         data: {
@@ -107,6 +113,7 @@ export async function completeOnboarding({
         id: userId,
         role: null,
         onboardingCompletedAt: null,
+        accountStatus: "ACTIVE",
       },
 
       data: {

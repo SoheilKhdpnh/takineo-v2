@@ -1,26 +1,149 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-interface);
+  --font-display: var(--font-heading);
+  --color-ink: #14221f;
+  --color-ink-muted: #4d5f59;
+  --color-canvas: #f4f0e8;
+  --color-surface: #fffdf8;
+  --color-primary: #0f6e66;
+  --color-primary-hover: #0c5852;
+  --color-mint: #dceee9;
+  --color-accent: #c96b2f;
+  --color-accent-soft: #f8e4d2;
+  --color-line: #e6ddd0;
+  --color-danger: #9f2d2d;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --font-english:
+    "Manrope Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  --font-persian:
+    "Vazirmatn Variable",
+    Tahoma,
+    Arial,
+    sans-serif;
+
+  --font-interface: var(--font-english);
+  --font-heading: var(--font-english);
+
+  --tracking-display: -0.035em;
+  --tracking-heading: -0.02em;
+}
+
+html[data-locale="fa"] {
+  --font-interface: var(--font-persian);
+  --font-heading: var(--font-persian);
+
+  --tracking-display: -0.012em;
+  --tracking-heading: -0.006em;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--color-canvas);
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  margin: 0;
+  font-family: var(--font-interface);
+  font-size: 16px;
+  font-weight: 420;
+  line-height: 1.7;
+  color: var(--color-ink);
+  background: var(--color-canvas);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 680;
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+h1 {
+  letter-spacing: var(--tracking-display);
+}
+
+h2,
+h3 {
+  letter-spacing: var(--tracking-heading);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  line-height: 1.5;
+}
+
+html[dir="rtl"] body,
+html[dir="ltr"] body {
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1;
+}
+
+::selection {
+  color: #fffdf8;
+  background: var(--color-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

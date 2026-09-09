@@ -9,20 +9,33 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "check": "npm run db:generate && npm run db:validate && npm run lint && npm run typecheck && next build",
+    "security:audit:prod": "npm audit --omit=dev --audit-level=high",
     "db:format": "prisma format",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:migrate:dev": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy"
+    "db:migrate:deploy": "prisma migrate deploy",
+    "ops:mux-reconcile": "node --conditions=react-server --import tsx scripts/reconcile-mux-playback.ts",
+    "ops:admin": "node --conditions=react-server --import tsx scripts/admin-operator.ts",
+    "e2e:prepare": "npm run db:generate && node --conditions=react-server --import tsx tests/e2e/setup/prepare-e2e-database.ts && node --conditions=react-server --import tsx tests/e2e/setup/seed-e2e-personas.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test --project=chromium",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/vazirmatn": "^5.3.0",
+    "@mux/mux-node": "^14.1.1",
+    "@mux/mux-uploader-react": "^1.5.0",
     "@parcel/watcher": "^2.6.0",
     "@prisma/adapter-neon": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "better-auth": "^1.6.25",
     "dotenv": "^17.4.2",
-    "next": "16.2.12",
+    "next": "16.3.1",
     "next-intl": "^4.13.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -30,23 +43,33 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@prisma/adapter-pg": "^7.9.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
     "@types/node": "^20",
+    "@types/pg": "^8.21.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.1",
+    "jsdom": "^30.0.1",
+    "pg": "^8.23.0",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "packageManager": "npm@11.17.0",
   "engines": {
     "node": "24.x"
   },
   "allowScripts": {
-    "sharp@0.34.5": true,
+    "sharp@0.35.3": true,
     "unrs-resolver@1.12.2": true,
     "prisma": true,
     "@prisma/engines": true,
@@ -55,5 +78,10 @@
     "fsevents@2.3.3": false,
     "@swc/core@1.15.47": true
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "postcss": {
+      "nanoid": "3.3.18"
+    }
+  }
 }
