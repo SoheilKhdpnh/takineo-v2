@@ -6,6 +6,7 @@ import {
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { UpcomingSessionsPanel } from "@/components/sessions/UpcomingSessionsPanel";
 import { TeacherDiscoveryPanel } from "@/components/teachers/TeacherDiscoveryPanel";
+import { buttonClassName } from "@/components/ui/Button";
 import { requireAppLocale } from "@/i18n/locale";
 import {
   Link,
@@ -22,25 +23,14 @@ interface StudentDashboardPageProps {
 export default async function StudentDashboardPage({
   params,
 }: StudentDashboardPageProps) {
-  const { locale: requestedLocale } =
-    await params;
-
-  const locale = requireAppLocale(
-    requestedLocale,
-  );
+  const { locale: requestedLocale } = await params;
+  const locale = requireAppLocale(requestedLocale);
 
   setRequestLocale(locale);
 
-  const { access } =
-    await requireRolePage(
-      "STUDENT",
-      locale,
-    );
+  const { access } = await requireRolePage("STUDENT", locale);
 
-  if (
-    !access.studentProfile
-      ?.profileCompletedAt
-  ) {
+  if (!access.studentProfile?.profileCompletedAt) {
     redirect({
       href: "/student/profile",
       locale,
@@ -53,39 +43,41 @@ export default async function StudentDashboardPage({
   });
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12">
-      <section className="mx-auto max-w-5xl">
-        <header className="rounded-[2rem] border border-zinc-200 bg-white p-7 shadow-sm sm:p-10">
+    <main className="px-4 py-10 sm:px-6 sm:py-12">
+      <section className="mx-auto max-w-6xl">
+        <header className="rounded-lg border border-line bg-surface p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">
+              <p className="text-sm font-medium text-primary">
                 {t("eyebrow")}
               </p>
-
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
+              <h1 className="mt-2 text-3xl tracking-tight text-ink">
                 {t("title")}
               </h1>
-
-              <p className="mt-3 max-w-xl leading-7 text-zinc-600">
+              <p className="mt-3 max-w-xl leading-7 text-ink-muted">
                 {t("description")}
               </p>
-
-              <Link
-                href="/student/profile"
-                className="mt-6 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100"
-              >
-                {t("editProfile")}
-              </Link>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/teachers"
+                  className={buttonClassName()}
+                >
+                  {t("findTeacher")}
+                </Link>
+                <Link
+                  href="/student/profile"
+                  className={buttonClassName({ variant: "secondary" })}
+                >
+                  {t("editProfile")}
+                </Link>
+              </div>
             </div>
-
             <SignOutButton />
           </div>
         </header>
 
         <div className="mt-6">
-          <UpcomingSessionsPanel
-            viewerRole="STUDENT"
-          />
+          <UpcomingSessionsPanel viewerRole="STUDENT" />
         </div>
 
         <div className="mt-6">

@@ -9,7 +9,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type CSSProperties,
 } from "react";
 
 import {
@@ -18,132 +17,77 @@ import {
   parseTeacherDiscoveryResponse,
   type PublicTeacherDiscoveryItem,
 } from "@/components/teachers/teacher-discovery-api";
-import {
-  Link,
-} from "@/i18n/navigation";
-import {
-  BOOKING_OPERATIONAL_TIMEZONE,
-} from "@/lib/domain/booking-policy";
+import { TeacherCard } from "@/components/teachers/TeacherCard";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { BOOKING_OPERATIONAL_TIMEZONE } from "@/lib/domain/booking-policy";
+import type { ProfileLanguageCode } from "@/lib/domain/profile";
 
 type LoadState =
   | "loading"
   | "ready"
   | "error";
 
-function initialsFor(
-  name: string,
-): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+type AvailabilityFilter =
+  | "all"
+  | "open";
 
-  if (parts.length === 0) {
-    return "T";
-  }
-
-  return parts
-    .map((part) =>
-      part.slice(0, 1),
-    )
-    .join("")
-    .toUpperCase();
-}
-
-function avatarStyle(
-  image: string | null,
-): CSSProperties | undefined {
-  if (!image) {
-    return undefined;
-  }
-
-  return {
-    backgroundImage:
-      `url(${JSON.stringify(image)})`,
-  };
-}
-
-export function TeacherDiscoveryPanel() {
+export function TeacherDiscoveryPanel({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+}) {
   const locale = useLocale();
-  const t = useTranslations(
-    "TeacherDiscovery",
-  );
-  const common = useTranslations(
-    "ProfileCommon",
-  );
+  const t = useTranslations("TeacherDiscovery");
+  const common = useTranslations("ProfileCommon");
 
   const [range] = useState(() =>
-    getTeacherDiscoveryRange(
-      new Date(),
-    ),
+    getTeacherDiscoveryRange(new Date()),
   );
-
-  const [teachers, setTeachers] =
-    useState<
-      PublicTeacherDiscoveryItem[]
-    >([]);
-  const [nextCursor, setNextCursor] =
-    useState<string | null>(null);
-  const [loadState, setLoadState] =
-    useState<LoadState>("loading");
-  const [isLoadingMore, setIsLoadingMore] =
-    useState(false);
-  const [notice, setNotice] =
-    useState<string | null>(null);
+  const [teachers, setTeachers] = useState<
+    PublicTeacherDiscoveryItem[]
+  >([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [availabilityFilter, setAvailabilityFilter] =
+    useState<AvailabilityFilter>("all");
+  const [nativeFilter, setNativeFilter] =
+    useState<ProfileLanguageCode | "all">("all");
 
   const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(
-        locale === "fa"
-          ? "fa-IR"
-          : "en",
-        {
-          timeZone:
-            BOOKING_OPERATIONAL_TIMEZONE,
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        },
-      ),
+      new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en", {
+        timeZone: BOOKING_OPERATIONAL_TIMEZONE,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     [locale],
   );
 
   const fetchPage = useCallback(
-    async (
-      cursor?: string | null,
-      signal?: AbortSignal,
-    ) => {
+    async (cursor?: string | null, signal?: AbortSignal) => {
       const response = await fetch(
-        buildTeacherDiscoveryUrl(
-          range,
-          cursor,
-        ),
+        buildTeacherDiscoveryUrl(range, cursor),
         {
           method: "GET",
           signal,
           headers: {
-            Accept:
-              "application/json",
+            Accept: "application/json",
           },
         },
       );
 
       if (!response.ok) {
-        throw new Error(
-          "Teacher discovery request failed.",
-        );
+        throw new Error("Teacher discovery request failed.");
       }
 
-      const payload: unknown =
-        await response.json();
-
-      const parsed =
-        parseTeacherDiscoveryResponse(
-          payload,
-        );
+      const payload: unknown = await response.json();
+      const parsed = parseTeacherDiscoveryResponse(payload);
 
       if (!parsed) {
         throw new Error(
@@ -157,29 +101,14 @@ export function TeacherDiscoveryPanel() {
   );
 
   const loadInitial = useCallback(
-    async (
-      signal?: AbortSignal,
-    ) => {
+    async (signal?: AbortSignal) => {
       try {
-        const result =
-          await fetchPage(
-            null,
-            signal,
-          );
-
-        setTeachers(
-          result.teachers,
-        );
-        setNextCursor(
-          result.nextCursor,
-        );
+        const result = await fetchPage(null, signal);
+        setTeachers(result.teachers);
+        setNextCursor(result.nextCursor);
         setLoadState("ready");
-      }
-      catch (error) {
-        if (
-          error instanceof DOMException &&
-          error.name === "AbortError"
-        ) {
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
 
@@ -190,13 +119,10 @@ export function TeacherDiscoveryPanel() {
   );
 
   useEffect(() => {
-    const controller =
-      new AbortController();
+    const controller = new AbortController();
 
     void Promise.resolve().then(() =>
-      loadInitial(
-        controller.signal,
-      ),
+      loadInitial(controller.signal),
     );
 
     return () => {
@@ -205,10 +131,7 @@ export function TeacherDiscoveryPanel() {
   }, [loadInitial]);
 
   async function handleLoadMore() {
-    if (
-      !nextCursor ||
-      isLoadingMore
-    ) {
+    if (!nextCursor || isLoadingMore) {
       return;
     }
 
@@ -216,23 +139,14 @@ export function TeacherDiscoveryPanel() {
     setNotice(null);
 
     try {
-      const result =
-        await fetchPage(
-          nextCursor,
-        );
-
-      const existingIds =
-        new Set(
-          teachers.map((teacher) =>
-            teacher.teacherProfileId,
-          ),
-        );
+      const result = await fetchPage(nextCursor);
+      const existingIds = new Set(
+        teachers.map((teacher) => teacher.teacherProfileId),
+      );
 
       if (
         result.teachers.some((teacher) =>
-          existingIds.has(
-            teacher.teacherProfileId,
-          ),
+          existingIds.has(teacher.teacherProfileId),
         ) ||
         result.nextCursor === nextCursor
       ) {
@@ -241,67 +155,77 @@ export function TeacherDiscoveryPanel() {
         );
       }
 
-      setTeachers((current) => [
-        ...current,
-        ...result.teachers,
-      ]);
-      setNextCursor(
-        result.nextCursor,
-      );
-    }
-    catch {
-      setNotice(
-        t("loadMoreError"),
-      );
-    }
-    finally {
+      setTeachers((current) => [...current, ...result.teachers]);
+      setNextCursor(result.nextCursor);
+    } catch {
+      setNotice(t("loadMoreError"));
+    } finally {
       setIsLoadingMore(false);
     }
   }
 
-  function retryInitialLoad() {
-    setLoadState("loading");
-    setNotice(null);
-    void loadInitial();
-  }
-
-  function languageLabel(
-    code: PublicTeacherDiscoveryItem["nativeLanguage"],
-  ): string {
-    return common(
-      `languages.${code}`,
+  const nativeOptions = useMemo(() => {
+    const codes = new Set(
+      teachers.map((teacher) => teacher.nativeLanguage),
     );
+
+    return Array.from(codes);
+  }, [teachers]);
+
+  const visibleTeachers = useMemo(() => {
+    return teachers.filter((teacher) => {
+      if (
+        availabilityFilter === "open" &&
+        teacher.nextAvailableAt === null
+      ) {
+        return false;
+      }
+
+      if (
+        nativeFilter !== "all" &&
+        teacher.nativeLanguage !== nativeFilter
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [teachers, availabilityFilter, nativeFilter]);
+
+  function nextAvailableLabel(
+    teacher: PublicTeacherDiscoveryItem,
+  ): string | null {
+    return teacher.nextAvailableAt
+      ? dateTimeFormatter.format(new Date(teacher.nextAvailableAt))
+      : null;
   }
 
   if (loadState === "loading") {
     return (
-      <section
-        aria-labelledby="teacher-discovery-title"
-        className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_24px_70px_-40px_rgba(24,24,27,0.3)]"
-      >
-        <DiscoveryHeader />
-
+      <section aria-labelledby="teacher-discovery-title">
+        {showHeader ? (
+          <DiscoveryHeader />
+        ) : (
+          <h2 id="teacher-discovery-title" className="sr-only">
+            {t("title")}
+          </h2>
+        )}
         <div
           role="status"
           aria-live="polite"
-          className="grid gap-4 p-6 sm:grid-cols-2 sm:p-8"
+          className="grid gap-4 sm:grid-cols-2"
         >
-          <span className="sr-only">
-            {t("loading")}
-          </span>
-
-          {Array.from({
-            length: 4,
-          }).map((_, index) => (
+          <span className="sr-only">{t("loading")}</span>
+          {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
               aria-hidden="true"
-              className="min-h-56 animate-pulse rounded-[1.75rem] border border-zinc-200 bg-zinc-50 p-5 motion-reduce:animate-none"
+              className="min-h-56 animate-pulse rounded-lg border border-line bg-surface p-5 motion-reduce:animate-none"
             >
-              <div className="size-14 rounded-2xl bg-zinc-200" />
-              <div className="mt-5 h-5 w-2/5 rounded-full bg-zinc-200" />
-              <div className="mt-3 h-4 w-4/5 rounded-full bg-zinc-200" />
-              <div className="mt-8 h-12 rounded-2xl bg-zinc-200" />
+              <div className="size-14 rounded-md bg-mint" />
+              <div className="mt-5 h-5 w-2/5 rounded-full bg-mint" />
+              <div className="mt-3 h-4 w-4/5 rounded-full bg-mint" />
+              <div className="mt-8 h-12 rounded-md bg-mint" />
             </div>
           ))}
         </div>
@@ -311,241 +235,176 @@ export function TeacherDiscoveryPanel() {
 
   if (loadState === "error") {
     return (
-      <section
-        aria-labelledby="teacher-discovery-title"
-        className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_24px_70px_-40px_rgba(24,24,27,0.3)]"
-      >
-        <DiscoveryHeader />
-
-        <div className="p-6 sm:p-8">
-          <div
-            role="alert"
-            className="rounded-3xl border border-red-100 bg-red-50 p-5 text-red-950"
+      <section aria-labelledby="teacher-discovery-title">
+        {showHeader ? (
+          <DiscoveryHeader />
+        ) : (
+          <h2 id="teacher-discovery-title" className="sr-only">
+            {t("title")}
+          </h2>
+        )}
+        <Card role="alert" className="border-danger/20 bg-red-50">
+          <h3 className="text-lg font-semibold text-danger">
+            {t("loadErrorTitle")}
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-danger/80">
+            {t("loadErrorDescription")}
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => {
+              setLoadState("loading");
+              setNotice(null);
+              void loadInitial();
+            }}
           >
-            <h3 className="text-lg font-semibold">
-              {t("loadErrorTitle")}
-            </h3>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-red-900/80">
-              {t("loadErrorDescription")}
-            </p>
-
-            <button
-              type="button"
-              onClick={retryInitialLoad}
-              className="mt-4 rounded-full bg-red-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-950"
-            >
-              {t("tryAgain")}
-            </button>
-          </div>
-        </div>
+            {t("tryAgain")}
+          </Button>
+        </Card>
       </section>
     );
   }
 
   return (
-    <section
-      aria-labelledby="teacher-discovery-title"
-      className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_24px_70px_-40px_rgba(24,24,27,0.3)]"
-    >
-      <DiscoveryHeader />
+    <section aria-labelledby="teacher-discovery-title">
+      {showHeader ? (
+        <DiscoveryHeader />
+      ) : (
+        <h2 id="teacher-discovery-title" className="sr-only">
+          {t("title")}
+        </h2>
+      )}
 
-      <div className="p-6 sm:p-8">
-        {teachers.length === 0 ? (
-          <div className="rounded-[1.75rem] border border-dashed border-zinc-300 bg-zinc-50 px-6 py-12 text-center sm:px-10">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-zinc-950 text-lg text-white">
-              ·
-            </div>
-            <h3 className="mt-5 text-xl font-semibold text-zinc-950">
-              {t("emptyTitle")}
-            </h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-zinc-600">
-              {t("emptyDescription")}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {teachers.map((teacher) => (
-              <article
-                key={teacher.teacherProfileId}
-                className="group relative overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_20px_50px_-34px_rgba(24,24,27,0.45)] sm:p-6"
-              >
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-400/50 to-transparent opacity-0 transition group-hover:opacity-100" />
-
-                <div className="flex items-start gap-4">
-                  <div
-                    aria-hidden="true"
-                    style={avatarStyle(
-                      teacher.image,
-                    )}
-                    className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 bg-cover bg-center text-sm font-bold text-white shadow-sm"
-                  >
-                    <span className={
-                      teacher.image
-                        ? "rounded-md bg-black/45 px-1.5 py-0.5 text-[0.65rem] backdrop-blur-sm"
-                        : undefined
-                    }>
-                      {initialsFor(
-                        teacher.name,
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-lg font-semibold text-zinc-950">
-                      {teacher.name}
-                    </h3>
-                    <p className="mt-1 min-h-12 text-sm leading-6 text-zinc-600">
-                      {teacher.headline ??
-                        t("headlineFallback")}
-                    </p>
-                  </div>
-                </div>
-
-                <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-                  <div className="rounded-2xl bg-zinc-50 px-3.5 py-3">
-                    <dt className="text-xs font-medium text-zinc-500">
-                      {t("nativeLanguage")}
-                    </dt>
-                    <dd className="mt-1 font-semibold text-zinc-900">
-                      {languageLabel(
-                        teacher.nativeLanguage,
-                      )}
-                    </dd>
-                  </div>
-
-                  <div className="rounded-2xl bg-zinc-50 px-3.5 py-3">
-                    <dt className="text-xs font-medium text-zinc-500">
-                      {t("teachingLanguage")}
-                    </dt>
-                    <dd className="mt-1 font-semibold text-zinc-900">
-                      {languageLabel(
-                        teacher.teachingLanguage,
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-
-                {teacher.experienceYears !== null ? (
-                  <p className="mt-4 text-sm font-medium text-zinc-600">
-                    {t("experienceYears", {
-                      years:
-                        teacher.experienceYears,
-                    })}
-                  </p>
-                ) : null}
-
-                <div className="mt-5 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3.5">
-                  <p className="text-xs font-semibold text-amber-950">
-                    {t("nextAvailability")}
-                  </p>
-                  <p className="mt-1 font-semibold text-zinc-950">
-                    {teacher.nextAvailableAt
-                      ? dateTimeFormatter.format(
-                          new Date(
-                            teacher.nextAvailableAt,
-                          ),
-                        )
-                      : t("noAvailability")}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-amber-900/80">
-                    {t("tehranTime")}
-                  </p>
-                </div>
-
-                <Link
-                  href={`/teachers/${teacher.teacherProfileId}`}
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
-                >
-                  {t("viewProfileAndBook")}
-                </Link>
-              </article>
-            ))}
-          </div>
-        )}
-
-        <div
-          aria-live="polite"
-          className="mt-5"
-        >
-          {notice ? (
-            <p
-              role="alert"
-              className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-900"
-            >
-              {notice}
-            </p>
-          ) : null}
-        </div>
-
-        {nextCursor ? (
-          <div className="mt-5 flex justify-center">
-            <button
-              type="button"
+      {teachers.length > 0 ? (
+        <div className="mb-5 flex flex-wrap gap-2">
+          <p className="sr-only">{t("filtersLabel")}</p>
+          <FilterChip
+            pressed={availabilityFilter === "all"}
+            onClick={() => setAvailabilityFilter("all")}
+          >
+            {t("filterAll")}
+          </FilterChip>
+          <FilterChip
+            pressed={availabilityFilter === "open"}
+            onClick={() => setAvailabilityFilter("open")}
+          >
+            {t("filterAvailable")}
+          </FilterChip>
+          {nativeOptions.map((code) => (
+            <FilterChip
+              key={code}
+              pressed={nativeFilter === code}
               onClick={() =>
-                void handleLoadMore()
+                setNativeFilter((current) =>
+                  current === code ? "all" : code,
+                )
               }
-              disabled={isLoadingMore}
-              className="rounded-full border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-950 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-wait disabled:opacity-50"
             >
-              {isLoadingMore
-                ? t("loadingMore")
-                : t("loadMore")}
-            </button>
-          </div>
+              {t("filterNative", {
+                language: common(`languages.${code}`),
+              })}
+            </FilterChip>
+          ))}
+        </div>
+      ) : null}
+
+      {teachers.length === 0 ? (
+        <Card className="border-dashed px-6 py-12 text-center sm:px-10">
+          <h3 className="text-xl font-semibold text-ink">
+            {t("emptyTitle")}
+          </h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-muted">
+            {t("emptyDescription")}
+          </p>
+        </Card>
+      ) : visibleTeachers.length === 0 ? (
+        <Card className="border-dashed px-6 py-12 text-center">
+          <h3 className="text-xl font-semibold text-ink">
+            {t("filterEmptyTitle")}
+          </h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-muted">
+            {t("filterEmptyDescription")}
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {visibleTeachers.map((teacher) => (
+            <TeacherCard
+              key={teacher.teacherProfileId}
+              teacher={teacher}
+              nextAvailableLabel={nextAvailableLabel(teacher)}
+            />
+          ))}
+        </div>
+      )}
+
+      <div aria-live="polite" className="mt-5">
+        {notice ? (
+          <p
+            role="alert"
+            className="rounded-md border border-danger/20 bg-red-50 px-4 py-3 text-sm text-danger"
+          >
+            {notice}
+          </p>
         ) : null}
       </div>
+
+      {nextCursor ? (
+        <div className="mt-5 flex justify-center">
+          <Button
+            variant="secondary"
+            disabled={isLoadingMore}
+            onClick={() => void handleLoadMore()}
+          >
+            {isLoadingMore ? t("loadingMore") : t("loadMore")}
+          </Button>
+        </div>
+      ) : null}
     </section>
   );
 }
 
 function DiscoveryHeader() {
-  const locale = useLocale();
-  const t = useTranslations(
-    "TeacherDiscovery",
-  );
+  const t = useTranslations("TeacherDiscovery");
 
   return (
-    <div className="relative overflow-hidden bg-zinc-950 px-6 py-7 text-white sm:px-8 sm:py-8">
-      <div
-        aria-hidden="true"
-        className="absolute -end-10 -top-16 size-48 rounded-full border border-white/10"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute -end-3 -top-4 size-28 rounded-full border border-white/10"
-      />
-
-      <div className="relative max-w-2xl">
-        <p
-          className={[
-            "text-xs font-semibold text-zinc-400",
-            locale === "fa"
-              ? "tracking-normal"
-              : "uppercase tracking-[0.16em]",
-          ].join(" ")}
-        >
-          {t("eyebrow")}
-        </p>
-        <h2
-          id="teacher-discovery-title"
-          className="mt-2 text-2xl font-semibold sm:text-3xl"
-        >
-          {t("title")}
-        </h2>
-        <p className="mt-3 text-sm leading-7 text-zinc-300 sm:text-base">
-          {t("description")}
-        </p>
-
-        <div className="mt-5 inline-flex max-w-xl items-start gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-3 text-xs leading-5 text-zinc-300">
-          <span
-            aria-hidden="true"
-            className="mt-1 size-1.5 shrink-0 rounded-full bg-amber-300"
-          />
-          <span>
-            {t("advisory")}
-          </span>
-        </div>
-      </div>
+    <div className="mb-6 max-w-2xl">
+      <p className="text-sm font-semibold text-primary">{t("eyebrow")}</p>
+      <h2
+        id="teacher-discovery-title"
+        className="mt-2 text-2xl font-semibold text-ink sm:text-3xl"
+      >
+        {t("title")}
+      </h2>
+      <p className="mt-3 text-sm leading-7 text-ink-muted sm:text-base">
+        {t("description")}
+      </p>
+      <p className="mt-4 text-xs leading-5 text-ink-muted">{t("advisory")}</p>
     </div>
+  );
+}
+
+function FilterChip({
+  pressed,
+  onClick,
+  children,
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={
+        pressed
+          ? "rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white"
+          : "rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:bg-mint"
+      }
+    >
+      {children}
+    </button>
   );
 }

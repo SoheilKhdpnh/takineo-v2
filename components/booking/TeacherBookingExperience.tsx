@@ -9,7 +9,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type CSSProperties,
 } from "react";
 
 import {
@@ -28,9 +27,9 @@ import {
   type CreatedBookingSession,
   type PublicTeacherDetail,
 } from "@/components/booking/student-booking-api";
-import {
-  Link,
-} from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
+import { Avatar } from "@/components/ui/Avatar";
+import { buttonClassName } from "@/components/ui/Button";
 import {
   BOOKING_OPERATIONAL_TIMEZONE,
 } from "@/lib/domain/booking-policy";
@@ -63,38 +62,6 @@ type BookingNotice =
 type TeacherBookingExperienceProps = {
   teacherProfileId: string;
 };
-
-function initialsFor(
-  name: string,
-): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
-
-  return parts.length === 0
-    ? "T"
-    : parts
-        .map((part) =>
-          part.slice(0, 1),
-        )
-        .join("")
-        .toUpperCase();
-}
-
-function avatarStyle(
-  image: string | null,
-): CSSProperties | undefined {
-  if (!image) {
-    return undefined;
-  }
-
-  return {
-    backgroundImage:
-      `url(${JSON.stringify(image)})`,
-  };
-}
 
 export function TeacherBookingExperience({
   teacherProfileId,
@@ -410,18 +377,18 @@ export function TeacherBookingExperience({
 
   if (loadState === "loading") {
     return (
-      <main className="min-h-screen bg-zinc-50 px-4 py-12">
+      <main className="bg-transparent px-4 py-12">
         <section
           role="status"
           aria-live="polite"
-          className="mx-auto max-w-5xl animate-pulse rounded-[2rem] border border-zinc-200 bg-white p-8 motion-reduce:animate-none"
+          className="mx-auto max-w-5xl animate-pulse rounded-lg border border-line bg-surface p-8 motion-reduce:animate-none"
         >
           <span className="sr-only">
             {t("loadingProfile")}
           </span>
-          <div className="h-5 w-32 rounded-full bg-zinc-200" />
-          <div className="mt-5 h-10 w-2/3 rounded-2xl bg-zinc-200" />
-          <div className="mt-8 h-72 rounded-[1.75rem] bg-zinc-100" />
+          <div className="h-5 w-32 rounded-full bg-mint" />
+          <div className="mt-5 h-10 w-2/3 rounded-md bg-mint" />
+          <div className="mt-8 h-72 rounded-lg bg-canvas" />
         </section>
       </main>
     );
@@ -429,20 +396,20 @@ export function TeacherBookingExperience({
 
   if (loadState === "notFound") {
     return (
-      <main className="min-h-screen bg-zinc-50 px-4 py-12">
-        <section className="mx-auto max-w-3xl rounded-[2rem] border border-zinc-200 bg-white p-8 text-center shadow-sm sm:p-12">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-zinc-950 text-xl font-semibold text-white">
+      <main className="bg-transparent px-4 py-12">
+        <section className="mx-auto max-w-3xl rounded-[2rem] border border-line bg-surface p-8 text-center shadow-sm sm:p-12">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-ink text-xl font-semibold text-white">
             ?
           </div>
-          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-950">
+          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-ink">
             {t("teacherUnavailableTitle")}
           </h1>
-          <p className="mx-auto mt-3 max-w-xl leading-7 text-zinc-600">
+          <p className="mx-auto mt-3 max-w-xl leading-7 text-ink-muted">
             {t("teacherUnavailableDescription")}
           </p>
           <Link
-            href="/student/dashboard"
-            className="mt-7 inline-flex rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+            href="/teachers"
+            className="mt-7 inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover"
           >
             {t("backToDiscovery")}
           </Link>
@@ -456,12 +423,12 @@ export function TeacherBookingExperience({
     !teacher
   ) {
     return (
-      <main className="min-h-screen bg-zinc-50 px-4 py-12">
-        <section className="mx-auto max-w-3xl rounded-[2rem] border border-red-100 bg-white p-8 text-center shadow-sm sm:p-12">
-          <h1 className="text-2xl font-semibold text-zinc-950">
+      <main className="bg-transparent px-4 py-12">
+        <section className="mx-auto max-w-3xl rounded-[2rem] border border-red-100 bg-surface p-8 text-center shadow-sm sm:p-12">
+          <h1 className="text-2xl font-semibold text-ink">
             {t("profileLoadErrorTitle")}
           </h1>
-          <p className="mx-auto mt-3 max-w-xl leading-7 text-zinc-600">
+          <p className="mx-auto mt-3 max-w-xl leading-7 text-ink-muted">
             {t("profileLoadErrorDescription")}
           </p>
           <button
@@ -474,7 +441,7 @@ export function TeacherBookingExperience({
                 loadSlots(),
               ]);
             }}
-            className="mt-6 rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white"
+            className="mt-6 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white"
           >
             {t("tryAgain")}
           </button>
@@ -502,45 +469,34 @@ export function TeacherBookingExperience({
       "invalidRequest";
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-8 sm:py-12">
+    <main className="bg-transparent px-4 py-8 sm:py-12">
       <section className="mx-auto max-w-5xl">
         <div className="mb-5">
           <Link
-            href="/student/dashboard"
-            className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-950 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+            href="/teachers"
+            className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink transition hover:border-primary hover:text-primary"
           >
             {t("backToDiscovery")}
           </Link>
         </div>
 
-        <article className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]">
-          <header className="relative overflow-hidden bg-zinc-950 px-6 py-8 text-white sm:px-9 sm:py-10">
+        <article className="overflow-hidden rounded-[2rem] border border-line bg-surface shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]">
+          <header className="relative overflow-hidden bg-ink px-6 py-8 text-white sm:px-9 sm:py-10">
             <div
               aria-hidden="true"
               className="absolute -end-20 -top-24 size-72 rounded-full border border-white/10"
             />
             <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-              <div
-                aria-hidden="true"
-                style={avatarStyle(
-                  teacher.image,
-                )}
-                className="flex size-24 shrink-0 items-center justify-center rounded-[1.75rem] bg-white/10 bg-cover bg-center text-2xl font-bold text-white ring-1 ring-white/15"
-              >
-                <span className={
-                  teacher.image
-                    ? "rounded-lg bg-black/45 px-2 py-1 text-sm backdrop-blur-sm"
-                    : undefined
-                }>
-                  {initialsFor(
-                    teacher.name,
-                  )}
-                </span>
-              </div>
+              <Avatar
+                name={teacher.name}
+                image={teacher.image}
+                size="lg"
+                className="ring-1 ring-white/15"
+              />
 
               <div className="max-w-2xl">
                 <p className={[
-                  "text-xs font-semibold text-zinc-400",
+                  "text-xs font-semibold text-white/70",
                   locale === "fa"
                     ? "tracking-normal"
                     : "uppercase tracking-[0.16em]",
@@ -550,7 +506,7 @@ export function TeacherBookingExperience({
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
                   {teacher.name}
                 </h1>
-                <p className="mt-3 text-base leading-7 text-zinc-300">
+                <p className="mt-3 text-base leading-7 text-white/80">
                   {teacher.headline ??
                     t("headlineFallback")}
                 </p>
@@ -560,42 +516,48 @@ export function TeacherBookingExperience({
 
           <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.4fr]">
             <aside className="space-y-5">
-              <section className="rounded-[1.75rem] border border-zinc-200 bg-zinc-50 p-5">
-                <h2 className="text-lg font-semibold text-zinc-950">
+              <section className="overflow-hidden rounded-lg border border-line bg-mint">
+                <div className="aspect-video bg-primary/15" />
+                <p className="px-5 py-4 text-sm leading-6 text-ink-muted">
+                  {t("videoPlaceholder")}
+                </p>
+              </section>
+              <section className="rounded-lg border border-line bg-canvas p-5">
+                <h2 className="text-lg font-semibold text-ink">
                   {t("aboutTeacher")}
                 </h2>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-600">
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-ink-muted">
                   {teacher.bio ??
                     t("bioFallback")}
                 </p>
 
                 <dl className="mt-5 space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-4 border-t border-zinc-200 pt-3">
-                    <dt className="text-zinc-500">
+                  <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
+                    <dt className="text-ink-muted">
                       {t("nativeLanguage")}
                     </dt>
-                    <dd className="font-semibold text-zinc-950">
+                    <dd className="font-semibold text-ink">
                       {common(
                         `languages.${teacher.nativeLanguage}`,
                       )}
                     </dd>
                   </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-zinc-200 pt-3">
-                    <dt className="text-zinc-500">
+                  <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
+                    <dt className="text-ink-muted">
                       {t("teachingLanguage")}
                     </dt>
-                    <dd className="font-semibold text-zinc-950">
+                    <dd className="font-semibold text-ink">
                       {common(
                         `languages.${teacher.teachingLanguage}`,
                       )}
                     </dd>
                   </div>
                   {teacher.experienceYears !== null ? (
-                    <div className="flex items-center justify-between gap-4 border-t border-zinc-200 pt-3">
-                      <dt className="text-zinc-500">
+                    <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
+                      <dt className="text-ink-muted">
                         {t("experience")}
                       </dt>
-                      <dd className="font-semibold text-zinc-950">
+                      <dd className="font-semibold text-ink">
                         {t("experienceYears", {
                           years:
                             teacher.experienceYears,
@@ -618,24 +580,24 @@ export function TeacherBookingExperience({
 
             <section
               aria-labelledby="booking-slots-heading"
-              className="rounded-[1.75rem] border border-zinc-200 bg-white p-5 sm:p-6"
+              className="rounded-[1.75rem] border border-line bg-surface p-5 sm:p-6"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
                     {t("slotsEyebrow")}
                   </p>
                   <h2
                     id="booking-slots-heading"
-                    className="mt-1 text-2xl font-semibold text-zinc-950"
+                    className="mt-1 text-2xl font-semibold text-ink"
                   >
                     {t("slotsTitle")}
                   </h2>
-                  <p className="mt-2 max-w-xl text-sm leading-7 text-zinc-600">
+                  <p className="mt-2 max-w-xl text-sm leading-7 text-ink-muted">
                     {t("slotsDescription")}
                   </p>
                 </div>
-                <span className="text-xs font-semibold text-zinc-500">
+                <span className="text-xs font-semibold text-ink-muted">
                   {t("tehranTime")}
                 </span>
               </div>
@@ -656,7 +618,7 @@ export function TeacherBookingExperience({
                       <div
                         key={index}
                         aria-hidden="true"
-                        className="h-12 animate-pulse rounded-2xl bg-zinc-100 motion-reduce:animate-none"
+                        className="h-12 animate-pulse rounded-md bg-mint motion-reduce:animate-none"
                       />
                     ))}
                   </div>
@@ -705,11 +667,11 @@ export function TeacherBookingExperience({
 
               {selectedSlot &&
               confirmedSession === null ? (
-                <div className="mt-6 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
-                  <p className="text-sm font-semibold text-zinc-950">
+                <div className="sticky bottom-3 z-20 mt-6 rounded-lg border border-line bg-surface p-4 shadow-[0_12px_40px_-24px_rgba(20,34,31,0.45)] sm:p-5">
+                  <p className="text-sm font-semibold text-ink">
                     {t("selectedSlot")}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-600">
+                  <p className="mt-1 text-sm text-ink-muted">
                     {dateTimeFormatter.format(
                       new Date(
                         selectedSlot.startAt,
@@ -725,7 +687,7 @@ export function TeacherBookingExperience({
                     onClick={() =>
                       void submitBooking()
                     }
-                    className="mt-4 w-full rounded-2xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-4 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isBooking
                       ? t("booking")
@@ -780,6 +742,18 @@ export function TeacherBookingExperience({
             </section>
           </div>
         </article>
+        {!selectedSlot && confirmedSession === null ? (
+          <div className="sticky bottom-3 z-20 mt-6 lg:hidden">
+            <a
+              href="#booking-slots-heading"
+              className={buttonClassName({
+                className: "w-full",
+              })}
+            >
+              {t("chooseTime")}
+            </a>
+          </div>
+        ) : null}
       </section>
     </main>
   );
@@ -838,7 +812,7 @@ function BookingNoticePanel({
           </button>
           <Link
             href="/student/dashboard"
-            className="rounded-full border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-950"
+            className="rounded-full border border-amber-300 bg-surface px-4 py-2 text-sm font-semibold text-amber-950"
           >
             {t("checkUpcoming")}
           </Link>

@@ -89,19 +89,19 @@ export default async function TeacherDashboardPage({
     : t("videoMissing");
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12 sm:px-6">
-      <section className="mx-auto max-w-5xl">
-        <header className="flex flex-col gap-6 rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm sm:flex-row sm:items-start sm:justify-between sm:p-10">
+    <main className="px-4 py-10 sm:px-6 sm:py-12">
+      <section className="mx-auto max-w-6xl">
+        <header className="flex flex-col gap-6 rounded-lg border border-line bg-surface p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-zinc-500">
+            <p className="text-sm font-semibold text-primary">
               {t("eyebrow")}
             </p>
 
-            <h1 className="mt-3 text-4xl font-semibold text-zinc-950 sm:text-5xl">
+            <h1 className="mt-3 text-4xl font-semibold text-ink sm:text-5xl">
               {t("title")}
             </h1>
 
-            <p className="mt-4 max-w-xl text-base leading-8 text-zinc-600">
+            <p className="mt-4 max-w-xl text-base leading-8 text-ink-muted">
               {t("description")}
             </p>
           </div>
@@ -120,12 +120,12 @@ export default async function TeacherDashboardPage({
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <article className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm">
-            <p className="text-sm font-semibold text-zinc-500">
+          <article className="rounded-lg border border-line bg-surface p-7">
+            <p className="text-sm font-semibold text-ink-muted">
               {t("applicationStatus")}
             </p>
 
-            <p className="mt-3 text-2xl font-semibold text-zinc-950">
+            <p className="mt-3 text-2xl font-semibold text-ink">
               {t(
                 applicationStatusTranslationKeys[
                   applicationStatus
@@ -133,11 +133,11 @@ export default async function TeacherDashboardPage({
               )}
             </p>
 
-            <h2 className="mt-8 text-xl text-zinc-950">
+            <h2 className="mt-8 text-xl text-ink">
               {t("applicationHeading")}
             </h2>
 
-            <p className="mt-3 leading-7 text-zinc-600">
+            <p className="mt-3 leading-7 text-ink-muted">
               {t("applicationDescription")}
             </p>
 
@@ -147,24 +147,24 @@ export default async function TeacherDashboardPage({
             ) ? (
               <Link
                 href="/teacher/profile"
-                className="mt-6 inline-flex rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-50"
+                className="mt-6 inline-flex rounded-md border border-line px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-primary hover:bg-mint"
               >
                 {t("editProfile")}
               </Link>
             ) : null}
           </article>
 
-          <article className="rounded-3xl border border-zinc-200 bg-zinc-950 p-7 text-white shadow-sm">
-            <p className="text-sm font-semibold text-zinc-400">
+          <article className="rounded-lg border border-ink bg-ink p-7 text-white">
+            <p className="text-sm font-semibold text-white/70">
               {t("videoHeading")}
             </p>
 
-            <p className="mt-4 text-lg leading-8 text-zinc-100">
+            <p className="mt-4 text-lg leading-8 text-white">
               {videoMessage}
             </p>
 
             {!introVideo ? (
-              <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-7 text-zinc-300">
+              <p className="mt-6 rounded-md border border-white/10 bg-white/5 p-4 text-sm leading-7 text-white/80">
                 {t("nextStepVideo")}
               </p>
             ) : null}

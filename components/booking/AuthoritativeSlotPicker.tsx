@@ -101,11 +101,11 @@ export function AuthoritativeSlotPicker({
 
   if (slots.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-zinc-300 bg-zinc-50 px-5 py-10 text-center">
-        <h3 className="text-lg font-semibold text-zinc-950">
+      <div className="rounded-lg border border-dashed border-line bg-canvas px-5 py-10 text-center">
+        <h3 className="text-lg font-semibold text-ink">
           {t("noSlotsTitle")}
         </h3>
-        <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-zinc-600">
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-muted">
           {t("noSlotsDescription")}
         </p>
       </div>
@@ -130,11 +130,11 @@ export function AuthoritativeSlotPicker({
             <div className="flex items-center justify-between gap-4">
               <h3
                 id={`booking-date-${group.date}`}
-                className="text-base font-semibold text-zinc-950"
+                className="text-base font-semibold text-ink"
               >
                 {dateLabel}
               </h3>
-              <span className="text-xs font-medium text-zinc-500">
+              <span className="text-xs font-medium text-ink-muted">
                 {t("slotCount", {
                   count:
                     group.slots.length,
@@ -180,10 +180,10 @@ export function AuthoritativeSlotPicker({
                       onSelect(slot)
                     }
                     className={[
-                      "rounded-2xl border px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:opacity-50",
+                      "rounded-md border px-3 py-3 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50",
                       selected
-                        ? "border-zinc-950 bg-zinc-950 text-white shadow-sm"
-                        : "border-zinc-200 bg-white text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50",
+                        ? "border-primary bg-primary text-white shadow-sm"
+                        : "border-line bg-surface text-ink hover:border-primary hover:bg-mint",
                     ].join(" ")}
                   >
                     {timeLabel}

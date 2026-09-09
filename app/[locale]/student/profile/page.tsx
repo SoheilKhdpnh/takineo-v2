@@ -43,17 +43,17 @@ export default async function StudentProfilePage({
   });
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12">
-      <section className="mx-auto w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm sm:p-12">
-        <p className="text-sm font-medium text-zinc-500">
+    <main className="px-4 py-12">
+      <section className="mx-auto w-full max-w-2xl rounded-lg border border-line bg-surface p-8 sm:p-12">
+        <p className="text-sm font-medium text-primary">
           {t("eyebrow")}
         </p>
 
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">
           {t("title")}
         </h1>
 
-        <p className="mt-3 leading-7 text-zinc-600">
+        <p className="mt-3 leading-7 text-ink-muted">
           {t("description")}
         </p>
 

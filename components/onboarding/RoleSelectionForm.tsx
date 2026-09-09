@@ -101,11 +101,11 @@ export function RoleSelectionForm() {
                 setSelectedRole(option.role)
               }
               className={[
-                "rounded-2xl border p-5 text-start transition",
+                "rounded-lg border p-5 text-start transition",
                 "disabled:cursor-not-allowed disabled:opacity-60",
                 isSelected
-                  ? "border-zinc-950 bg-zinc-950 text-white"
-                  : "border-zinc-200 bg-white text-zinc-950 hover:border-zinc-400",
+                  ? "border-primary bg-primary text-white"
+                  : "border-line bg-surface text-ink hover:border-primary",
               ].join(" ")}
             >
               <span className="block text-lg font-semibold">
@@ -116,8 +116,8 @@ export function RoleSelectionForm() {
                 className={[
                   "mt-2 block text-sm leading-6",
                   isSelected
-                    ? "text-zinc-300"
-                    : "text-zinc-600",
+                    ? "text-mint"
+                    : "text-ink-muted",
                 ].join(" ")}
               >
                 {option.description}
@@ -127,7 +127,7 @@ export function RoleSelectionForm() {
         })}
       </div>
 
-      <p className="text-sm leading-6 text-zinc-500">
+      <p className="text-sm leading-6 text-ink-muted">
         {t("selectionHint")}
       </p>
 
@@ -144,7 +144,7 @@ export function RoleSelectionForm() {
         type="button"
         disabled={!selectedRole || isSubmitting}
         onClick={handleSubmit}
-        className="w-full rounded-lg bg-zinc-950 px-4 py-3 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-md bg-primary px-4 py-3 font-medium text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting
           ? t("creatingWorkspace")

@@ -54,7 +54,7 @@ export default async function TeacherVideoPage({
   });
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12 sm:px-6">
+    <main className="px-4 py-12 sm:px-6">
       <section className="mx-auto w-full max-w-3xl">
         <header className="mb-8">
           <p className="text-sm font-semibold text-zinc-500">
