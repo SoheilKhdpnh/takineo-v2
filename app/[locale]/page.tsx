@@ -3,12 +3,13 @@ import {
   setRequestLocale,
 } from "next-intl/server";
 
+import { HomeHero } from "@/components/home/HomeHero";
+import { HomeTrust } from "@/components/home/HomeTrust";
 import { FeaturedTeacherGrid } from "@/components/teachers/FeaturedTeacherGrid";
 import {
   getTeacherDiscoveryRange,
   type PublicTeacherDiscoveryItem,
 } from "@/components/teachers/teacher-discovery-api";
-import { buttonClassName } from "@/components/ui/Button";
 import { requireAppLocale } from "@/i18n/locale";
 import { Link } from "@/i18n/navigation";
 import { listPublicTeachers } from "@/lib/services/teacher-discovery.service";
@@ -67,42 +68,24 @@ export default async function HomePage({
 
   return (
     <main>
-      <section className="mx-auto w-full max-w-6xl px-4 pb-8 pt-10 sm:px-6 sm:pt-16">
-        <p className="text-sm font-semibold text-primary">{t("eyebrow")}</p>
-        <h1 className="mt-4 max-w-3xl text-4xl text-ink sm:text-5xl lg:text-6xl">
-          {t("title")}
-        </h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-ink-muted">
-          {t("description")}
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/teachers"
-            className={buttonClassName({
-              size: "lg",
-            })}
-          >
-            {t("findTeacher")}
-          </Link>
-          <Link
-            href="/sign-up"
-            className={buttonClassName({
-              variant: "secondary",
-              size: "lg",
-            })}
-          >
-            {t("createAccount")}
-          </Link>
-        </div>
-      </section>
+      <HomeHero
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        description={t("description")}
+        findTeacher={t("findTeacher")}
+        createAccount={t("createAccount")}
+        imageAlt={t("heroImageAlt")}
+      />
 
-      <section className="border-y border-line bg-mint/60">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3 sm:px-6">
-          <TrustItem title={t("trustDurationTitle")} body={t("trustDurationBody")} />
-          <TrustItem title={t("trustTeachersTitle")} body={t("trustTeachersBody")} />
-          <TrustItem title={t("trustAiTitle")} body={t("trustAiBody")} />
-        </div>
-      </section>
+      <HomeTrust
+        durationTitle={t("trustDurationTitle")}
+        durationBody={t("trustDurationBody")}
+        teachersTitle={t("trustTeachersTitle")}
+        teachersBody={t("trustTeachersBody")}
+        aiTitle={t("trustAiTitle")}
+        aiBody={t("trustAiBody")}
+        imageAlt={t("supportingImageAlt")}
+      />
 
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
         <h2 className="text-2xl text-ink sm:text-3xl">{t("browseTitle")}</h2>
@@ -153,20 +136,5 @@ export default async function HomePage({
         />
       </section>
     </main>
-  );
-}
-
-function TrustItem({
-  title,
-  body,
-}: {
-  title: string;
-  body: string;
-}) {
-  return (
-    <div>
-      <h2 className="text-lg text-ink">{title}</h2>
-      <p className="mt-2 text-sm leading-7 text-ink-muted">{body}</p>
-    </div>
   );
 }
