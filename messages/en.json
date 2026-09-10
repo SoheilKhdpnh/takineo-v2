@@ -37,6 +37,14 @@
     "heroImageAlt": "A learner speaking with a human teacher over a video call.",
     "supportingImageAlt": "Two people in an unhurried face-to-face conversation."
   },
+  "Blog": {
+    "eyebrow": "Journal",
+    "title": "AI, teaching, and English speaking",
+    "description": "Short notes on learning English with a human teacher, and using AI only as an assistant.",
+    "empty": "No posts yet.",
+    "backToIndex": "All posts",
+    "seeAll": "See all posts"
+  },
   "Auth": {
     "signUpTitle": "Create your account",
     "signUpDescription": "Create an account, then choose whether you want to learn or teach.",
