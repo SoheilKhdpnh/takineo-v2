@@ -35,7 +35,10 @@
     "seeAllTeachers": "See all teachers",
     "featuredEmpty": "No public teachers are listed in the current booking window yet.",
     "heroImageAlt": "A learner speaking with a human teacher over a video call.",
-    "supportingImageAlt": "Two people in an unhurried face-to-face conversation."
+    "supportingImageAlt": "Two people in an unhurried face-to-face conversation.",
+    "blogTitle": "From the journal",
+    "blogDescription": "Short notes on AI, teaching, and English speaking — written for people who still want a human teacher.",
+    "blogSeeAll": "See all posts"
   },
   "Blog": {
     "eyebrow": "Journal",
@@ -683,6 +686,7 @@
     "brand": "Talkinu",
     "navigationLabel": "Talkinu",
     "teachers": "Find a teacher",
+    "blog": "Journal",
     "signIn": "Sign in",
     "getStarted": "Get started",
     "workspace": "Workspace",

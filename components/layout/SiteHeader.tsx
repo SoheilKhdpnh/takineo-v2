@@ -40,6 +40,12 @@ export async function SiteHeader({
           >
             {t("teachers")}
           </Link>
+          <Link
+            href="/blog"
+            className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-mint sm:inline-flex"
+          >
+            {t("blog")}
+          </Link>
 
           <LanguageSwitcher currentLocale={locale} />
 

@@ -3,6 +3,7 @@ import {
   setRequestLocale,
 } from "next-intl/server";
 
+import { HomeBlogTeaser } from "@/components/home/HomeBlogTeaser";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HomeTrust } from "@/components/home/HomeTrust";
 import { FeaturedTeacherGrid } from "@/components/teachers/FeaturedTeacherGrid";
@@ -135,6 +136,13 @@ export default async function HomePage({
           emptyLabel={t("featuredEmpty")}
         />
       </section>
+
+      <HomeBlogTeaser
+        locale={locale}
+        title={t("blogTitle")}
+        description={t("blogDescription")}
+        seeAllLabel={t("blogSeeAll")}
+      />
     </main>
   );
 }
