@@ -4,7 +4,7 @@
     "description": "تمرین مکالمه انگلیسی در جلسه‌های ۱۵ دقیقه‌ای با مدرس انسانی. هوش مصنوعی کمک می‌کند؛ مدرس آموزش می‌دهد."
   },
   "Common": {
-    "brand": "Talkinu",
+    "brand": "تاکینو",
     "loading": "در حال بارگذاری...",
     "tryAgain": "تلاش دوباره"
   },
@@ -13,7 +13,7 @@
     "switchToEnglish": "Change language to English"
   },
   "Home": {
-    "eyebrow": "Talkinu",
+    "eyebrow": "تاکینو",
     "title": "۱۵ دقیقه مکالمه متمرکز انگلیسی با مدرس واقعی",
     "description": "Talkinu روی جلسه‌های دقیقاً ۱۵ دقیقه‌ای مکالمه ساخته شده است. مدرس آموزش می‌دهد. هوش مصنوعی تحلیل می‌کند. شما پیشرفت می‌کنید.",
     "createAccount": "ساخت حساب",
@@ -220,7 +220,7 @@
   },
   "AdminShell": {
     "skipToContent": "رفتن به محتوای مدیریت",
-    "brand": "Talkinu",
+    "brand": "تاکینو",
     "workspace": "فضای مدیریت",
     "navigationLabel": "مدیریت Talkinu",
     "overview": "نمای کلی",
@@ -670,7 +670,7 @@
     "chooseTime": "انتخاب زمان"
   },
   "Site": {
-    "brand": "Talkinu",
+    "brand": "تاکینو",
     "navigationLabel": "Talkinu",
     "teachers": "پیدا کردن مدرس",
     "signIn": "ورود",
