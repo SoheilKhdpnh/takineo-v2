@@ -7,10 +7,22 @@ Talkinu is a Persian-first English-speaking marketplace. The interface should fe
 
 ## Brand
 
-Visible product name: **Talkinu**.  
+Visible product name: **Talkinu** (English) / **تاکینو** (Persian).  
 Production domain: `https://talkinu.com`.
 
 Internal identifiers, APIs, database fields, and logs remain English and may still say Takineo.
+
+### Logo
+
+The shipping mark is a teal squircle with two overlapping geometric speech bubbles in `surface`. It sits at the start of the wordmark in both LTR (`Talkinu`) and RTL (`تاکینو`).
+
+Concepts considered, then rejected:
+
+1. A stylized letter **T** — reads as Latin and fights the Persian wordmark.
+2. Linked nodes / an abstract “connection” glyph — too generic for a speaking product.
+3. **Facing speech bubbles (chosen)** — language-agnostic, readable at favicon size, and obviously about conversation.
+
+Source of truth: `components/ui/TalkinuMark.tsx`. Favicon: `app/icon.svg`. Social preview: `app/opengraph-image.tsx`. Recolor the square with `currentColor` (`text-primary` by default). Do not replace this with a raster logo.
 
 ## Color
 

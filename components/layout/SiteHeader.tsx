@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { buttonClassName } from "@/components/ui/Button";
-import { TalkinuMark } from "@/components/ui/TalkinuMark";
+import { TalkinuWordmark } from "@/components/ui/TalkinuMark";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/ui/cn";
@@ -25,12 +25,9 @@ export async function SiteHeader({
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-2.5 rounded-md"
+          className="rounded-md"
         >
-          <TalkinuMark />
-          <span className="text-base font-semibold tracking-tight text-ink">
-            {t("brand")}
-          </span>
+          <TalkinuWordmark brand={t("brand")} />
         </Link>
 
         <nav
@@ -42,6 +39,12 @@ export async function SiteHeader({
             className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-mint sm:inline-flex"
           >
             {t("teachers")}
+          </Link>
+          <Link
+            href="/blog"
+            className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-mint sm:inline-flex"
+          >
+            {t("blog")}
           </Link>
 
           <LanguageSwitcher currentLocale={locale} />
