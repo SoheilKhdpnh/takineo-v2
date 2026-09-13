@@ -155,6 +155,9 @@ model User {
   studentSpeakingSessions      SpeakingSession[]             @relation("SpeakingSessionStudent")
   speakingSessionCancellations SpeakingSessionCancellation[] @relation("SpeakingSessionCancellationActor")
 
+  // Wave 4 relation. Virtual only: adds no column to user.
+  authoredSessionFeedback SpeakingSessionTeacherFeedback[] @relation("SpeakingSessionFeedbackAuthor")
+
   @@unique([email])
   @@map("user")
 }
@@ -251,13 +254,13 @@ model TeacherProfile {
   createdAt                    DateTime                  @default(now())
   updatedAt                    DateTime                  @updatedAt
 
-  user                   User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  introVideo             TeacherIntroVideo?
-  auditEvents            AdminAuditEvent[]
-  availabilityRules      TeacherAvailabilityRule[]
-  availabilityExceptions TeacherAvailabilityException[]
-  speakingSessions             SpeakingSession[]
-  publicDiscoveryEligibility   PublicTeacherDiscoveryEligibility?
+  user                       User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  introVideo                 TeacherIntroVideo?
+  auditEvents                AdminAuditEvent[]
+  availabilityRules          TeacherAvailabilityRule[]
+  availabilityExceptions     TeacherAvailabilityException[]
+  speakingSessions           SpeakingSession[]
+  publicDiscoveryEligibility PublicTeacherDiscoveryEligibility?
 
   @@index([applicationStatus, applicationSubmittedAt, id])
   @@map("teacher_profile")
@@ -419,6 +422,11 @@ model SpeakingSession {
   studentUser    User                         @relation("SpeakingSessionStudent", fields: [studentUserId], references: [id], onDelete: Restrict)
   cancellation   SpeakingSessionCancellation?
 
+  // Wave 4 relations. Virtual only: these add no column to speaking_session.
+  audioArtifacts  SpeakingSessionAudioArtifact[]
+  analysisRuns    SpeakingSessionAnalysisRun[]
+  teacherFeedback SpeakingSessionTeacherFeedback?
+
   @@unique([studentUserId, bookingIdempotencyKey], map: "speaking_session_student_idempotency_key")
   @@index([teacherProfileId, status, startAt], map: "speaking_session_teacher_status_start_idx")
   @@index([studentUserId, status, startAt], map: "speaking_session_student_status_start_idx")
@@ -442,4 +450,436 @@ model SpeakingSessionCancellation {
 
   @@index([actorUserId, cancelledAt], map: "session_cancellation_actor_time_idx")
   @@map("speaking_session_cancellation")
+}
+
+// ============================================================================
+// Wave 4 — AI conversation intelligence.
+// Canonical contract: docs/engineering/wave4-ai-pipeline-contract.md
+// Additive only. Nothing here alters Wave 2 booking or Wave 3 live-session
+// schema. Provenance layers are kept in separate tables per contract section 3.
+// ============================================================================
+
+enum SpeakingSessionAudioParticipantRole {
+  STUDENT
+  TEACHER
+}
+
+enum SpeakingSessionAudioSource {
+  LIVE_EGRESS
+  SYNTHETIC_FIXTURE
+  OPERATOR_UPLOAD
+}
+
+enum SpeakingSessionAudioStorageProvider {
+  LOCAL_FILESYSTEM
+  S3_COMPATIBLE
+}
+
+enum SpeakingSessionAudioContainer {
+  OGG
+  MP4
+  MP3
+  WAV
+}
+
+enum SpeakingSessionAnalysisRunStatus {
+  QUEUED
+  TRANSCRIBING
+  ANALYZING
+  SUCCEEDED
+  FAILED
+  ABANDONED
+}
+
+enum SpeakingSessionAnalysisFailureCode {
+  AUDIO_UNREADABLE
+  AUDIO_TOO_SHORT
+  TRANSCRIPTION_ENGINE_UNAVAILABLE
+  TRANSCRIPTION_TIMEOUT
+  TRANSCRIPT_EMPTY
+  ANALYSIS_ENGINE_UNAVAILABLE
+  ANALYSIS_TIMEOUT
+  ANALYSIS_OUTPUT_INVALID
+  LEASE_EXPIRED
+  INTERNAL
+}
+
+enum SpeakingSessionAnalysisDegradation {
+  TEACHER_AUDIO_MISSING
+  LOW_TRANSCRIPT_CONFIDENCE
+  STUDENT_SPEECH_MINIMAL
+  TRUNCATED_TRANSCRIPT
+  STUDENT_LEVEL_UNKNOWN
+}
+
+/// Contract section 3: three kinds of statement, never blended.
+enum SpeakingSessionAnalysisProvenance {
+  AI_OBSERVATION
+  AI_RECOMMENDATION
+  TEACHER_JUDGEMENT
+}
+
+/// Contract section 6.1: only GRAMMAR_ERROR and LEXICAL_ERROR are errors.
+enum SpeakingSessionCorrectionType {
+  GRAMMAR_ERROR
+  LEXICAL_ERROR
+  NATURALNESS
+  OPTIONAL_IMPROVEMENT
+}
+
+enum SpeakingSessionVocabularyStatus {
+  USED_CORRECTLY
+  MISUSED
+  OVERUSED
+}
+
+enum SpeakingSessionPartOfSpeech {
+  NOUN
+  VERB
+  ADJECTIVE
+  ADVERB
+  PRONOUN
+  PREPOSITION
+  CONJUNCTION
+  INTERJECTION
+  PHRASAL_VERB
+  COLLOCATION
+  IDIOM
+  OTHER
+}
+
+enum SpeakingSessionWeakPointCategory {
+  GRAMMAR
+  VOCABULARY
+  PRONUNCIATION
+  FLUENCY
+  DISCOURSE
+  TASK_RESPONSE
+}
+
+enum SpeakingSessionWeakPointSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SpeakingSessionSuggestionPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SpeakingSessionSuggestionKind {
+  PRACTICE_DRILL
+  PHRASE_SUBSTITUTION
+  PRONUNCIATION_EXERCISE
+  HOMEWORK_TASK
+  RESOURCE
+}
+
+/// Wave 4 input. One row is one immutable per-role recording of one session.
+/// Contract section 4.1: student and teacher speech arrive as separate files,
+/// so speaker attribution never depends on diarization.
+model SpeakingSessionAudioArtifact {
+  id              String                              @id @default(cuid())
+  sessionId       String
+  participantRole SpeakingSessionAudioParticipantRole
+  source          SpeakingSessionAudioSource
+  storageProvider SpeakingSessionAudioStorageProvider
+  storageBucket   String                              @db.VarChar(256)
+  storageKey      String                              @db.VarChar(1024)
+  container       SpeakingSessionAudioContainer
+  durationMs      Int
+  byteSize        Int
+  contentSha256   String                              @db.VarChar(64)
+  capturedAt      DateTime                            @db.Timestamptz(3)
+  createdAt       DateTime                            @default(now()) @db.Timestamptz(3)
+
+  session          SpeakingSession              @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  studentRunsUsing SpeakingSessionAnalysisRun[] @relation("AnalysisRunStudentAudio")
+  teacherRunsUsing SpeakingSessionAnalysisRun[] @relation("AnalysisRunTeacherAudio")
+
+  @@unique([sessionId, participantRole, contentSha256], map: "ss_audio_artifact_session_role_sha_key")
+  @@unique([storageProvider, storageBucket, storageKey], map: "ss_audio_artifact_object_key")
+  /// Target of the hand-written composite pairing foreign keys (contract 14.1).
+  @@unique([id, sessionId, participantRole], map: "ss_audio_artifact_pairing_key")
+  @@index([sessionId, participantRole, capturedAt], map: "ss_audio_artifact_session_role_idx")
+  @@map("speaking_session_audio_artifact")
+}
+
+/// Wave 4 control record. One row is one processing attempt over one artifact
+/// pair. Append-only: reprocessing inserts a new run (contract section 13.4).
+model SpeakingSessionAnalysisRun {
+  id                     String                               @id @default(cuid())
+  sessionId              String
+  studentAudioArtifactId String
+  teacherAudioArtifactId String?
+  /// Role discriminators pinned by CHECK constraints. They exist so the
+  /// hand-written composite foreign keys can prove an artifact in the student
+  /// slot really is a STUDENT recording of this session (contract 14.1).
+  /// Declared here rather than added as raw columns so the schema stays
+  /// drift-free against the migration.
+  studentAudioRole       SpeakingSessionAudioParticipantRole  @default(STUDENT)
+  teacherAudioRole       SpeakingSessionAudioParticipantRole?
+  requestIdempotencyKey  String                               @db.VarChar(128)
+  status                 SpeakingSessionAnalysisRunStatus     @default(QUEUED)
+  attempt                Int                                  @default(1)
+  degradations           SpeakingSessionAnalysisDegradation[]
+  transcriptionEngine    String?                              @db.VarChar(64)
+  transcriptionModel     String?                              @db.VarChar(128)
+  analysisEngine         String?                              @db.VarChar(64)
+  analysisModel          String?                              @db.VarChar(128)
+  leaseExpiresAt         DateTime?                            @db.Timestamptz(3)
+  heartbeatAt            DateTime?                            @db.Timestamptz(3)
+  startedAt              DateTime?                            @db.Timestamptz(3)
+  finishedAt             DateTime?                            @db.Timestamptz(3)
+  failureCode            SpeakingSessionAnalysisFailureCode?
+  failureDetail          String?                              @db.VarChar(2000)
+  createdAt              DateTime                             @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                             @updatedAt @db.Timestamptz(3)
+
+  session      SpeakingSession               @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  studentAudio SpeakingSessionAudioArtifact  @relation("AnalysisRunStudentAudio", fields: [studentAudioArtifactId], references: [id], onDelete: Restrict)
+  teacherAudio SpeakingSessionAudioArtifact? @relation("AnalysisRunTeacherAudio", fields: [teacherAudioArtifactId], references: [id], onDelete: Restrict)
+
+  transcript             SpeakingSessionTranscript?
+  report                 SpeakingSessionAnalysisReport?
+  fluencyProfile         SpeakingSessionFluencyProfile?
+  corrections            SpeakingSessionCorrection[]
+  vocabularyObservations SpeakingSessionVocabularyObservation[]
+  weakPoints             SpeakingSessionWeakPoint[]
+  suggestions            SpeakingSessionSuggestion[]
+
+  @@unique([studentAudioArtifactId, requestIdempotencyKey], map: "ss_analysis_run_idempotency_key")
+  @@index([sessionId, status, createdAt], map: "ss_analysis_run_session_status_idx")
+  @@index([status, leaseExpiresAt], map: "ss_analysis_run_lease_idx")
+  @@index([sessionId, finishedAt, id], map: "ss_analysis_run_session_finished_idx")
+  @@map("speaking_session_analysis_run")
+}
+
+/// Wave 4 observation. Merged, time-ordered timeline built from both per-role
+/// recordings. Segments are one validated JSONB document (contract section 5).
+model SpeakingSessionTranscript {
+  id                    String                            @id @default(cuid())
+  runId                 String                            @unique
+  provenance            SpeakingSessionAnalysisProvenance @default(AI_OBSERVATION)
+  schemaVersion         Int                               @default(1)
+  language              String                            @db.VarChar(16)
+  segments              Json
+  sources               Json
+  studentWordCount      Int
+  studentSpeakingMs     Int
+  teacherSpeakingMs     Int?
+  meanStudentConfidence Float?
+  createdAt             DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run SpeakingSessionAnalysisRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+
+  @@map("speaking_session_transcript")
+}
+
+/// Wave 4 observation. Run-level aggregate and summary.
+model SpeakingSessionAnalysisReport {
+  id                   String                            @id @default(cuid())
+  runId                String                            @unique
+  provenance           SpeakingSessionAnalysisProvenance @default(AI_OBSERVATION)
+  schemaVersion        Int                               @default(1)
+  overallLevelEstimate EnglishLevel?
+  /// Level actually used for vocabulary gating, for auditability (contract 7.4).
+  resolvedStudentLevel EnglishLevel?
+  summaryEn            String                            @db.VarChar(4000)
+  summaryFa            String?                           @db.VarChar(4000)
+  createdAt            DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run SpeakingSessionAnalysisRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+
+  @@map("speaking_session_analysis_report")
+}
+
+/// Wave 4 observation. Measured fluency metrics plus narrative feedback.
+/// Contract section 8.1 forbids adding a composite fluency score here.
+model SpeakingSessionFluencyProfile {
+  id                     String                            @id @default(cuid())
+  runId                  String                            @unique
+  provenance             SpeakingSessionAnalysisProvenance @default(AI_OBSERVATION)
+  studentSpeakingMs      Int
+  studentWordCount       Int
+  studentWordsPerMinute  Float
+  studentSpeakingRatio   Float?
+  pauseCount             Int
+  longPauseCount         Int
+  meanPauseMs            Int?
+  longestPauseMs         Int?
+  fillerWordCount        Int
+  fillerWordRate         Float
+  selfCorrectionCount    Int
+  repetitionCount        Int
+  abandonedSentenceCount Int
+  turnCount              Int?
+  meanStudentTurnMs      Int?
+  longestStudentTurnMs   Int?
+  distinctWordCount      Int
+  typeTokenRatio         Float?
+  narrativeFeedbackEn    String                            @db.VarChar(4000)
+  narrativeFeedbackFa    String?                           @db.VarChar(4000)
+  createdAt              DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run SpeakingSessionAnalysisRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+
+  @@map("speaking_session_fluency_profile")
+}
+
+/// Wave 4 observation. One identified issue in one student utterance.
+/// Contract section 6: NATURALNESS and OPTIONAL_IMPROVEMENT are not errors and
+/// never feed weak points or error counts.
+model SpeakingSessionCorrection {
+  id                     String                            @id @default(cuid())
+  runId                  String
+  rank                   Int
+  provenance             SpeakingSessionAnalysisProvenance @default(AI_OBSERVATION)
+  type                   SpeakingSessionCorrectionType
+  subtype                String                            @db.VarChar(64)
+  originalText           String                            @db.VarChar(2000)
+  correctedText          String                            @db.VarChar(2000)
+  explanation            String                            @db.VarChar(2000)
+  transcriptSegmentIndex Int
+  charStart              Int?
+  charEnd                Int?
+  confidence             Float
+  weakPointId            String?
+  createdAt              DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run       SpeakingSessionAnalysisRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+  weakPoint SpeakingSessionWeakPoint?  @relation(fields: [weakPointId], references: [id], onDelete: Restrict)
+
+  @@unique([runId, rank], map: "ss_correction_run_rank_key")
+  @@index([runId, type], map: "ss_correction_run_type_idx")
+  @@index([weakPointId], map: "ss_correction_weak_point_idx")
+  @@index([runId, subtype], map: "ss_correction_run_subtype_idx")
+  @@map("speaking_session_correction")
+}
+
+/// Wave 4 observation. A word or phrase the student actually used, with how
+/// often. OVERUSED drives the alternatives below (contract section 7).
+model SpeakingSessionVocabularyObservation {
+  id              String                            @id @default(cuid())
+  runId           String
+  rank            Int
+  provenance      SpeakingSessionAnalysisProvenance @default(AI_OBSERVATION)
+  headword        String                            @db.VarChar(64)
+  lemma           String?                           @db.VarChar(64)
+  partOfSpeech    SpeakingSessionPartOfSpeech
+  status          SpeakingSessionVocabularyStatus
+  occurrenceCount Int
+  cefrLevel       EnglishLevel?
+  segmentIndexes  Int[]
+  exampleExcerpt  String?                           @db.VarChar(2000)
+  confidence      Float
+  createdAt       DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run          SpeakingSessionAnalysisRun             @relation(fields: [runId], references: [id], onDelete: Restrict)
+  alternatives SpeakingSessionVocabularyAlternative[]
+
+  @@unique([runId, headword], map: "ss_vocabulary_observation_run_headword_key")
+  @@unique([runId, rank], map: "ss_vocabulary_observation_run_rank_key")
+  @@index([runId, status], map: "ss_vocabulary_observation_run_status_idx")
+  @@index([headword], map: "ss_vocabulary_observation_headword_idx")
+  @@map("speaking_session_vocabulary_observation")
+}
+
+/// Wave 4 recommendation. A stronger alternative for an overused or misused
+/// word. Contract section 7.4: cefrLevel must not exceed maxAllowedLevel, which
+/// is the student's resolved level plus one band, enforced by CHECK.
+model SpeakingSessionVocabularyAlternative {
+  id              String                            @id @default(cuid())
+  observationId   String
+  rank            Int
+  provenance      SpeakingSessionAnalysisProvenance @default(AI_RECOMMENDATION)
+  suggestion      String                            @db.VarChar(64)
+  cefrLevel       EnglishLevel
+  maxAllowedLevel EnglishLevel
+  exampleSentence String?                           @db.VarChar(2000)
+  definitionFa    String?                           @db.VarChar(1000)
+  createdAt       DateTime                          @default(now()) @db.Timestamptz(3)
+
+  observation SpeakingSessionVocabularyObservation @relation(fields: [observationId], references: [id], onDelete: Restrict)
+
+  @@unique([observationId, rank], map: "ss_vocabulary_alternative_rank_key")
+  @@unique([observationId, suggestion], map: "ss_vocabulary_alternative_suggestion_key")
+  @@map("speaking_session_vocabulary_alternative")
+}
+
+/// Wave 4 observation. A pattern across the conversation, aggregated from the
+/// error-typed corrections that link to it (contract section 9).
+model SpeakingSessionWeakPoint {
+  id              String                            @id @default(cuid())
+  runId           String
+  rank            Int
+  provenance      SpeakingSessionAnalysisProvenance @default(AI_OBSERVATION)
+  category        SpeakingSessionWeakPointCategory
+  subtype         String                            @db.VarChar(64)
+  severity        SpeakingSessionWeakPointSeverity
+  occurrenceCount Int
+  explanation     String                            @db.VarChar(2000)
+  confidence      Float
+  createdAt       DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run         SpeakingSessionAnalysisRun  @relation(fields: [runId], references: [id], onDelete: Restrict)
+  corrections SpeakingSessionCorrection[]
+  suggestions SpeakingSessionSuggestion[]
+
+  @@unique([runId, rank], map: "ss_weak_point_run_rank_key")
+  @@unique([runId, category, subtype], map: "ss_weak_point_run_subtype_key")
+  @@index([runId, severity], map: "ss_weak_point_run_severity_idx")
+  @@index([category, subtype], map: "ss_weak_point_category_subtype_idx")
+  @@map("speaking_session_weak_point")
+}
+
+/// Wave 4 recommendation. Actionable practice advice grounded in a weak point,
+/// with a machine-checkable target (contract section 10).
+model SpeakingSessionSuggestion {
+  id                   String                            @id @default(cuid())
+  runId                String
+  rank                 Int
+  provenance           SpeakingSessionAnalysisProvenance @default(AI_RECOMMENDATION)
+  weakPointId          String?
+  priority             SpeakingSessionSuggestionPriority
+  kind                 SpeakingSessionSuggestionKind
+  focus                String                            @db.VarChar(256)
+  rationale            String                            @db.VarChar(2000)
+  activity             String                            @db.VarChar(2000)
+  targetDescription    String                            @db.VarChar(500)
+  targetSubtype        String?                           @db.VarChar(64)
+  targetMaxOccurrences Int?
+  targetLevel          EnglishLevel?
+  estimatedMinutes     Int?
+  createdAt            DateTime                          @default(now()) @db.Timestamptz(3)
+
+  run       SpeakingSessionAnalysisRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+  weakPoint SpeakingSessionWeakPoint?  @relation(fields: [weakPointId], references: [id], onDelete: Restrict)
+
+  @@unique([runId, rank], map: "ss_suggestion_run_rank_key")
+  @@index([runId, priority], map: "ss_suggestion_run_priority_idx")
+  @@index([weakPointId], map: "ss_suggestion_weak_point_idx")
+  @@map("speaking_session_suggestion")
+}
+
+/// Wave 4 teacher judgement. Authored by the session teacher, never by the
+/// pipeline. Attached to the session rather than to a run so it survives
+/// re-analysis (contract section 11.1).
+model SpeakingSessionTeacherFeedback {
+  id               String                            @id @default(cuid())
+  sessionId        String                            @unique
+  authorUserId     String
+  provenance       SpeakingSessionAnalysisProvenance @default(TEACHER_JUDGEMENT)
+  body             String                            @db.VarChar(4000)
+  focusNextSession String?                           @db.VarChar(1000)
+  createdAt        DateTime                          @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime                          @updatedAt @db.Timestamptz(3)
+
+  session    SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  authorUser User            @relation("SpeakingSessionFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@index([authorUserId, createdAt], map: "ss_teacher_feedback_author_idx")
+  @@map("speaking_session_teacher_feedback")
 }
