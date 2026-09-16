@@ -3,10 +3,7 @@ import { z } from "zod";
 
 import { getInternalJobSecret } from "@/lib/env/internal-jobs";
 import { getSessionAnalysisPolicy } from "@/lib/env/session-analysis";
-import {
-  createFakeAnalysisEngine,
-  createFakeTranscriptionEngine,
-} from "@/lib/session-analysis/fakes";
+import { createSessionAnalysisEngines } from "@/lib/session-analysis/engines";
 import { analyzeCompletedSession } from "@/lib/services/session-analysis.service";
 
 export const runtime = "nodejs";
@@ -62,11 +59,13 @@ export async function POST(request: Request) {
 
   try {
     const policy = getSessionAnalysisPolicy();
+    const engines = createSessionAnalysisEngines();
     const result = await analyzeCompletedSession({
       sessionId: parsed.data.sessionId,
       policy,
-      transcription: createFakeTranscriptionEngine(),
-      analysis: createFakeAnalysisEngine(),
+      transcription: engines.transcription,
+      analysis: engines.analysis,
+      storage: engines.storage,
       requestIdempotencyKey: parsed.data.sessionId,
     });
 

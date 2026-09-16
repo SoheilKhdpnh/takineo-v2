@@ -7,10 +7,12 @@ import {
   type SessionAnalysisPolicy,
 } from "@/lib/domain/session-analysis";
 import { SessionAnalysisNotEligibleError } from "@/lib/errors/session-analysis-errors";
+import { readVerifiedAudio } from "@/lib/session-analysis/audio-integrity";
 import type {
   AnalysisEnginePort,
+  AudioStoragePort,
   TranscriptionEnginePort,
-} from "@/lib/session-analysis/fakes";
+} from "@/lib/session-analysis/ports";
 
 type ArtifactWrite = {
   sessionId: string;
@@ -45,6 +47,7 @@ export async function analyzeCompletedSession(input: {
   policy: SessionAnalysisPolicy;
   transcription: TranscriptionEnginePort;
   analysis: AnalysisEnginePort;
+  storage: AudioStoragePort;
   requestIdempotencyKey: string;
 }) {
   const session = await prisma.speakingSession.findUnique({
@@ -96,22 +99,39 @@ export async function analyzeCompletedSession(input: {
   const studentTrack = await input.transcription.transcribe({
     contentSha256: studentArtifact.contentSha256,
     participantRole: "STUDENT",
+    audio: await readVerifiedAudio({
+      storage: input.storage,
+      ref: studentArtifact,
+      contentSha256: studentArtifact.contentSha256,
+      byteSize: studentArtifact.byteSize,
+    }),
   });
   const teacherTrack = teacherArtifact
     ? await input.transcription.transcribe({
         contentSha256: teacherArtifact.contentSha256,
         participantRole: "TEACHER",
+        audio: await readVerifiedAudio({
+          storage: input.storage,
+          ref: teacherArtifact,
+          contentSha256: teacherArtifact.contentSha256,
+          byteSize: teacherArtifact.byteSize,
+        }),
       })
     : null;
+  const tracks = teacherTrack ? [studentTrack, teacherTrack] : [studentTrack];
+  const declaredStudentLevel =
+    session.studentUser.studentProfile?.englishLevel ?? null;
   const engine = await input.analysis.analyze({
     contentSha256: studentArtifact.contentSha256,
+    tracks,
+    declaredStudentLevel,
   });
 
   return assembleSessionAnalysis({
-    tracks: teacherTrack ? [studentTrack, teacherTrack] : [studentTrack],
+    tracks,
     engine,
     policy: input.policy,
-    declaredStudentLevel: session.studentUser.studentProfile?.englishLevel ?? null,
+    declaredStudentLevel,
     teacherAudioPresent: Boolean(teacherArtifact),
     studentAudioDurationMs: studentArtifact.durationMs,
   });

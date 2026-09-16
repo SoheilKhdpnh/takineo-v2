@@ -5,20 +5,15 @@ import {
   REVIEW_TEACHER_SHA256,
 } from "@/lib/session-analysis/fixture";
 import type {
-  AnalysisEngineOutput,
-  EngineTrackTranscript,
-} from "@/lib/domain/session-analysis";
+  AnalysisEnginePort,
+  TranscriptionEnginePort,
+} from "@/lib/session-analysis/ports";
 
-export type TranscriptionEnginePort = {
-  transcribe(input: {
-    contentSha256: string;
-    participantRole: "STUDENT" | "TEACHER";
-  }): Promise<EngineTrackTranscript>;
-};
-
-export type AnalysisEnginePort = {
-  analyze(input: { contentSha256: string }): Promise<AnalysisEngineOutput>;
-};
+export type {
+  AnalysisEnginePort,
+  AudioStoragePort,
+  TranscriptionEnginePort,
+} from "@/lib/session-analysis/ports";
 
 export function createFakeTranscriptionEngine(options?: {
   studentConfidence?: number;

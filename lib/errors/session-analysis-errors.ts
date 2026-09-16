@@ -1,3 +1,5 @@
+import type { AnalysisFailureCode } from "@/lib/domain/session-analysis";
+
 export class SessionAnalysisNotEligibleError extends Error {
   constructor(public readonly reason: string) {
     super(`Session analysis is not eligible: ${reason}.`);
@@ -25,5 +27,12 @@ export class SessionAnalysisNotFoundError extends Error {
   constructor() {
     super("The speaking session or analysis target was not found.");
     this.name = "SessionAnalysisNotFoundError";
+  }
+}
+
+export class SessionAnalysisEngineError extends Error {
+  constructor(public readonly code: AnalysisFailureCode) {
+    super(`Session analysis engine failed: ${code}.`);
+    this.name = "SessionAnalysisEngineError";
   }
 }
