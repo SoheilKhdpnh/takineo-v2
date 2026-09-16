@@ -67,7 +67,7 @@ describe("Wave 4 session-analysis pipeline", () => {
     expect(grammar.map((item) => item.correctedText)).toEqual(["I went", "I met"]);
     expect(lexical).toHaveLength(1);
     expect(lexical[0]?.originalText).toBe("discuss about");
-    expect(lexical[0]?.correctedText).toBe("discuss");
+    expect(lexical[0]?.correctedText).toBe("discussed");
 
     expect(
       assembled.corrections.some((item) => item.type === "NATURALNESS"),
@@ -99,6 +99,136 @@ describe("Wave 4 session-analysis pipeline", () => {
     expect(alternatives.every((item) => item.cefrLevel !== "C1")).toBe(true);
     expect(alternatives[0]?.provenance).toBe("AI_RECOMMENDATION");
     expect(assembled.vocabulary[0]?.provenance).toBe("AI_OBSERVATION");
+  });
+
+  it("splits a merged PAST_SIMPLE citation into one occurrence per verb so the weak-point threshold can fire", () => {
+    const engine = reviewFixtureEngineOutput();
+    engine.corrections = [
+      {
+        type: "GRAMMAR_ERROR",
+        subtype: "PAST_SIMPLE",
+        originalText:
+          "Yesterday I go to the university and I meet my friend.",
+        correctedText:
+          "Yesterday I went to the university and I met my friend.",
+        explanation: "The verb 'go' should be 'went' in the past tense.",
+        transcriptSegmentIndex: 0,
+        charStart: null,
+        charEnd: null,
+        confidence: 0.9,
+      },
+      {
+        type: "LEXICAL_ERROR",
+        subtype: "OTHER",
+        originalText: "We discuss about our project.",
+        correctedText: "We discussed our project.",
+        explanation: "The verb 'discuss' should be in the past tense 'discussed'.",
+        transcriptSegmentIndex: 2,
+        charStart: null,
+        charEnd: null,
+        confidence: 0.88,
+      },
+    ];
+
+    const assembled = assembleSessionAnalysis({
+      tracks: reviewFixtureTracks(),
+      engine,
+      policy,
+      declaredStudentLevel: "A2",
+      teacherAudioPresent: true,
+      studentAudioDurationMs: 12_000,
+    });
+
+    const grammar = assembled.corrections.filter(
+      (item) => item.type === "GRAMMAR_ERROR",
+    );
+    const lexical = assembled.corrections.filter(
+      (item) => item.type === "LEXICAL_ERROR",
+    );
+
+    expect(grammar).toHaveLength(2);
+    expect(grammar.map((item) => item.originalText)).toEqual(["go", "meet"]);
+    expect(grammar.map((item) => item.correctedText)).toEqual(["went", "met"]);
+    expect(lexical).toHaveLength(1);
+    expect(lexical[0]?.originalText).toBe("We discuss about our project.");
+    expect(lexical[0]?.correctedText).toBe("We discussed our project.");
+    expect(assembled.weakPoints).toHaveLength(1);
+    expect(assembled.weakPoints[0]).toMatchObject({
+      category: "GRAMMAR",
+      subtype: "PAST_SIMPLE",
+      occurrenceCount: 2,
+    });
+  });
+
+  it("rejects an error citation that cannot be mapped to exactly one span", () => {
+    const engine = reviewFixtureEngineOutput();
+    engine.corrections = [
+      {
+        type: "GRAMMAR_ERROR",
+        subtype: "PAST_SIMPLE",
+        originalText: "I",
+        correctedText: "I'd",
+        explanation: "Ambiguous pronoun occurrence.",
+        transcriptSegmentIndex: 0,
+        charStart: null,
+        charEnd: null,
+        confidence: 0.9,
+      },
+    ];
+
+    const assembled = assembleSessionAnalysis({
+      tracks: reviewFixtureTracks(),
+      engine,
+      policy,
+      declaredStudentLevel: "A2",
+      teacherAudioPresent: true,
+      studentAudioDurationMs: 12_000,
+    });
+
+    expect(assembled.corrections).toEqual([]);
+    expect(assembled.weakPoints).toEqual([]);
+  });
+
+  it("drops an identical overlapping error silently and flags a conflicting overlap as a degradation", () => {
+    const engine = reviewFixtureEngineOutput();
+    const go: (typeof engine.corrections)[number] = {
+      type: "GRAMMAR_ERROR",
+      subtype: "PAST_SIMPLE",
+      originalText: "go",
+      correctedText: "went",
+      explanation: "Past tense.",
+      transcriptSegmentIndex: 0,
+      charStart: null,
+      charEnd: null,
+      confidence: 0.9,
+    };
+    engine.corrections = [
+      go,
+      { ...go, explanation: "Repeated identical citation." },
+      {
+        ...go,
+        type: "LEXICAL_ERROR",
+        subtype: "PREPOSITION",
+        correctedText: "goes",
+        explanation: "Conflicting rewrite of the same span.",
+      },
+    ];
+
+    const assembled = assembleSessionAnalysis({
+      tracks: reviewFixtureTracks(),
+      engine,
+      policy,
+      declaredStudentLevel: "A2",
+      teacherAudioPresent: true,
+      studentAudioDurationMs: 12_000,
+    });
+
+    const grammar = assembled.corrections.filter(
+      (item) => item.type === "GRAMMAR_ERROR",
+    );
+    expect(grammar).toHaveLength(1);
+    expect(grammar[0]?.correctedText).toBe("went");
+    expect(assembled.degradations).toContain("OVERLAPPING_ERROR_CITATIONS");
   });
 
   it("keeps AI observations, AI recommendations, and teacher judgement as separate layers", () => {
