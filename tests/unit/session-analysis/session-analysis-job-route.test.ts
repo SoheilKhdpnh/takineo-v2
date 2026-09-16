@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getInternalJobSecret: vi.fn(),
   getSessionAnalysisPolicy: vi.fn(),
   analyzeCompletedSession: vi.fn(),
+  createSessionAnalysisEngines: vi.fn(),
 }));
 
 vi.mock("@/lib/env/internal-jobs", () => ({
@@ -12,6 +13,10 @@ vi.mock("@/lib/env/internal-jobs", () => ({
 
 vi.mock("@/lib/env/session-analysis", () => ({
   getSessionAnalysisPolicy: mocks.getSessionAnalysisPolicy,
+}));
+
+vi.mock("@/lib/session-analysis/engines", () => ({
+  createSessionAnalysisEngines: mocks.createSessionAnalysisEngines,
 }));
 
 vi.mock("@/lib/services/session-analysis.service", () => ({
@@ -38,8 +43,14 @@ describe("session analysis internal job route", () => {
     mocks.getInternalJobSecret.mockReset();
     mocks.getSessionAnalysisPolicy.mockReset();
     mocks.analyzeCompletedSession.mockReset();
+    mocks.createSessionAnalysisEngines.mockReset();
     mocks.getInternalJobSecret.mockReturnValue("s".repeat(32));
     mocks.getSessionAnalysisPolicy.mockReturnValue(REVIEW_FIXTURE_POLICY);
+    mocks.createSessionAnalysisEngines.mockReturnValue({
+      transcription: { transcribe: vi.fn() },
+      analysis: { analyze: vi.fn() },
+      storage: { head: vi.fn(), openReadStream: vi.fn(), delete: vi.fn() },
+    });
     mocks.analyzeCompletedSession.mockResolvedValue({
       degradations: [],
       weakPoints: [{ subtype: "PAST_SIMPLE" }],
@@ -65,5 +76,28 @@ describe("session analysis internal job route", () => {
     await expect(response.json()).resolves.toEqual({
       error: "INTERNAL_JOB_NOT_CONFIGURED",
     });
+  });
+
+  it("swaps the real engine adapters into the session-analysis job", async () => {
+    const engines = {
+      transcription: { transcribe: vi.fn() },
+      analysis: { analyze: vi.fn() },
+      storage: { head: vi.fn(), openReadStream: vi.fn(), delete: vi.fn() },
+    };
+    mocks.createSessionAnalysisEngines.mockReturnValue(engines);
+    const response = await runSessionAnalysisJob(request("s".repeat(32)));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      degradations: [],
+      weakPointCount: 1,
+      correctionCount: 1,
+    });
+    expect(mocks.analyzeCompletedSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transcription: engines.transcription,
+        analysis: engines.analysis,
+        storage: engines.storage,
+      }),
+    );
   });
 });
