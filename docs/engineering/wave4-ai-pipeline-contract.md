@@ -1316,11 +1316,46 @@ provider.
 
 ### M4 — real engine adapters
 
+**M4 status: code-complete / execution-unverified.** Adapters, fail-closed env,
+local-filesystem audio, and unit tests with injected process runners are in the
+tree. This has not yet been proven against real `whisper-cli` / `llama-cli`
+binaries or the pinned weights. Same distinction as the M2 migration before it
+was applied to an isolated PostgreSQL database.
+
 Self-hosting is locked. A `whisper.cpp` transcription adapter and a
 `llama.cpp` adapter for `Qwen/Qwen2.5-7B-Instruct` Q4_K_M behind the same
-ports, swapped in with no change to pipeline logic. Weights arrive by the
-download-then-SCP path in provider evaluation §9 onto a **separate CPU-only
-Iranian VPS**, not the LiveKit contractor host.
+ports, swapped in with no change to `assembleSessionAnalysis`. Weights arrive
+by the download-then-SCP path in provider evaluation §9 onto a **separate
+CPU-only Iranian VPS**, not the LiveKit contractor host.
+
+Live speech never reaches a shell. `runCommand` uses `spawn(command, args)`
+with `shell` unset. Whisper is given a temp WAV path via `-f`. The analysis
+prompt is one `-p` argv element, not a concatenated command string.
+
+The job route constructs engines through `createSessionAnalysisEngines()`.
+Every engine path, model identity, timeout, and sampling bound **fails closed
+when unset** — no invented binary or weight defaults.
+
+| Variable | Meaning |
+|---|---|
+| `SESSION_ANALYSIS_AUDIO_ROOT` | local-filesystem storage root for per-role audio |
+| `SESSION_ANALYSIS_WHISPER_BIN` | `whisper-cli` (or equivalent) executable |
+| `SESSION_ANALYSIS_WHISPER_MODEL_PATH` | `ggml-large-v3-turbo.bin` |
+| `SESSION_ANALYSIS_WHISPER_MODEL_ID` | recorded on transcript `sources.model` |
+| `SESSION_ANALYSIS_WHISPER_TIMEOUT_MS` | transcription subprocess timeout |
+| `SESSION_ANALYSIS_LLAMA_BIN` | `llama-cli` (or equivalent) executable |
+| `SESSION_ANALYSIS_LLAMA_MODEL_PATH` | Q4_K_M shard 1; shard 2 must sit beside it |
+| `SESSION_ANALYSIS_LLAMA_MODEL_ID` | recorded for audit, not a download URL |
+| `SESSION_ANALYSIS_LLAMA_TIMEOUT_MS` | analysis subprocess timeout |
+| `SESSION_ANALYSIS_LLAMA_N_CTX` | context window |
+| `SESSION_ANALYSIS_LLAMA_N_GPU_LAYERS` | `0` on the CPU VPS |
+| `SESSION_ANALYSIS_LLAMA_N_PREDICT` | max completion tokens |
+| `SESSION_ANALYSIS_LLAMA_TEMPERATURE` | sampling temperature in `[0, 1]` |
+
+`TranscriptionEnginePort.transcribe` receives SHA-256-verified audio bytes.
+`AnalysisEnginePort.analyze` receives the per-role tracks and the declared
+student level. `contentSha256` alone is not a transcript. Pipeline assembly
+is unchanged.
 
 ### M5 — teacher-facing surface
 
