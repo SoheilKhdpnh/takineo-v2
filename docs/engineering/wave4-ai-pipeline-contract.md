@@ -1316,11 +1316,12 @@ provider.
 
 ### M4 — real engine adapters
 
-**M4 status: code-complete / execution-unverified.** Adapters, fail-closed env,
-local-filesystem audio, and unit tests with injected process runners are in the
-tree. This has not yet been proven against real `whisper-cli` / `llama-cli`
-binaries or the pinned weights. Same distinction as the M2 migration before it
-was applied to an isolated PostgreSQL database.
+**M4 status: code-complete; workstation-proven; VPS execution-unverified.**
+Adapters, fail-closed env, local-filesystem audio, and unit tests with injected
+process runners are in the tree. On 2026-09-16 this Windows workstation ran
+real `whisper-cli` v1.9.2 and CPU `llama-cli` b10991 against the pinned D:
+weights: SAPI fixture audio transcribed, analysis JSON assembled, PAST_SIMPLE
+sites split in domain. The Iranian analysis VPS has not yet run this path.
 
 Self-hosting is locked. A `whisper.cpp` transcription adapter and a
 `llama.cpp` adapter for `Qwen/Qwen2.5-7B-Instruct` Q4_K_M behind the same
@@ -1330,7 +1331,9 @@ CPU-only Iranian VPS**, not the LiveKit contractor host.
 
 Live speech never reaches a shell. `runCommand` uses `spawn(command, args)`
 with `shell` unset. Whisper is given a temp WAV path via `-f`. The analysis
-prompt is one `-p` argv element, not a concatenated command string.
+prompt is one `-p` argv element, not a concatenated command string. Against
+current `llama-cli`, the argv also includes `--simple-io` and `-st` so the
+subprocess emits JSON and exits instead of staying in chat.
 
 The job route constructs engines through `createSessionAnalysisEngines()`.
 Every engine path, model identity, timeout, and sampling bound **fails closed
