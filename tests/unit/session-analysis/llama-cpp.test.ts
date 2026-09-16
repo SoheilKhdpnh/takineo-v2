@@ -44,6 +44,8 @@ describe("llama.cpp analysis adapter", () => {
         capturedPrompt = args[args.indexOf("-p") + 1] ?? "";
         expect(args).toContain("-ngl");
         expect(args[args.indexOf("-ngl") + 1]).toBe("0");
+        expect(args).toContain("-st");
+        expect(args).toContain("--simple-io");
         return {
           stdout: `load time = 12ms\n${JSON.stringify(validOutput)}\nllama_print_timings: done`,
           stderr: "",
