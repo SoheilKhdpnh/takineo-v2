@@ -54,6 +54,8 @@ export function createLlamaCppAnalysisEngine(input: {
             String(input.config.llamaNPredict),
             "--temp",
             String(input.config.llamaTemperature),
+            "--simple-io",
+            "-st",
             "--no-display-prompt",
             "-p",
             prompt,
