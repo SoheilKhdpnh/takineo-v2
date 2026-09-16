@@ -3,9 +3,9 @@
 **Owner:** Wave 4 — AI Conversation Intelligence (`feat/wave4-ai-pipeline`)
 **Baseline:** `integration/wave2-final` (`12ebf3ad`)
 **Evidence gathered:** 2026-09-12
-**Status:** **DECISION REQUESTED.** This document exists to be reviewed before any
-integration code is written against a named provider. It recommends a default; it
-does not lock one in.
+**Status:** **SELF-HOSTING APPROVED** (2026-09-13). Do not integrate any
+commercial AI or STT provider. Analysis checkpoint and weight-transfer plan are
+pinned in §4.2 and §9. Product decisions that were open in §7 are now locked.
 
 This is the Wave 4 equivalent of the Wave 3 live-provider reachability work
 (`docs/engineering/wave3-live-session-contract.md` §13). Wave 3 lost time because
@@ -300,44 +300,61 @@ into `wave4-ai-pipeline-contract.md`: per-segment confidence must be persisted,
 low-confidence spans must not become weak points, and AI output must stay
 teacher-reviewable rather than student-facing by default.
 
-### 4.2 Analysis — self-hosted open-weight LLM
+### 4.2 Analysis — pinned checkpoint
 
 Transcription alone does not produce vocabulary lists, weak points, or
-suggestions. That step needs a language model, and it must be self-hostable under
-a licence with no geography clause.
+suggestions. That step needs a language model that is self-hostable under a
+licence with no geography clause.
 
-| Family | Licence | Geographic restriction | Suitability |
-|---|---|---|---|
-| Qwen3 open variants (e.g. 27B dense) | **Apache 2.0** | none | **recommended** |
-| Mistral Large 3 open weights | **Apache 2.0** | none in the weight licence | usable |
-| Qwen flagship "Max" | bespoke | none, but MaaS revenue gate | avoid needlessly |
-| Llama 4 | Meta Community License | MAU cap; EU carve-out on multimodal | avoid |
-| Gemma | Google terms | vendor AUP attaches | avoid |
+**Pinned analysis runtime (2026-09-13):**
 
-Recommendation: an **Apache 2.0** checkpoint. Apache 2.0 is a licence, not a
-service, so there is no counterparty who can decide next quarter that Iran is
-unsupported — which is the entire point of this exercise. Note the trap the table
-records: Qwen's *small* models are Apache 2.0 while its flagship carries a
-bespoke licence with revenue thresholds, so the family name is not sufficient
-and the specific checkpoint must be pinned and its licence read.
+| Field | Value |
+|---|---|
+| Instruct checkpoint | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) |
+| Parameters | 7.62B |
+| Licence | **Apache 2.0** (read on the model card; no geography clause) |
+| Quantization | **Q4_K_M** |
+| GGUF repo | [`Qwen/Qwen2.5-7B-Instruct-GGUF`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF) |
+| Files | `qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf` (3.72 GiB) + `qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf` (0.64 GiB) |
+| Total weight size | **4.36 GiB** |
+| Engine | `llama.cpp` (CPU; `n_gpu_layers=0`) |
+| Why this and not Qwen3-8B | Qwen3's thinking mode leaks into JSON unless disabled; Qwen2.5-Instruct is the structured-output workhorse at 7B. Official GGUF, not a third-party requant. |
+| Why not Mistral-7B-Instruct | Also Apache 2.0, but weaker at schema-constrained JSON for this job. |
+| Rejected | Qwen flagship "Max" (bespoke / MaaS), Llama 4 (community licence + MAU/EU clauses), Gemma (Google AUP attaches) |
 
-Sizing is not yet decided and does not need to be. Wave 4's analysis prompt runs
-once per completed 15-minute session over a ~2,000-word transcript. That is a
-small, latency-tolerant batch job, and a mid-size instruct model on the same GPU
-that serves Whisper is a plausible starting point.
+Apache 2.0 is a licence, not a service, so there is no counterparty who can decide
+next quarter that Iran is unsupported. The family name is not sufficient: Qwen's
+small instruct models are Apache 2.0 while its flagship is not. This pin is the
+specific GGUF pair above. Changing either file, the quant, or the instruct
+checkpoint is a contract change and applies **going forward only** (evaluation
+§7.5).
 
-### 4.3 Where this actually runs — deliberately not decided here
+The analysis prompt runs once per completed 15-minute session. Quality is judged
+against the review fixture in `scripts/wave4-analysis-fixture-probe.py`, not
+against "it loaded in 8 GB".
 
-Wave 4 needs GPU or CPU compute and object storage. The VPS provisioning work is
-currently with a third-party contractor and **is explicitly out of scope for this
-document**; nothing here should be read as a request to touch it.
+**Fixture probe (2026-09-16):** CPU `llama-cpp-python` 0.3.35 (`n_gpu_layers=0`,
+`n_ctx=4096`) against the split Q4_K_M pair on D:. Wall clock ~250 s on an
+11.8 GiB workstation. Raw JSON still contained both past-tense sites in **one**
+`PAST_SIMPLE` item (`go`→`went` and `meet`→`met` in the same sentence); neither
+verb disappeared. `discuss about` was rewritten to past `discussed`, which is
+the correct form in this yesterday-framed exchange. Domain `acceptCorrections`
+now splits multi-site error citations and requires a unique span; the fixture's
+expected lexical pair is `discuss about`→`discussed`. Teacher line untouched; no
+invented C1 `substantial`. Do not treat raw `passesCoreQuality` as "the model
+already emitted one correction per occurrence."
 
-What the contract does require is that Wave 4 code depend on an *interface*, not
-a host: a transcription engine port, an analysis engine port, and an
-S3-compatible storage port. Phase 2 is built and fully tested against fakes, so
-the hosting decision can be made later without touching pipeline logic. Wave 3
-proved this works — its M3 services closed against a fake provider adapter with
-vendor selection still open.
+### 4.3 Where this actually runs — locked
+
+Wave 4 compute is a **separate, modest CPU-only Iranian VPS**, decoupled from the
+LiveKit contractor's host, tarball, and `diagnostics/iran-webrtc/` work. Do not
+install models on the LiveKit machine. Hosting for object storage remains
+deferred behind the S3-compatible port (§5).
+
+Wave 4 code still depends on an *interface*, not a host: a transcription engine
+port, an analysis engine port, and an S3-compatible storage port. Phase 2 stays
+on fakes. The analysis VPS is where the pinned GGUF and Whisper weights live,
+not where pipeline logic is rewritten.
 
 ## 5. Storage — what already exists, and what does not
 
@@ -395,8 +412,9 @@ prompt would cost a rewrite.
 
 1. **Transcription:** Whisper `large-v3-turbo`, MIT-licensed weights, via
    `faster-whisper` on CUDA or `whisper.cpp` on CPU.
-2. **Analysis:** an Apache 2.0 open-weight instruct model, checkpoint pinned and
-   licence verified at adoption.
+2. **Analysis:** `Qwen/Qwen2.5-7B-Instruct` at **Q4_K_M**, official split GGUF
+   (`qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf` +
+   `qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf`, 4.36 GiB). Apache 2.0.
 3. **Storage:** S3-compatible; self-hosted MinIO or ArvanCloud; local filesystem
    adapter for development and tests.
 4. **Code:** depend on ports, never on a vendor SDK, so §4.3 stays deferrable.
@@ -463,39 +481,149 @@ passed up here — every provider in §3 is closed to us regardless of price, so
 there is no cheaper alternative on the table.
 
 **Recommended starting point under this constraint:** CPU-only,
-`whisper.cpp` with `large-v3-turbo` for transcription and a 7–8B Apache 2.0
-instruct model at `Q4_K_M` for analysis. Both sit behind the ports of §4.3, so
-moving to a GPU later is a configuration change rather than a rewrite.
+`whisper.cpp` with `large-v3-turbo` for transcription and the pinned
+`Qwen2.5-7B-Instruct` Q4_K_M GGUF for analysis. Both sit behind the ports of
+§4.3, so moving to a GPU later is a configuration change rather than a rewrite.
 
-## 7. Decisions this document cannot make
+## 7. Product decisions — locked 2026-09-13
 
-Escalated rather than assumed, per `AGENTS.md`.
+These were open. They are now product rules. Legal *wording* for consent copy is
+still pending counsel; the *framework* is not.
 
-1. **Recording consent and legal basis — blocking.** The pipeline's input is a
-   recording of a private conversation between two identified people, one of whom
-   may be a minor. Nothing in the product spec currently establishes consent to
-   record, consent to machine analysis, who may access the audio, or the
-   retention period. This is a product and legal decision and it gates the
-   *first* real recording, not the last. Phase 2 against synthetic audio does not
-   touch it, which is another reason to build against a fixture first.
-2. **Audio retention.** Is audio deleted after successful analysis, retained for
-   a fixed window for reprocessing, or kept indefinitely? This changes the
-   storage design and cost, and it interacts with (1).
-3. **Who sees AI output.** `docs/agents/roadmap.md` requires that "AI results must
-   remain distinguishable from teacher-reviewed results". Wave 4 will therefore
-   mark all output as AI-generated and expose nothing to students, but *whether a
-   teacher must approve a report before a student sees it* is a product decision
-   for the review-interface wave, not for this pipeline.
-4. **Compute host.** Deferred to §4.3, deliberately, and not to be resolved by
-   touching the contractor's VPS work.
-5. **Model pinning policy.** Model version is part of the output's meaning, so
-   changing it changes results for identical audio. The contract persists engine
-   and model identity per run; the *upgrade and re-analysis* policy is an
-   operational decision.
+1. **Recording consent — blocking, both participants.** No recording starts
+   without explicit opt-in from the student and the teacher. If the student is a
+   minor, a hard guardian-consent gate is required in addition to the student's
+   opt-in. Final legal wording is pending actual legal review, not this document.
+   Synthetic fixtures remain the only input until that wording and the capture
+   UI exist. This gates the first real recording.
+2. **Audio retention.** Raw audio is deleted **7–14 days after successful
+   analysis**. The exact integer is configuration
+   (`SESSION_AUDIO_RETENTION_DAYS`), must be in `[7, 14]`, and fails closed if
+   unset. Structured output (transcript, vocabulary, weak points, suggestions,
+   teacher feedback) is retained long-term for progress tracking. Failed or
+   abandoned runs do not start the deletion clock.
+3. **Student visibility is gated, not labelled.** AI output is technically
+   invisible to the student until a teacher has reviewed it. A provenance badge
+   is not enough. No student read path may return analysis rows until a durable
+   teacher-review mark exists. Wave 4 still does not build the student UI; the
+   authorization rule is already this gate.
+4. **Compute host.** A separate, modest CPU-only Iranian VPS. Decoupled from the
+   LiveKit contractor's machine, install path, and `diagnostics/iran-webrtc/`.
+5. **Model upgrades apply going forward only.** Changing the pinned GGUF,
+   Whisper ggml, or engine version does not automatically re-analyze old
+   sessions. Historical runs keep the engine and model identity they were
+   written with. Re-analysis is an explicit operator action, never a side
+   effect of a weight swap.
 
 ## 8. Re-verification
 
-Provider terms are a moving target (§1). Before any future decision to adopt a
-commercial provider, re-check that provider's supported-country list, ownership
-clause, and payment-country rule on that date, and record the result here rather
-than relying on this snapshot.
+Provider terms are a moving target (§1). Self-hosting is the adopted path, so
+this section applies only if a future decision re-opens a commercial provider:
+re-check that provider's supported-country list, ownership clause, and
+payment-country rule on that date, and record the result here rather than
+relying on the 2026-09-12 snapshot.
+
+## 9. Weight download and transfer
+
+The Iranian analysis VPS cannot be assumed to reach Hugging Face, GitHub, or
+any other foreign registry. This is the same constraint Wave 3 already solved
+for LiveKit: **download on a reachable workstation, then SCP**. LiveKit's
+installer states it in
+`diagnostics/iran-webrtc/provision-host.sh`:
+
+```text
+# Host cannot reach GitHub; download on Windows via gh-proxy then scp:
+#   curl.exe -L --fail -o livekit_1.13.6_linux_amd64.tar.gz "..."
+#   scp -o BatchMode=yes livekit_1.13.6_linux_amd64.tar.gz provision-host.sh takineo-livekit:~/livekit-provision/
+```
+
+Wave 4 copies that pattern, sized for **gigabytes**, not a ~50 MB tarball.
+
+### 9.1 What is transferred
+
+| Artifact | Source | Bytes on disk | Lands on analysis VPS |
+|---|---|---|---|
+| Analysis GGUF shard 1 | `Qwen/Qwen2.5-7B-Instruct-GGUF` / `qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf` | 3.72 GiB | `/var/lib/takineo/models/analysis/` |
+| Analysis GGUF shard 2 | same repo / `qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf` | 0.64 GiB | same directory |
+| Whisper ggml (fp16) | `ggerganov/whisper.cpp` / `ggml-large-v3-turbo.bin` | 1.51 GiB | `/var/lib/takineo/models/transcription/` |
+| Whisper ggml (optional CPU squeeze) | `ggml-large-v3-turbo-q5_0.bin` | 0.53 GiB | same directory, only if RAM is tighter than planned |
+
+Do not SCP Hugging Face caches, Python virtualenvs, or the git worktree. Do not
+place weights on the LiveKit host. Do not commit weights.
+
+### 9.2 Workstation download (Windows)
+
+C: on the current workstation is too small (~6 GB free). Use **D:**.
+
+```text
+mkdir D:\takineo-models\qwen2.5-7b-instruct-q4_k_m
+hf download Qwen/Qwen2.5-7B-Instruct-GGUF --include "qwen2.5-7b-instruct-q4_k_m*" --local-dir D:\takineo-models\qwen2.5-7b-instruct-q4_k_m
+
+mkdir D:\takineo-models\whisper-large-v3-turbo
+hf download ggerganov/whisper.cpp --include "ggml-large-v3-turbo.bin" --local-dir D:\takineo-models\whisper-large-v3-turbo
+```
+
+If Hugging Face is itself blocked from the workstation, fetch via the same
+class of reachable proxy already used for the LiveKit tarball, then keep the
+files on D: as the local mirror. The analysis VPS still never talks to the
+registry.
+
+**2026-09-13 workstation evidence:** this Windows box can read Hugging Face
+*metadata* (`/api/models/...` returned 200) and cannot pull the GGUF *blob*
+without a reachable path to `us.aws.cdn.hf.co`. `hf download` sat at 0 bytes;
+`HF_ENDPOINT=https://hf-mirror.com` 308s back to official Hugging Face. Do not
+treat "the API page loaded" as "the weights can be fetched from Iran."
+
+**2026-09-16:** both analysis shards are on
+`D:\takineo-models\qwen2.5-7b-instruct-q4_k_m\`. `hf` still stalled at 0 bytes
+through Windscribe; resumable `curl.exe -4 -L --http1.1` against the Hub
+`/resolve/` URL completed the pair. SHA-256 (workstation, travel with SCP):
+
+| File | Bytes | SHA-256 |
+|---|---|---|
+| `qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf` | 3,993,201,344 | `dfce12e3862a5283ccfb88221b48480e58745165de856439950d0f22590580db` |
+| `qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf` | 689,872,288 | `539cf93f78e887edea1c04e2d7d8cdaca9d01dae9c9025bcb8accbe29df3d72a` |
+| `ggml-large-v3-turbo.bin` | 1,624,555,275 | `1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69` |
+
+Whisper landed at `D:\takineo-models\whisper-large-v3-turbo\`. Check these hashes
+on the analysis host before pointing `llama.cpp` or `whisper.cpp` at the files.
+
+### 9.3 SCP onto the analysis host
+
+The SSH alias is assigned when the VPS exists. Until then the name
+`takineo-analysis` is a placeholder, parallel to `takineo-livekit`. Resume
+matters: a 4.36 GiB copy over a domestic uplink is not a one-shot `scp` of a
+deb.
+
+```text
+ssh takineo-analysis "sudo mkdir -p /var/lib/takineo/models/analysis /var/lib/takineo/models/transcription && sudo chown -R ${USER}:${USER} /var/lib/takineo"
+
+scp -o BatchMode=yes -C D:\takineo-models\qwen2.5-7b-instruct-q4_k_m\qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf takineo-analysis:/var/lib/takineo/models/analysis/
+scp -o BatchMode=yes -C D:\takineo-models\qwen2.5-7b-instruct-q4_k_m\qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf takineo-analysis:/var/lib/takineo/models/analysis/
+scp -o BatchMode=yes -C D:\takineo-models\whisper-large-v3-turbo\ggml-large-v3-turbo.bin takineo-analysis:/var/lib/takineo/models/transcription/
+```
+
+If the link drops, finish with `rsync -avP` or `scp -C` against the same
+destination; do not restart a completed shard. After transfer, `sha256sum`
+must match the workstation hashes. `llama.cpp` loads shard 1 and expects shard
+2 beside it; do not rename the files.
+
+### 9.4 Storage the target host needs
+
+These are weights plus working room, not the application disk.
+
+| Use | Size |
+|---|---|
+| Analysis GGUF pair | 4.36 GiB |
+| Whisper `large-v3-turbo` ggml | 1.51 GiB |
+| Peak RAM while analyzing (model + KV + OS) | ~5.5–6.5 GiB of an **8 GiB** machine; do not run Whisper and the LLM at once |
+| Scratch for one 15-minute dual-track WAV pair | tens of MB; keep a few GB for overlapping jobs |
+| Logs, engines, OS | ~10 GiB |
+
+**Minimum disk for the analysis VPS: 40 GiB.** That holds both models, a
+future replacement GGUF sitting next to the live one during a forward-only
+upgrade, a handful of not-yet-deleted audio objects (7–14 day window), and OS
+headroom. **8 GiB RAM is the floor** and requires sequential transcribe-then-
+analyze. 12 GiB RAM is the comfortable floor if anything else shares the box.
+
+Do not provision this disk on the LiveKit VPS.

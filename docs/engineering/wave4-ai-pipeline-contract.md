@@ -6,8 +6,9 @@
 **Upstream handoff:** `docs/engineering/wave2-domain-contract.md` §8, §17;
 `docs/engineering/wave3-live-session-contract.md` §1, §2, §11
 **Provider evaluation:** `docs/engineering/wave4-ai-provider-evaluation.md`
-**Revision:** v2 — incorporates the integration lead's product review of
-2026-09-13. Supersedes v1's single-artifact input and single `origin` flag.
+**Revision:** v3 — locks the 2026-09-13 §7 product decisions, pins
+`Qwen2.5-7B-Instruct` Q4_K_M, and records the download-then-SCP weight path.
+Supersedes v2 only for those previously open decisions.
 **M1 status:** **APPROVED IN SUBSTANCE — implementation authorized.**
 
 This is the canonical Wave 4 contract. It defines the pipeline that turns a
@@ -266,6 +267,7 @@ LOW_TRANSCRIPT_CONFIDENCE    mean student confidence below threshold
 STUDENT_SPEECH_MINIMAL       too little student speech for reliable analysis
 TRUNCATED_TRANSCRIPT         engine returned less than the audio duration
 STUDENT_LEVEL_UNKNOWN        no declared level and no reliable estimate (§7.4)
+OVERLAPPING_ERROR_CITATIONS  two error corrections claimed the same span and disagreed
 ```
 
 ### 4.5 Frozen input decisions
@@ -307,10 +309,11 @@ policy in one place.
 
 ### 4.7 Synthetic input for development
 
-No production recordings exist, and the consent basis for real recordings is an
-unresolved product decision (provider evaluation §7.1). Wave 4 is therefore built
-and tested entirely against synthetic input, reusing the pattern that closed
-Wave 3 M3 against a fake provider adapter.
+No production recordings exist until both-participant opt-in — and a hard
+guardian-consent gate for minor students — is captured. Final legal wording is
+pending counsel (provider evaluation §7.1). Wave 4 is therefore still built and
+tested against synthetic input, reusing the pattern that closed Wave 3 M3
+against a fake provider adapter.
 
 Required fixtures:
 
@@ -336,10 +339,11 @@ STUDENT  We discuss about our project.
 
 Expected derived output for that fixture: two `GRAMMAR_ERROR` corrections
 (`go` → `went`, `meet` → `met`), one `LEXICAL_ERROR` correction
-(`discuss about` → `discuss`), and — under a minimum-occurrence threshold of 2 —
-one `GRAMMAR`/`PAST_SIMPLE` weak point and no preposition weak point from a
-single instance. That last expectation is the point of the fixture: it proves
-§9.2 suppresses singleton patterns.
+(`discuss about` → `discussed` — the exchange is about yesterday, so the
+collocation fix is the past form, not present `discuss`), and — under a
+minimum-occurrence threshold of 2 — one `GRAMMAR`/`PAST_SIMPLE` weak point and
+no preposition weak point from a single instance. That last expectation is the
+point of the fixture: it proves §9.2 suppresses singleton patterns.
 
 The whole pipeline must be provable end-to-end with no network, no GPU, no
 provider account, and no live session. That is M3's acceptance bar.
@@ -447,6 +451,18 @@ Frozen rules:
 - A correction with `originalText === correctedText` is invalid and rejected. It
   is the signature of a model producing output because it was asked to, not
   because it found something.
+- **Error corrections must cite exactly one distinct occurrence.**
+  `GRAMMAR_ERROR` and `LEXICAL_ERROR` citations are split when `originalText` vs
+  `correctedText` contains more than one contiguous edit (the Qwen probe's
+  merged `go`+`meet` sentence), and rejected when the remaining citation cannot
+  be uniquely located in the student segment. `NATURALNESS` and
+  `OPTIONAL_IMPROVEMENT` are not split; they do not feed weak-point counts.
+  This is enforced in `acceptCorrections`, the same way unknown subtypes map to
+  `OTHER` and CEFR alternatives are filtered in code rather than by prompt
+  wording. Identical repeats of the same span are dropped as duplicates.
+  A later error that occupies the same span but disagrees on type, subtype, or
+  corrected text is also dropped (first citation wins) and records the
+  `OVERLAPPING_ERROR_CITATIONS` degradation so the conflict is visible.
 - **Corrections may only target `STUDENT` segments.** Correcting the teacher is
   out of scope and would be a product defect; per-role input (§4.1) makes this
   trivially checkable, and §16 asserts it.
@@ -916,9 +932,11 @@ Rules:
 - storage credentials are server-only, never `NEXT_PUBLIC_*`;
 - `contentSha256` is verified before bytes reach an engine; a mismatch fails the
   run as `AUDIO_UNREADABLE` rather than analyzing unverified input;
-- retention and deletion policy is an **open product decision** (provider
-  evaluation §7.2). The port exposes `delete` so the policy is implementable
-  without redesign; Wave 4 does not invent the schedule.
+- raw audio is deleted 7–14 days after a **successful** analysis run
+  (provider evaluation §7.2). `SESSION_AUDIO_RETENTION_DAYS` must be an
+  integer in `[7, 14]` and fails closed if unset. Structured output stays.
+  The port already exposes `delete`; the scheduler is a later job, not a
+  redesign.
 
 ### 12.3 Where output lives
 
@@ -1188,11 +1206,15 @@ on.
 - model output is untrusted input and is Zod-validated before persistence;
 - raw engine responses, SQL, storage keys, and internal failure details are never
   exposed through public errors;
-- **no student-facing surface is built in Wave 4.** Output is consumed by internal
-  and teacher-facing paths only. Whether teacher approval gates student visibility
-  is an open product decision, not a Wave 4 invention;
-- recording consent, legal basis, and retention are unresolved and **gate the
-  first real recording**, not this pipeline (provider evaluation §7.1, §7.2).
+- **no student-facing surface is built in Wave 4.** When a student read path
+  exists, it is **gated**: analysis rows are invisible to the student until a
+  durable teacher-review mark is present. Labelling AI output is not enough
+  (provider evaluation §7.3);
+- recording requires explicit opt-in from both participants, plus guardian
+  consent when the student is a minor. Legal copy is pending review. This
+  **gates the first real recording** (provider evaluation §7.1);
+- model upgrades apply to new runs only. Old sessions are never re-analyzed
+  as a side effect of swapping weights (provider evaluation §7.5).
 
 ## 16. Executable invariant matrix
 
@@ -1217,6 +1239,8 @@ on.
 | `NATURALNESS` and `OPTIONAL_IMPROVEMENT` excluded from counts and weak points | unit test |
 | `OPTIONAL_IMPROVEMENT` cap enforced | unit test |
 | correction with identical original and corrected text rejected | integration test |
+| **error corrections cite one occurrence; merged multi-site citations are split or rejected** | unit test |
+| **conflicting overlapping error citations keep the first and record `OVERLAPPING_ERROR_CITATIONS`** | unit test |
 | **corrections only target STUDENT segments** | unit test |
 | unknown subtype maps to registry `OTHER`, never persisted verbatim | unit test |
 | **`OTHER` corrections never receive a `weakPointKey` or form a weak point** | unit test |
@@ -1292,15 +1316,16 @@ provider.
 
 ### M4 — real engine adapters
 
-Only after the provider decision is locked. A `whisper.cpp` or `faster-whisper`
-transcription adapter and an Apache 2.0 open-weight analysis adapter behind the
-same ports, swapped in with no change to pipeline logic. Compute hosting is
-resolved here, not earlier.
+Self-hosting is locked. A `whisper.cpp` transcription adapter and a
+`llama.cpp` adapter for `Qwen/Qwen2.5-7B-Instruct` Q4_K_M behind the same
+ports, swapped in with no change to pipeline logic. Weights arrive by the
+download-then-SCP path in provider evaluation §9 onto a **separate CPU-only
+Iranian VPS**, not the LiveKit contractor host.
 
 ### M5 — teacher-facing surface
 
-Out of scope for this contract. Requires the open product decisions in provider
-evaluation §7.
+Out of scope for this contract. Student visibility is already gated (§15);
+the review UI that sets the durable mark is later work.
 
 ## 18. Out of scope for Wave 4
 
@@ -1320,8 +1345,10 @@ evaluation §7.
   `diagnostics/iran-webrtc/`;
 - Skyroom and any webservice API integration;
 - frontend visual design, the design system, and homepage content;
-- retention scheduling, consent capture, and the compute host — open decisions in
-  provider evaluation §7.
+- consent-copy legal review and the capture UI that enforces §7.1;
+- the audio-deletion scheduler that applies §7.2;
+- provisioning the analysis VPS itself — Wave 4 does not touch the LiveKit
+  contractor's host.
 
 ## 19. Prisma ownership and downstream communication
 
