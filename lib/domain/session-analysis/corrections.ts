@@ -1,5 +1,9 @@
+import {
+  expandErrorCorrectionCitations,
+  locateUniqueCitation,
+} from "./correction-spans";
 import { resolveWeakPointSubtype, weakPointKey } from "./weak-point-registry";
-import { segmentContainsSpan, normalizeComparableText } from "./transcript";
+import { normalizeComparableText } from "./transcript";
 import {
   isErrorCorrectionType,
   type AcceptedCorrection,
@@ -14,15 +18,32 @@ const TYPE_CATEGORY: Record<string, WeakPointCategory> = {
   LEXICAL_ERROR: "VOCABULARY",
 };
 
+function occupancyKey(
+  segmentIndex: number,
+  start: number,
+  end: number,
+): string {
+  return `${segmentIndex}:${start}:${end}`;
+}
+
 export function acceptCorrections(
   proposed: ProposedCorrection[],
   transcript: SessionTranscript,
   policy: SessionAnalysisPolicy,
-): AcceptedCorrection[] {
+): {
+  corrections: AcceptedCorrection[];
+  overlappingErrorCitations: boolean;
+} {
+  const expanded = expandErrorCorrectionCitations(
+    proposed,
+    (index) => transcript.segments[index]?.text,
+  );
   const accepted: AcceptedCorrection[] = [];
+  const usedErrorSpans = new Map<string, string>();
+  let overlappingErrorCitations = false;
   let optionalCount = 0;
 
-  for (const item of proposed) {
+  for (const item of expanded) {
     if (normalizeComparableText(item.originalText) === normalizeComparableText(item.correctedText)) {
       continue;
     }
@@ -32,7 +53,8 @@ export function acceptCorrections(
       continue;
     }
 
-    if (!segmentContainsSpan(segment.text, item.originalText)) {
+    const span = locateUniqueCitation(segment.text, item.originalText, item);
+    if (!span) {
       continue;
     }
 
@@ -50,11 +72,31 @@ export function acceptCorrections(
       optionalCount += 1;
     }
 
+    if (isErrorCorrectionType(item.type)) {
+      const key = occupancyKey(item.transcriptSegmentIndex, span.start, span.end);
+      const fingerprint = [
+        item.type,
+        item.subtype,
+        normalizeComparableText(item.originalText),
+        normalizeComparableText(item.correctedText),
+      ].join("\n");
+      const existing = usedErrorSpans.get(key);
+      if (existing) {
+        if (existing !== fingerprint) {
+          overlappingErrorCitations = true;
+        }
+        continue;
+      }
+      usedErrorSpans.set(key, fingerprint);
+    }
+
     const category = TYPE_CATEGORY[item.type] ?? "GRAMMAR";
     const subtype = resolveWeakPointSubtype(category, item.subtype);
 
     accepted.push({
       ...item,
+      charStart: span.start,
+      charEnd: span.end,
       subtype,
       rank: accepted.length + 1,
       provenance: "AI_OBSERVATION",
@@ -65,7 +107,10 @@ export function acceptCorrections(
     });
   }
 
-  return accepted;
+  return {
+    corrections: accepted,
+    overlappingErrorCitations,
+  };
 }
 
 export function errorCorrections(corrections: AcceptedCorrection[]): AcceptedCorrection[] {

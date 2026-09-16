@@ -510,6 +510,7 @@ enum SpeakingSessionAnalysisDegradation {
   STUDENT_SPEECH_MINIMAL
   TRUNCATED_TRANSCRIPT
   STUDENT_LEVEL_UNKNOWN
+  OVERLAPPING_ERROR_CITATIONS
 }
 
 /// Contract section 3: three kinds of statement, never blended.

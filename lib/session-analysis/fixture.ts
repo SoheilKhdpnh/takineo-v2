@@ -141,8 +141,9 @@ export function reviewFixtureEngineOutput(): AnalysisEngineOutput {
         type: "LEXICAL_ERROR",
         subtype: "PREPOSITION",
         originalText: "discuss about",
-        correctedText: "discuss",
-        explanation: '"Discuss" already includes the topic; the extra "about" is not used.',
+        correctedText: "discussed",
+        explanation:
+          'The exchange is about yesterday, and "discuss" already includes the topic: "discussed", not "discuss about".',
         transcriptSegmentIndex: 2,
         charStart: 3,
         charEnd: 16,

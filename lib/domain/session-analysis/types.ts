@@ -63,6 +63,7 @@ export const ANALYSIS_DEGRADATIONS = [
   "STUDENT_SPEECH_MINIMAL",
   "TRUNCATED_TRANSCRIPT",
   "STUDENT_LEVEL_UNKNOWN",
+  "OVERLAPPING_ERROR_CITATIONS",
 ] as const;
 export type AnalysisDegradation = (typeof ANALYSIS_DEGRADATIONS)[number];
 

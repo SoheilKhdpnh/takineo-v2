@@ -71,11 +71,15 @@ export function assembleSessionAnalysis(input: {
     degradations.push("STUDENT_LEVEL_UNKNOWN");
   }
 
-  const corrections = acceptCorrections(
+  const acceptedCorrections = acceptCorrections(
     input.engine.corrections,
     transcript,
     input.policy,
   );
+  if (acceptedCorrections.overlappingErrorCitations) {
+    degradations.push("OVERLAPPING_ERROR_CITATIONS");
+  }
+  const corrections = acceptedCorrections.corrections;
   const vocabulary = acceptVocabularyObservations(
     input.engine.vocabulary,
     transcript,
