@@ -42,11 +42,10 @@ function makeVideo(
   return {
     id: "video-1",
     revision: 3,
-    provider: "mux",
-    uploadId: "upload-1",
-    assetId: "asset-1",
+    provider: "aparat",
+    aparatUrl: "https://www.aparat.com/v/abcDE12",
+    aparatHash: "abcDE12",
     status: "READY_FOR_REVIEW",
-    durationSeconds: 90,
     submittedAt: new Date("2026-08-09T08:00:00.000Z"),
     reviewedAt: null,
     ...overrides,
@@ -74,8 +73,7 @@ function makeTeacherProfile(
     submittedProfileRevision: null,
     submittedVideoId: null,
     submittedVideoRevision: null,
-    submittedVideoUploadId: null,
-    submittedVideoAssetId: null,
+    submittedAparatHash: null,
 
     introVideo: makeVideo(),
 
@@ -161,11 +159,9 @@ describe("teacher application submission", () => {
       is: expect.objectContaining({
         id: "video-1",
         revision: 3,
-        provider: "mux",
-        uploadId: "upload-1",
-        assetId: "asset-1",
+        provider: "aparat",
+        aparatHash: "abcDE12",
         status: "READY_FOR_REVIEW",
-        durationSeconds: 90,
       }),
     });
 
@@ -178,9 +174,16 @@ describe("teacher application submission", () => {
         submittedProfileRevision: 4,
         submittedVideoId: "video-1",
         submittedVideoRevision: 3,
-        submittedVideoUploadId: "upload-1",
-        submittedVideoAssetId: "asset-1",
+        submittedAparatHash: "abcDE12",
       }),
+    );
+
+    expect(mocks.runTransaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      {
+        maxWait: 10_000,
+        timeout: 30_000,
+      },
     );
 
     expect(update.data.applicationSubmittedAt).toBeInstanceOf(
@@ -294,20 +297,9 @@ describe("teacher application submission", () => {
 
   it.each([
     ["wrong provider", { provider: "youtube" }],
-    ["empty upload ID", { uploadId: "" }],
-    ["whitespace upload ID", { uploadId: "upload 1" }],
-    ["empty asset ID", { assetId: "" }],
-    ["whitespace asset ID", { assetId: "asset 1" }],
-    [
-      "matching upload and asset IDs",
-      {
-        uploadId: "same-id",
-        assetId: "same-id",
-      },
-    ],
-    ["missing duration", { durationSeconds: null }],
-    ["duration below 60", { durationSeconds: 59 }],
-    ["duration above 120", { durationSeconds: 121 }],
+    ["empty hash", { aparatHash: "" }],
+    ["whitespace hash", { aparatHash: "abc DE" }],
+    ["missing url", { aparatUrl: null }],
     ["UPLOAD_PENDING status", { status: "UPLOAD_PENDING" }],
     ["PROCESSING status", { status: "PROCESSING" }],
     ["REJECTED status", { status: "REJECTED" }],
@@ -334,26 +326,15 @@ describe("teacher application submission", () => {
     },
   );
 
-  it.each([60, 120])(
-    "accepts boundary duration %s seconds",
-    async (durationSeconds) => {
-      mocks.userFindUnique.mockResolvedValue(
-        makeUser({
-          introVideo: makeVideo({
-            durationSeconds,
-          }),
-        }),
-      );
+  it("accepts a valid Aparat video that is ready for review", async () => {
+    mocks.userFindUnique.mockResolvedValue(makeUser());
 
-      await expect(
-        submitTeacherApplication("teacher-user"),
-      ).resolves.toBeDefined();
+    await expect(
+      submitTeacherApplication("teacher-user"),
+    ).resolves.toBeDefined();
 
-      expect(
-        mocks.teacherProfileUpdateMany,
-      ).toHaveBeenCalledTimes(1);
-    },
-  );
+    expect(mocks.teacherProfileUpdateMany).toHaveBeenCalledTimes(1);
+  });
 
   it("rejects an inactive account before submission", async () => {
     mocks.userFindUnique.mockResolvedValue(
@@ -412,12 +393,10 @@ describe("teacher application submission", () => {
   it("does not expose provider identifiers in the applicant DTO", async () => {
     mocks.userFindUnique.mockResolvedValue(
       makeUser({
-        submittedVideoUploadId: "private-submitted-upload",
-        submittedVideoAssetId: "private-submitted-asset",
+        submittedAparatHash: "private-submitted-hash",
         introVideo: makeVideo({
-          provider: "mux",
-          uploadId: "private-upload",
-          assetId: "private-asset",
+          provider: "aparat",
+          aparatHash: "private-hash",
         }),
       }),
     );
@@ -428,11 +407,7 @@ describe("teacher application submission", () => {
       );
 
     expect(result).not.toHaveProperty(
-      "submittedVideoUploadId",
-    );
-
-    expect(result).not.toHaveProperty(
-      "submittedVideoAssetId",
+      "submittedAparatHash",
     );
 
     expect(result.introVideo).not.toHaveProperty(
@@ -440,18 +415,14 @@ describe("teacher application submission", () => {
     );
 
     expect(result.introVideo).not.toHaveProperty(
-      "uploadId",
-    );
-
-    expect(result.introVideo).not.toHaveProperty(
-      "assetId",
+      "aparatHash",
     );
 
     expect(result.introVideo).toEqual(
       expect.objectContaining({
         id: "video-1",
         revision: 3,
-        durationSeconds: 90,
+        aparatUrl: "https://www.aparat.com/v/abcDE12",
       }),
     );
   });

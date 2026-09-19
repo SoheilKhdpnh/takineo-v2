@@ -84,7 +84,7 @@ It does not automatically create a public teacher.
 An applicant must:
 
 1. Complete a professional teacher profile.
-2. Upload a valid introduction video.
+2. Record an introduction on Aparat, say the Talkinu verification phrase plus the assigned code, and submit the public Aparat link.
 3. Submit the application.
 4. Pass administrative review.
 
@@ -177,15 +177,18 @@ Help students understand the teacher's personality, communication style, spoken 
 
 Requirements:
 
-- 60–120 seconds
+- 60–120 seconds is product guidance for applicants and reviewers, not a technical gate
 - one active introduction-video record per teacher profile
-- processed duration is validated server-side
-- must pass review before becoming publicly usable
+- the applicant submits a validated `aparat.com` URL, not an uploaded file
+- a short verification code is generated for the application; the applicant must say “This video is recorded for the Talkinu team” plus that code
+- must pass review before the teacher can appear on Talkinu
 - replacement may require a new review
-- pending administrative review uses signed/private playback
-- approved public playback uses a separate identifier and revocation lifecycle
+- review uses Aparat’s public embed; Talkinu does not host or revoke the underlying video
+- approval controls Talkinu visibility only
 
-Video bytes are not stored in PostgreSQL.
+Video bytes are not stored in PostgreSQL. Aparat links are public on submission.
+
+Mux was retired after Terms §13.7 matched the same OFAC restricted-country warranty already found for other U.S. vendors. See `docs/engineering/vendor-eligibility.md` and `docs/teacher-intro-video.md`.
 
 The binding Wave 1 review behavior is defined in
 [`admin-review-contract.md`](../engineering/admin-review-contract.md).

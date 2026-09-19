@@ -33,8 +33,7 @@ export type AdminFixtureAdministrator = AdminFixtureUser & {
 
 export type AdminReviewableTeacherFixture = AdminFixtureTeacher & {
   introVideoId: string;
-  uploadId: string;
-  assetId: string;
+  aparatHash: string;
   reviewCycle: number;
   profileRevision: number;
   videoRevision: number;
@@ -136,17 +135,6 @@ export class AdminServiceFixtures {
     const client = this.requireClient();
 
     // Preserve foreign-key cleanup order for every prefix-scoped fixture set.
-    await client.query(
-      `DELETE FROM "mux_playback_reconciliation"
-       WHERE "introVideoId" IN (
-         SELECT v."id"
-         FROM "teacher_intro_video" v
-         JOIN "teacher_profile" p ON p."id" = v."teacherProfileId"
-         WHERE left(p."userId", length($1)) = $1
-       )`,
-      [this.prefix],
-    );
-
     await this.cleanupImmutableAuditEvents();
 
     await client.query(
@@ -255,8 +243,7 @@ export class AdminServiceFixtures {
     });
     const teacherProfileId = this.id(`${input.key}_profile`);
     const introVideoId = this.id(`${input.key}_video`);
-    const uploadId = this.id(`${input.key}_upload`);
-    const assetId = this.id(`${input.key}_asset`);
+    const aparatHash = `${input.key}hash`.replace(/[^A-Za-z0-9]/g, "").slice(0, 12) || "aparatHash1";
     const reviewCycle = input.reviewCycle ?? 2;
     const profileRevision = input.profileRevision ?? 3;
     const videoRevision = input.videoRevision ?? 4;
@@ -266,8 +253,8 @@ export class AdminServiceFixtures {
          "id", "userId", "headline", "bio", "profileCompletedAt",
          "applicationStatus", "applicationSubmittedAt", "reviewCycle",
          "profileRevision", "submittedProfileRevision", "submittedVideoId",
-         "submittedVideoRevision", "submittedVideoUploadId",
-         "submittedVideoAssetId", "createdAt", "updatedAt"
+         "submittedVideoRevision", "submittedAparatHash", "videoVerificationCode",
+         "createdAt", "updatedAt"
        ) VALUES (
          $1, $2, $3, $4, CURRENT_TIMESTAMP,
          'PENDING_REVIEW', CURRENT_TIMESTAMP, $5,
@@ -282,29 +269,34 @@ export class AdminServiceFixtures {
         profileRevision,
         introVideoId,
         videoRevision,
-        uploadId,
-        assetId,
+        aparatHash,
+        "AB12C",
       ],
     );
 
     await this.requireClient().query(
       `INSERT INTO "teacher_intro_video" (
-         "id", "teacherProfileId", "provider", "uploadId", "assetId",
-         "revision", "status", "durationSeconds", "submittedAt",
+         "id", "teacherProfileId", "provider", "aparatUrl", "aparatHash",
+         "revision", "status", "submittedAt",
          "createdAt", "updatedAt"
        ) VALUES (
-         $1, $2, 'mux', $3, $4, $5, 'READY_FOR_REVIEW', 90,
+         $1, $2, 'aparat', $3, $4, $5, 'READY_FOR_REVIEW',
          CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
        )`,
-      [introVideoId, teacherProfileId, uploadId, assetId, videoRevision],
+      [
+        introVideoId,
+        teacherProfileId,
+        `https://www.aparat.com/v/${aparatHash}`,
+        aparatHash,
+        videoRevision,
+      ],
     );
 
     return {
       ...user,
       teacherProfileId,
       introVideoId,
-      uploadId,
-      assetId,
+      aparatHash,
       reviewCycle,
       profileRevision,
       videoRevision,

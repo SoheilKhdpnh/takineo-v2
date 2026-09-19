@@ -5,7 +5,7 @@ import { e2ePersonas, signInThroughUi } from "@/tests/e2e/support/personas";
 const rejectionReason =
   "Please clarify the teaching methodology and learner outcomes.";
 
-test("reviewer opens a pending application, loads private playback, and records profile rejection", async ({
+test("reviewer opens a pending application, watches the Aparat video, and records profile rejection", async ({
   page,
 }) => {
   await signInThroughUi(page, e2ePersonas.reviewer, "en");
@@ -25,28 +25,11 @@ test("reviewer opens a pending application, loads private playback, and records 
     }),
   ).toBeVisible();
 
-  await page.route(
-    "**/api/admin/teacher-applications/*/playback",
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          playback: {
-            playbackId: "e2e-private-playback",
-            token: "e2e-signed-token",
-            expiresInSeconds: 300,
-          },
-        }),
-      });
-    },
-  );
-
-  await page
-    .getByRole("button", { name: "Load private playback" })
-    .click();
   await expect(
-    page.getByTitle("Private teacher introduction video"),
+    page.getByText("Expected spoken code"),
+  ).toBeVisible();
+  await expect(
+    page.getByTitle("Teacher introduction video"),
   ).toBeVisible();
 
   await page

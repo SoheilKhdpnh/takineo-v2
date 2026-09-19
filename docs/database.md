@@ -56,6 +56,11 @@ Client auth configuration may use intentionally public application-origin
 configuration where required by the application, but database and auth secrets
 must never use `NEXT_PUBLIC_*`.
 
+On Netlify, `BETTER_AUTH_URL` falls back to the platform-provided
+`URL` (or `DEPLOY_PRIME_URL` for deploy previews/branch deploys) when
+not set explicitly, so it only needs to be configured manually for
+local development or to override the detected domain.
+
 Database integration tests must use only:
 
 - `TEST_DATABASE_URL`

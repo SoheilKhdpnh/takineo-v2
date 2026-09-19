@@ -3,6 +3,21 @@
 @theme inline {
   --font-sans: var(--font-interface);
   --font-display: var(--font-heading);
+  --color-ink: #14221f;
+  --color-ink-muted: #4d5f59;
+  --color-canvas: #f4f0e8;
+  --color-surface: #fffdf8;
+  --color-primary: #0f6e66;
+  --color-primary-hover: #0c5852;
+  --color-mint: #dceee9;
+  --color-accent: #c96b2f;
+  --color-accent-soft: #f8e4d2;
+  --color-line: #e6ddd0;
+  --color-danger: #9f2d2d;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
 }
 
 :root {
@@ -44,7 +59,7 @@ html[data-locale="fa"] {
 
 html {
   min-height: 100%;
-  background: #fafafa;
+  background: var(--color-canvas);
   text-rendering: optimizeLegibility;
 }
 
@@ -55,8 +70,8 @@ body {
   font-size: 16px;
   font-weight: 420;
   line-height: 1.7;
-  color: #18181b;
-  background: #fafafa;
+  color: var(--color-ink);
+  background: var(--color-canvas);
 }
 
 h1,
@@ -114,6 +129,21 @@ html[dir="ltr"] body {
 }
 
 ::selection {
-  color: #ffffff;
-  background: #18181b;
+  color: #fffdf8;
+  background: var(--color-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

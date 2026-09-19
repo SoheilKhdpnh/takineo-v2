@@ -54,7 +54,7 @@ export default async function TeacherVideoPage({
   });
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12 sm:px-6">
+    <main className="px-4 py-12 sm:px-6">
       <section className="mx-auto w-full max-w-3xl">
         <header className="mb-8">
           <p className="text-sm font-semibold text-zinc-500">
@@ -74,17 +74,20 @@ export default async function TeacherVideoPage({
           applicationStatus={
             state.applicationStatus
           }
-          canUpload={state.canUpload}
+          canEdit={state.canEdit}
+          verificationCode={
+            state.verificationCode
+          }
           initialVideo={{
             status:
               state.introVideo?.status ??
               null,
-
-            durationSeconds:
-              state.introVideo
-                ?.durationSeconds ??
+            aparatUrl:
+              state.introVideo?.aparatUrl ??
               null,
-
+            embedUrl:
+              state.introVideo?.embedUrl ??
+              null,
             rejectionReason:
               state.introVideo
                 ?.rejectionReason ??

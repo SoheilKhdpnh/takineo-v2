@@ -26,7 +26,6 @@ export const userAccessSelect = {
         select: {
           id: true,
           status: true,
-        durationSeconds: true,
         },
       },
     },

@@ -1,13 +1,14 @@
 "use client";
 
-import {
-  useTranslations,
-} from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   useState,
 } from "react";
 
+import { buttonClassName } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { TalkinuMark } from "@/components/ui/TalkinuMark";
 import {
   Link,
   useRouter,
@@ -19,45 +20,28 @@ export const dynamic = "force-dynamic";
 export default function SignUpPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
+  const brand = useTranslations("Common");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [error, setError] =
-    useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
-
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setError(null);
     setIsSubmitting(true);
 
-    const formData = new FormData(
-      event.currentTarget,
-    );
-
-    const name = String(
-      formData.get("name") ?? "",
-    ).trim();
-
-    const email = String(
-      formData.get("email") ?? "",
-    )
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "")
       .trim()
       .toLowerCase();
-
-    const password = String(
-      formData.get("password") ?? "",
-    );
+    const password = String(formData.get("password") ?? "");
 
     try {
-      const result =
-        await authClient.signUp.email({
-          name,
-          email,
-          password,
-        });
+      const result = await authClient.signUp.email({
+        name,
+        email,
+        password,
+      });
 
       if (result.error) {
         setError(t("signUpError"));
@@ -74,31 +58,25 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12">
-      <section className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-            {t("signUpTitle")}
-          </h1>
+    <main className="flex justify-center px-4 py-12 sm:py-16">
+      <section className="w-full max-w-md rounded-lg border border-line bg-surface p-8 shadow-[0_18px_50px_-36px_rgba(20,34,31,0.35)]">
+        <TalkinuMark />
+        <p className="mt-4 text-sm font-semibold text-primary">
+          {brand("brand")}
+        </p>
+        <h1 className="mt-2 text-3xl tracking-tight text-ink">
+          {t("signUpTitle")}
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-ink-muted">
+          {t("signUpDescription")}
+        </p>
 
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            {t("signUpDescription")}
-          </p>
-        </div>
-
-        <form
-          className="space-y-5"
-          onSubmit={handleSubmit}
-        >
+        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label
-              htmlFor="name"
-              className="text-sm font-medium text-zinc-900"
-            >
+            <label htmlFor="name" className="text-sm font-medium text-ink">
               {t("name")}
             </label>
-
-            <input
+            <Input
               id="name"
               name="name"
               type="text"
@@ -106,38 +84,29 @@ export default function SignUpPage() {
               required
               minLength={2}
               maxLength={80}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-zinc-950 outline-none transition focus:border-zinc-950"
             />
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-zinc-900"
-            >
+            <label htmlFor="email" className="text-sm font-medium text-ink">
               {t("email")}
             </label>
-
-            <input
+            <Input
               id="email"
               name="email"
               type="email"
               dir="ltr"
               autoComplete="email"
               required
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
+              className="text-left"
             />
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-zinc-900"
-            >
+            <label htmlFor="password" className="text-sm font-medium text-ink">
               {t("password")}
             </label>
-
-            <input
+            <Input
               id="password"
               name="password"
               type="password"
@@ -146,18 +115,15 @@ export default function SignUpPage() {
               required
               minLength={8}
               maxLength={128}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
+              className="text-left"
             />
-
-            <p className="text-xs text-zinc-500">
-              {t("passwordHint")}
-            </p>
+            <p className="text-xs text-ink-muted">{t("passwordHint")}</p>
           </div>
 
           {error ? (
             <p
               role="alert"
-              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+              className="rounded-md bg-red-50 px-3 py-2 text-sm text-danger"
             >
               {error}
             </p>
@@ -166,19 +132,19 @@ export default function SignUpPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className={buttonClassName({
+              className: "w-full",
+            })}
           >
-            {isSubmitting
-              ? t("creatingAccount")
-              : t("createAccount")}
+            {isSubmitting ? t("creatingAccount") : t("createAccount")}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-600">
+        <p className="mt-6 text-center text-sm text-ink-muted">
           {t("alreadyHaveAccount")}{" "}
           <Link
             href="/sign-in"
-            className="font-medium text-zinc-950 underline-offset-4 hover:underline"
+            className="font-semibold text-primary underline-offset-4 hover:underline"
           >
             {t("signIn")}
           </Link>

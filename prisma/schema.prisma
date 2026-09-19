@@ -47,18 +47,6 @@ enum ReviewRejectionTarget {
   BOTH
 }
 
-enum PlaybackDesiredState {
-  ENABLED
-  REVOKED
-}
-
-enum PlaybackReconciliationStatus {
-  PENDING
-  PROCESSING
-  SUCCEEDED
-  FAILED
-}
-
 enum Weekday {
   SATURDAY
   SUNDAY
@@ -253,8 +241,8 @@ model TeacherProfile {
   submittedProfileRevision     Int?
   submittedVideoId             String?
   submittedVideoRevision       Int?
-  submittedVideoUploadId       String?
-  submittedVideoAssetId        String?
+  submittedAparatHash          String?
+  videoVerificationCode        String?
   legacyApplicationStatus      TeacherApplicationStatus?
   legacyApplicationSubmittedAt DateTime?
   legacyApplicationReviewedAt  DateTime?
@@ -286,11 +274,9 @@ model PublicTeacherDiscoveryEligibility {
 model TeacherIntroVideo {
   id                         String                   @id @default(cuid())
   teacherProfileId           String                   @unique
-  provider                   String                   @default("mux")
-  uploadId                   String?                  @unique
-  assetId                    String?                  @unique
-  reviewPlaybackId           String?                  @unique
-  publicPlaybackId           String?                  @unique
+  provider                   String                   @default("aparat")
+  aparatUrl                  String?
+  aparatHash                 String?
   revision                   Int                      @default(1)
   legacyStatus               TeacherIntroVideoStatus?
   legacyRejectionReason      String?
@@ -298,16 +284,14 @@ model TeacherIntroVideo {
   legacyReviewedAt           DateTime?
   legacyTrustMigrationReason String?
   status                     TeacherIntroVideoStatus  @default(UPLOAD_PENDING)
-  durationSeconds            Int?
   rejectionReason            String?
   submittedAt                DateTime?
   reviewedAt                 DateTime?
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
 
-  teacherProfile          TeacherProfile              @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
-  auditEvents             AdminAuditEvent[]
-  playbackReconciliations MuxPlaybackReconciliation[]
+  teacherProfile TeacherProfile   @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  auditEvents    AdminAuditEvent[]
 
   @@map("teacher_intro_video")
 }
@@ -351,32 +335,6 @@ model AdminAuditEvent {
   @@index([actorUserId, createdAt])
   @@index([action, createdAt])
   @@map("admin_audit_event")
-}
-
-model MuxPlaybackReconciliation {
-  id               String                       @id @default(cuid())
-  introVideoId     String
-  videoRevision    Int
-  assetId          String
-  playbackId       String?
-  desiredState     PlaybackDesiredState
-  intentGeneration Int                          @default(1)
-  status           PlaybackReconciliationStatus @default(PENDING)
-  attemptCount     Int                          @default(0)
-  nextAttemptAt    DateTime                     @default(now())
-  leaseToken       String?
-  leaseExpiresAt   DateTime?
-  lastErrorCode    String?
-  lastAttemptAt    DateTime?
-  createdAt        DateTime                     @default(now())
-  updatedAt        DateTime                     @updatedAt
-
-  introVideo TeacherIntroVideo @relation(fields: [introVideoId], references: [id], onDelete: Restrict)
-
-  @@unique([introVideoId, videoRevision])
-  @@index([status, nextAttemptAt])
-  @@index([leaseExpiresAt])
-  @@map("mux_playback_reconciliation")
 }
 
 model TeacherAvailabilityRule {

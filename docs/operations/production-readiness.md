@@ -41,8 +41,6 @@ Required:
 
 - stable domain errors and HTTP mappings
 - transactionally safe admin review and booking workflows
-- idempotent/retry-safe webhooks and provider cleanup
-- asynchronous work boundaries
 - controlled external-provider failures
 
 ## 3. Database and migrations
@@ -84,25 +82,21 @@ Status: WAVE 1 TRUST LIFECYCLE IMPLEMENTED / BROADER MEDIA STRATEGY PARTIAL
 
 Current:
 
-- direct-to-Mux teacher video foundation
-- signed Mux webhook handling
-- provider-sync fallback
-- signed/private admin review playback
-- separate approved public-playback lifecycle with reconciliation/revocation
-- scheduled reconciliation health monitoring boundary
+- Aparat-link teacher introduction-video submission
+- server-side `aparat.com` URL validation and canonical hash storage
+- spoken verification code generated per application
+- admin review via Aparat public embed plus explicit spoken-code confirmation
+- approval controls Talkinu visibility only
 
 Required:
 
-- production Mux environment isolation
-- secure production webhooks
-- signed/private admin review playback
-- separate approved public playback lifecycle
-- playback revocation and retry-safe provider cleanup
-- provider failure observability
-- retention rules
-- future speaking-recording/storage decision
+- vendor eligibility check before any new media provider is wired in
+- retention rules for stored Aparat URLs and verification codes
+- future speaking-recording/storage decision that is eligible for Iran/OFAC
 
-Pending/rejected videos must never become publicly playable.
+Aparat links are public as soon as the applicant publishes and submits them.
+Talkinu cannot keep a pending video private or revoke the underlying Aparat
+file. See `docs/teacher-intro-video.md`.
 
 ## 5. Authentication, account state, and permissions
 
@@ -213,14 +207,14 @@ Existing:
 - service authorization patterns
 - request-origin checks
 - validation
-- provider webhook signature verification
+- Aparat host validation for submitted introduction-video URLs
 
 Required:
 
 - admin privilege-escalation review
 - account-state bypass tests
 - complete authorization matrix
-- Mux review/public playback threat review
+- Aparat public-link and spoken-code review threat review
 - security headers
 - dependency/security review
 - sensitive logging review
@@ -229,8 +223,9 @@ Required:
 
 Current Wave 1 evidence additionally includes adversarial authorization/origin/
 logging/database-isolation tests, baseline browser security headers, and a
-Mux-aware production CSP in report-only mode. CSP enforcement remains pending
-deployed report review.
+Aparat-aware production CSP in report-only mode (`frame-src` includes
+`https://www.aparat.com`). CSP enforcement remains pending deployed report
+review.
 
 RLS is introduced only where a table-specific threat model shows meaningful
 defense in depth. Application authorization remains the primary current
@@ -243,10 +238,9 @@ Status: NOT YET REQUIRED FOR CORE FUNCTIONALITY
 Required strategy:
 
 - static asset CDN via hosting platform
-- public teacher discovery caching
+- public teacher discovery caching without treating Aparat as a Talkinu-hosted CDN
 - cache invalidation rules
 - no caching of private/session/admin-review data
-- media CDN behavior coordinated with Mux playback policy
 
 Caching must follow correctness, not precede it.
 

@@ -32,9 +32,6 @@ let AdminReviewConflictError: typeof import(
   "@/lib/errors/admin-errors"
 ).AdminReviewConflictError;
 
-const reconcileMuxPlayback = vi.fn(async () => undefined);
-const cleanupMuxReviewPlayback = vi.fn(async () => undefined);
-
 type Seeded = {
   reviewer: Awaited<ReturnType<typeof fixtures.createAdministrator>>;
   superAdmin: Awaited<ReturnType<typeof fixtures.createAdministrator>>;
@@ -102,7 +99,7 @@ function prisma() {
 }
 
 async function loadState(target: AdminReviewableTeacherFixture) {
-  const [profile, video, audits, reconciliations] = await Promise.all([
+  const [profile, video, audits] = await Promise.all([
     prisma().teacherProfile.findUniqueOrThrow({
       where: { id: target.teacherProfileId },
       select: {
@@ -123,13 +120,9 @@ async function loadState(target: AdminReviewableTeacherFixture) {
       where: { teacherProfileId: target.teacherProfileId },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
-    prisma().muxPlaybackReconciliation.findMany({
-      where: { introVideoId: target.introVideoId },
-      orderBy: { createdAt: "asc" },
-    }),
   ]);
 
-  return { profile, video, audits, reconciliations };
+  return { profile, video, audits };
 }
 
 async function installAuditFailureTrigger(
@@ -174,21 +167,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
 
     vi.resetModules();
     vi.doMock("@/lib/db/prisma", () => ({ prisma: applicationPrisma }));
-    vi.doMock(
-      "@/lib/services/mux-playback-reconciliation.service",
-      async () => {
-        const actual = await vi.importActual<
-          typeof import("@/lib/services/mux-playback-reconciliation.service")
-        >("@/lib/services/mux-playback-reconciliation.service");
-        return {
-          ...actual,
-          reconcileMuxPlayback,
-        };
-      },
-    );
-    vi.doMock("@/lib/video/mux-review-playback", () => ({
-      cleanupMuxReviewPlayback,
-    }));
 
     const errors = await import("@/lib/errors/admin-errors");
     AdminReviewConflictError = errors.AdminReviewConflictError;
@@ -211,18 +189,16 @@ describe("Wave 1 administrative review mutation acceptance", () => {
         await fixtures.dispose();
       } finally {
         vi.doUnmock("@/lib/db/prisma");
-        vi.doUnmock("@/lib/services/mux-playback-reconciliation.service");
-        vi.doUnmock("@/lib/video/mux-review-playback");
         vi.resetModules();
       }
     }
   });
 
-  test("approval commits one state transition, one playback intent, and the complete review snapshot audit", async () => {
+  test("approval commits one state transition and the complete review snapshot audit", async () => {
     const result = await approveTeacherApplication(
       seeded.reviewer.userId,
       seeded.approve.teacherProfileId,
-      seeded.approve.guard,
+      { ...seeded.approve.guard, spokenCodeConfirmed: true },
     );
 
     expect(result.applicationStatus).toBe("APPROVED");
@@ -230,8 +206,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
     const state = await loadState(seeded.approve);
     expect(state.profile.applicationStatus).toBe("APPROVED");
     expect(state.video.status).toBe("APPROVED");
-    expect(state.reconciliations).toHaveLength(1);
-    expect(state.reconciliations[0]?.desiredState).toBe("ENABLED");
     expect(state.audits).toHaveLength(3);
     expect(state.audits.map((event) => event.action)).toEqual(
       expect.arrayContaining([
@@ -250,8 +224,7 @@ describe("Wave 1 administrative review mutation acceptance", () => {
         reviewCycle: seeded.approve.reviewCycle,
         profileRevision: seeded.approve.profileRevision,
         videoRevision: seeded.approve.videoRevision,
-        reviewedUploadId: seeded.approve.uploadId,
-        reviewedAssetId: seeded.approve.assetId,
+        reviewedAssetId: seeded.approve.aparatHash,
       });
     }
   });
@@ -278,7 +251,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       status: "APPROVED",
       rejectionReason: null,
     });
-    expect(state.reconciliations).toHaveLength(0);
     expect(state.audits).toHaveLength(3);
     expect(state.audits.map((event) => event.action)).toEqual(
       expect.arrayContaining([
@@ -317,8 +289,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       status: "REJECTED",
       rejectionReason: reason,
     });
-    expect(state.reconciliations).toHaveLength(1);
-    expect(state.reconciliations[0]?.desiredState).toBe("REVOKED");
     expect(state.audits).toHaveLength(2);
     expect(state.audits.map((event) => event.action)).toEqual(
       expect.arrayContaining(["VIDEO_REJECTED", "APPLICATION_REJECTED"]),
@@ -335,6 +305,7 @@ describe("Wave 1 administrative review mutation acceptance", () => {
         seeded.stale.teacherProfileId,
         {
           ...seeded.stale.guard,
+          spokenCodeConfirmed: true,
           profileRevision: seeded.stale.profileRevision - 1,
         },
       ),
@@ -344,7 +315,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
     expect(state.profile.applicationStatus).toBe("PENDING_REVIEW");
     expect(state.video.status).toBe("READY_FOR_REVIEW");
     expect(state.audits).toHaveLength(0);
-    expect(state.reconciliations).toHaveLength(0);
   });
 
   test("two approval submissions produce exactly one committed decision and one conflict", async () => {
@@ -352,12 +322,12 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       approveTeacherApplication(
         seeded.reviewer.userId,
         seeded.duplicate.teacherProfileId,
-        seeded.duplicate.guard,
+        { ...seeded.duplicate.guard, spokenCodeConfirmed: true },
       ),
       approveTeacherApplication(
         seeded.reviewer.userId,
         seeded.duplicate.teacherProfileId,
-        seeded.duplicate.guard,
+        { ...seeded.duplicate.guard, spokenCodeConfirmed: true },
       ),
     ]);
 
@@ -372,7 +342,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
     expect(state.profile.applicationStatus).toBe("APPROVED");
     expect(state.video.status).toBe("APPROVED");
     expect(state.audits).toHaveLength(3);
-    expect(state.reconciliations).toHaveLength(1);
   });
 
   test("an inactive target account causes approval conflict and rolls back the earlier video update", async () => {
@@ -385,7 +354,7 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       approveTeacherApplication(
         seeded.reviewer.userId,
         seeded.inactive.teacherProfileId,
-        seeded.inactive.guard,
+        { ...seeded.inactive.guard, spokenCodeConfirmed: true },
       ),
     ).rejects.toBeInstanceOf(AdminReviewConflictError);
 
@@ -393,7 +362,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
     expect(state.profile.applicationStatus).toBe("PENDING_REVIEW");
     expect(state.video.status).toBe("READY_FOR_REVIEW");
     expect(state.audits).toHaveLength(0);
-    expect(state.reconciliations).toHaveLength(0);
   });
 
   test("approval racing target-account suspension never commits an approved teacher with stale enabled playback", async () => {
@@ -401,7 +369,7 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       approveTeacherApplication(
         seeded.reviewer.userId,
         seeded.accountRace.teacherProfileId,
-        seeded.accountRace.guard,
+        { ...seeded.accountRace.guard, spokenCodeConfirmed: true },
       ),
       setAccountStatus(
         seeded.superAdmin.userId,
@@ -429,10 +397,7 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       loadState(seeded.accountRace),
     ]);
 
-    const latestReconciliation = state.reconciliations.at(-1) ?? null;
-
     if (user.accountStatus === "SUSPENDED") {
-      expect(latestReconciliation?.desiredState).toBe("REVOKED");
       expect(["PENDING_REVIEW", "APPROVED"]).toContain(
         state.profile.applicationStatus,
       );
@@ -445,7 +410,6 @@ describe("Wave 1 administrative review mutation acceptance", () => {
       expect(user.accountStatus).toBe("ACTIVE");
       expect(state.profile.applicationStatus).toBe("APPROVED");
       expect(state.video.status).toBe("APPROVED");
-      expect(latestReconciliation?.desiredState).toBe("ENABLED");
     }
   });
 
@@ -457,7 +421,7 @@ describe("Wave 1 administrative review mutation acceptance", () => {
         approveTeacherApplication(
           seeded.reviewer.userId,
           seeded.atomic.teacherProfileId,
-          seeded.atomic.guard,
+          { ...seeded.atomic.guard, spokenCodeConfirmed: true },
         ),
       ).rejects.toBeDefined();
     } finally {
@@ -468,14 +432,13 @@ describe("Wave 1 administrative review mutation acceptance", () => {
     expect(state.profile.applicationStatus).toBe("PENDING_REVIEW");
     expect(state.video.status).toBe("READY_FOR_REVIEW");
     expect(state.audits).toHaveLength(0);
-    expect(state.reconciliations).toHaveLength(0);
   });
 
   test("a moderation transition makes the old review decision incompatible and preserves only authoritative audits", async () => {
     await approveTeacherApplication(
       seeded.reviewer.userId,
       seeded.moderationConflict.teacherProfileId,
-      seeded.moderationConflict.guard,
+      { ...seeded.moderationConflict.guard, spokenCodeConfirmed: true },
     );
 
     await setTeacherSuspension(

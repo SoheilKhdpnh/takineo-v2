@@ -5,20 +5,18 @@ import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
 import { authClient } from "@/lib/auth/auth-client";
+import { Button } from "@/components/ui/Button";
 
 export function SignOutButton() {
   const router = useRouter();
   const t = useTranslations("SignOut");
-
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSignOut() {
     setIsSubmitting(true);
 
     try {
-      const result =
-        await authClient.signOut();
+      const result = await authClient.signOut();
 
       if (result.error) {
         setIsSubmitting(false);
@@ -33,15 +31,13 @@ export function SignOutButton() {
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="sm"
       disabled={isSubmitting}
-      onClick={handleSignOut}
-      className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+      onClick={() => void handleSignOut()}
     >
-      {isSubmitting
-        ? t("submitting")
-        : t("button")}
-    </button>
+      {isSubmitting ? t("submitting") : t("button")}
+    </Button>
   );
 }

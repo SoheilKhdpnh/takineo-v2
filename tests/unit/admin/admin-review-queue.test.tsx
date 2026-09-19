@@ -28,14 +28,12 @@ const copy = {
   submittedLabel: "Submitted",
   reviewCycleLabel: "Review cycle",
   videoLabel: "Video",
-  durationLabel: "Duration",
   accountLabel: "Account",
   snapshotLabel: "Application ID",
   snapshotReady: "Review data ready",
   snapshotIncomplete: "Needs attention",
   noSubmissionDate: "Unavailable",
   noVideo: "No submitted video",
-  noDuration: "Unavailable",
   accountActive: "Active",
   accountSuspended: "Suspended",
   accountDisabled: "Disabled",
@@ -66,7 +64,6 @@ const completeApplication: AdminQueueApplication = {
     id: "ck22345678901234567890123",
     revision: 4,
     status: "READY_FOR_REVIEW",
-    durationSeconds: 90,
   },
 };
 
@@ -87,7 +84,6 @@ describe("AdminReviewQueue", () => {
     expect(screen.getByText("teacher@example.com")).toBeInTheDocument();
     expect(screen.getByText("Review data ready")).toBeInTheDocument();
     expect(screen.getByText("Ready for review")).toBeInTheDocument();
-    expect(screen.getByText("1:30")).toBeInTheDocument();
     expect(screen.getByText("Aug 13, 2026, 1:30 PM")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open application" }),

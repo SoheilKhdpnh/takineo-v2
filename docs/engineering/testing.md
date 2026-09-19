@@ -94,11 +94,8 @@ As relevant to the implemented feature, test:
 - stale and duplicate mutations
 - concurrent incompatible review decisions
 - immutable audit behavior
-- duplicate webhook delivery
-- provider/internal identifier mismatch
-- provider-sync fallback behavior
-- Mux review-playback authorization and token exposure boundaries
-- public playback creation and revocation lifecycle
+- Aparat URL host validation and canonical hash parsing
+- spoken verification-code generation and approval gate
 - profile/video replacement races
 - localization catalog parity
 - Persian RTL and English LTR presentation
@@ -142,33 +139,19 @@ Agent D must test the implemented DTOs and invariants in
 - clean migration and full upgrade migration across every legacy application
   and video state/evidence combination
 - editable malformed-video normalization and successful replacement afterward
-- submission rejection for unsupported provider, blank/whitespace/noncanonical
-  or incoherent IDs, and missing/out-of-range authoritative duration
+- submission rejection for a non-Aparat host, unparseable hash, missing
+  verification code, or unsupported provider
 - preservation of legacy application/video status, notes/reasons, submitted
   timestamps, and reviewed timestamps for rejected, pending, approved,
   suspended, and downgraded rows
-- public-playback migration fixtures with unsupported provider, null/blank/
-  whitespace asset, malformed playback ID, and incoherent identities
-- complete rollback when any atomic migration guard raises
-- stale worker death immediately after Mux public playback create
-- stale worker death immediately after Mux public playback delete
-- provider drift repair for due `SUCCEEDED` ENABLED and REVOKED intents
-- duplicate public playback discovery and repair
-- forced manual replay of terminal intents and bounded due batches
-- scheduler/internal replay of terminal drift and internal-job authorization
-- exact truthful `succeeded`, `requeued`, `skipped`, and `failed` counts
-- expired lease recovery, intent-generation flips, worker concurrency, provider
-  failures, and final database-write conflicts
-- signed-token admin revocation/inactivity returning stable 403, plus concurrent
-  reject/replace target races
+- complete rollback when any atomic Wave 1 migration guard raises
+- historical Wave 1 Mux-era migration fixtures remain as intermediate
+  upgrade checks; current schema tests use Aparat fields
+- approval requiring `spokenCodeConfirmed: true` and showing the expected code
 - queue/detail admin authorization before validation or object lookup
-- playback with an absent body succeeding and `{}`, whitespace, JSON `null`, or
-  arbitrary fields returning `400 INVALID_REQUEST`
-- differing Mux asset ID within the same video revision and delayed/duplicate
-  webhook behavior
 - Prisma `P2034` serialization conflict mapping to stable HTTP 409
-- current-admin capabilities and applicant DTO provider-identifier privacy
+- current-admin capabilities and applicant DTO privacy
 - audit immutability for `UPDATE`, `DELETE`, and `TRUNCATE`
-- the complete existing teacher application, profile, upload, sync, webhook,
-  review, correction/resubmission, moderation, authorization, concurrency,
+- the complete existing teacher application, profile, Aparat-link, review,
+  correction/resubmission, moderation, authorization, concurrency,
   response/nullability, stable-error, and `private, no-store` regression suite

@@ -30,6 +30,9 @@ export interface AdminReviewDecisionCopy {
   approveDescription: string;
   approveUnavailable: string;
   approveConfirm: string;
+  spokenCodeLabel: string;
+  spokenCodeRequired: string;
+  approveVisibilityNote: string;
   rejectHeading: string;
   rejectDescription: string;
   rejectTargetLabel: string;
@@ -102,6 +105,7 @@ export function AdminReviewDecision({
   const [target, setTarget] = useState<RejectionTarget | null>(null);
   const [profileReason, setProfileReason] = useState("");
   const [videoReason, setVideoReason] = useState("");
+  const [spokenCodeConfirmed, setSpokenCodeConfirmed] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
 
@@ -117,6 +121,7 @@ export function AdminReviewDecision({
     setTarget(null);
     setProfileReason("");
     setVideoReason("");
+    setSpokenCodeConfirmed(false);
     setValidationMessage(null);
     setState({ status: "idle" });
   }
@@ -124,7 +129,7 @@ export function AdminReviewDecision({
   async function submitDecision(
     endpoint: "approve" | "reject",
     body:
-      | AdminReviewDecisionGuard
+      | (AdminReviewDecisionGuard & { spokenCodeConfirmed: true })
       | (AdminReviewDecisionGuard & {
           target: RejectionTarget;
           profileReason?: string;
@@ -187,7 +192,16 @@ export function AdminReviewDecision({
       return;
     }
 
-    void submitDecision("approve", guard, copy.approveSuccess);
+    if (!spokenCodeConfirmed) {
+      setValidationMessage(copy.spokenCodeRequired);
+      return;
+    }
+
+    void submitDecision(
+      "approve",
+      { ...guard, spokenCodeConfirmed: true },
+      copy.approveSuccess,
+    );
   }
 
   function reject() {
@@ -319,11 +333,32 @@ export function AdminReviewDecision({
           <p className="mt-2 text-sm leading-7 text-zinc-600">
             {copy.approveDescription}
           </p>
+          <p className="mt-3 text-sm leading-7 text-zinc-600">
+            {copy.approveVisibilityNote}
+          </p>
+          <label className="mt-5 flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-800">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 shrink-0 rounded border-zinc-300"
+              checked={spokenCodeConfirmed}
+              disabled={interactionDisabled}
+              onChange={(event) => {
+                setSpokenCodeConfirmed(event.target.checked);
+                setValidationMessage(null);
+              }}
+            />
+            <span>{copy.spokenCodeLabel}</span>
+          </label>
+          {validationMessage && mode === "approve" ? (
+            <p className="mt-3 text-sm font-medium text-red-700" role="alert">
+              {validationMessage}
+            </p>
+          ) : null}
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={approve}
-              disabled={interactionDisabled}
+              disabled={interactionDisabled || !spokenCodeConfirmed}
               aria-busy={isSubmitting}
               className="inline-flex min-h-11 items-center justify-center rounded-xl bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
             >

@@ -29,10 +29,19 @@ const serverEnvironmentSchema = z.object({
     ),
 });
 
+// Netlify injects the site's canonical URL as `URL` (and
+// `DEPLOY_PRIME_URL` for deploy previews/branch deploys), so
+// BETTER_AUTH_URL only needs to be set explicitly for local dev
+// or to override the auto-detected domain.
+const resolvedBetterAuthUrl =
+  process.env.BETTER_AUTH_URL ??
+  process.env.URL ??
+  process.env.DEPLOY_PRIME_URL;
+
 const parsedEnvironment =
   serverEnvironmentSchema.safeParse({
     DATABASE_URL: process.env.DATABASE_URL,
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    BETTER_AUTH_URL: resolvedBetterAuthUrl,
     BETTER_AUTH_SECRET:
       process.env.BETTER_AUTH_SECRET,
   });

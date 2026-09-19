@@ -34,8 +34,9 @@ import TeacherProfilePage from "@/app/[locale]/teacher/profile/page";
 
 const teacherProfileCopy = {
   eyebrow: "Teacher profile",
-  title: "Create your professional teaching profile",
+  title: "Complete your teaching profile",
   description: "Editable profile description",
+  previewTitle: "How students see you",
   headline: "Professional headline",
   bio: "Professional biography",
   experienceYears: "Years of teaching experience",
@@ -56,6 +57,7 @@ const teacherProfileCopy = {
 const profileCommonCopy = {
   nativeLanguage: "Native language",
   timezone: "Time zone",
+  displayNameFallback: "Your name",
   "languages.fa": "Persian",
 };
 
@@ -101,7 +103,7 @@ beforeEach(() => {
   );
 
   mocks.requireRolePage.mockResolvedValue({
-    session: { user: { id: "teacher-user" } },
+    session: { user: { id: "teacher-user", name: "Sasan", image: null } },
   });
   mocks.getTeacherProfileForUser.mockResolvedValue(baseProfile);
 });
@@ -161,8 +163,8 @@ describe("teacher profile lifecycle lock", () => {
       ).toBeInTheDocument();
       expect(screen.getByText(statusLabel)).toBeInTheDocument();
       expect(screen.getByText(description)).toBeInTheDocument();
-      expect(screen.getByText(baseProfile.headline)).toBeInTheDocument();
-      expect(screen.getByText(baseProfile.bio)).toBeInTheDocument();
+      expect(screen.getAllByText(baseProfile.headline).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(baseProfile.bio).length).toBeGreaterThan(0);
       expect(screen.getByText("Persian")).toBeInTheDocument();
       expect(screen.getByText("Asia/Tehran")).toHaveAttribute("dir", "ltr");
       expect(screen.queryByTestId("teacher-profile-form")).not.toBeInTheDocument();
