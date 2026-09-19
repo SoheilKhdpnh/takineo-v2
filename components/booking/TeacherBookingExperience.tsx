@@ -607,20 +607,33 @@ export function TeacherBookingExperience({
                   <div
                     role="status"
                     aria-live="polite"
-                    className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                    className="space-y-4"
                   >
                     <span className="sr-only">
                       {t("loadingSlots")}
                     </span>
-                    {Array.from({
-                      length: 8,
-                    }).map((_, index) => (
-                      <div
-                        key={index}
-                        aria-hidden="true"
-                        className="h-12 animate-pulse rounded-md bg-mint motion-reduce:animate-none"
-                      />
-                    ))}
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                      {Array.from({
+                        length: 7,
+                      }).map((_, index) => (
+                        <div
+                          key={`date-${index}`}
+                          aria-hidden="true"
+                          className="h-[4.75rem] animate-pulse rounded-lg bg-mint motion-reduce:animate-none"
+                        />
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {Array.from({
+                        length: 8,
+                      }).map((_, index) => (
+                        <div
+                          key={`time-${index}`}
+                          aria-hidden="true"
+                          className="h-12 animate-pulse rounded-md bg-mint motion-reduce:animate-none"
+                        />
+                      ))}
+                    </div>
                   </div>
                 ) : null}
 
