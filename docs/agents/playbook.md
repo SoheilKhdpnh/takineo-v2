@@ -73,7 +73,7 @@ Owns:
 
 Owns assigned work involving:
 
-- Mux and future speaking-media integration
+- Aparat intro-video link submission and future speaking-media integration
 - transcription and AI analysis
 - provider abstraction
 - cost controls, retry/idempotency, and structured AI outputs

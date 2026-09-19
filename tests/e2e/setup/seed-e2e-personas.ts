@@ -49,12 +49,11 @@ async function createReviewApplication(
   const video = await prisma.teacherIntroVideo.create({
     data: {
       teacherProfileId: profile.id,
-      provider: "mux",
-      uploadId: `e2e-upload-${profile.id}`,
-      assetId: `e2e-asset-${profile.id}`,
+      provider: "aparat",
+      aparatUrl: `https://www.aparat.com/v/e2e${profile.id.slice(-8)}`,
+      aparatHash: `e2e${profile.id.slice(-8)}`,
       revision: 2,
       status: "APPROVED",
-      durationSeconds: 90,
       submittedAt,
       reviewedAt: submittedAt,
     },
@@ -68,8 +67,8 @@ async function createReviewApplication(
       submittedProfileRevision: profile.profileRevision,
       submittedVideoId: video.id,
       submittedVideoRevision: video.revision,
-      submittedVideoUploadId: video.uploadId,
-      submittedVideoAssetId: video.assetId,
+      submittedAparatHash: video.aparatHash,
+      videoVerificationCode: "AB12C",
     },
   });
 }
@@ -179,12 +178,11 @@ export async function seedE2EPersonas() {
     const approvedVideo = await prisma.teacherIntroVideo.create({
       data: {
         teacherProfileId: approvedProfile.id,
-        provider: "mux",
-        uploadId: `e2e-upload-${approvedProfile.id}`,
-        assetId: `e2e-asset-${approvedProfile.id}`,
+        provider: "aparat",
+        aparatUrl: `https://www.aparat.com/v/e2e${approvedProfile.id.slice(-8)}`,
+        aparatHash: `e2e${approvedProfile.id.slice(-8)}`,
         revision: 3,
         status: "APPROVED",
-        durationSeconds: 95,
         submittedAt: new Date("2026-08-14T08:00:00.000Z"),
         reviewedAt: new Date("2026-08-14T09:00:00.000Z"),
       },
@@ -195,8 +193,8 @@ export async function seedE2EPersonas() {
       data: {
         submittedVideoId: approvedVideo.id,
         submittedVideoRevision: approvedVideo.revision,
-        submittedVideoUploadId: approvedVideo.uploadId,
-        submittedVideoAssetId: approvedVideo.assetId,
+        submittedAparatHash: approvedVideo.aparatHash,
+        videoVerificationCode: "XY34Z",
       },
     });
 

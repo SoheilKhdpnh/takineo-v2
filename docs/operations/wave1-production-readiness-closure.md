@@ -3,6 +3,10 @@
 Date: 2026-08-15
 Baseline entering closure: `cfb0a10`
 
+> Later note (2026-09-18): Mux was retired for OFAC eligibility. Current
+> intro-video behavior is the Aparat-link flow in `docs/teacher-intro-video.md`.
+> This closure document remains a historical Wave 1 evidence snapshot.
+
 ## Decision
 
 **Wave 1 Teacher Trust code/review scope: COMPLETE after M18 acceptance.**

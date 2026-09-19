@@ -14,3 +14,13 @@ export function getRoleHome(role: UserRole): string {
       return "/teacher/dashboard";
   }
 }
+
+export function getPostOnboardingHref(role: UserRole): string {
+  switch (role) {
+    case "STUDENT":
+      return "/student/profile";
+
+    case "TEACHER":
+      return "/teacher/profile";
+  }
+}

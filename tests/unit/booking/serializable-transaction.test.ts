@@ -476,5 +476,33 @@ describe(
         ).not.toHaveBeenCalled();
       },
     );
+
+    test(
+      "opens interactive transactions with an extended timeout",
+      async () => {
+        mocks.prisma
+          .$transaction
+          .mockResolvedValueOnce(
+            "committed",
+          );
+
+        await runSerializableTransaction(
+          async () =>
+            "unused",
+        );
+
+        expect(
+          mocks.prisma
+            .$transaction,
+        ).toHaveBeenCalledWith(
+          expect.any(Function),
+          {
+            maxWait: 10_000,
+            timeout: 30_000,
+            isolationLevel: "Serializable",
+          },
+        );
+      },
+    );
   },
 );

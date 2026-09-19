@@ -30,6 +30,9 @@ const copy = {
   approveDescription: "Approve the profile and video.",
   approveUnavailable: "Approval unavailable.",
   approveConfirm: "Confirm approval",
+  spokenCodeLabel: "I confirmed the applicant said their verification code.",
+  spokenCodeRequired: "Confirm the spoken code.",
+  approveVisibilityNote: "Approval only controls Talkinu visibility.",
   rejectHeading: "Record a rejection",
   rejectDescription: "Choose what failed review.",
   rejectTargetLabel: "Reject",
@@ -115,6 +118,10 @@ describe("AdminReviewDecision", () => {
 
     const confirm = screen.getByRole("button", { name: copy.approveConfirm });
     fireEvent.click(confirm);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText(copy.spokenCodeLabel));
+    fireEvent.click(screen.getByRole("button", { name: copy.approveConfirm }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(screen.getByRole("button", { name: copy.submitting })).toBeDisabled();
@@ -134,7 +141,10 @@ describe("AdminReviewDecision", () => {
         "Content-Type": "application/json",
       },
     });
-    expect(JSON.parse(String(init?.body))).toEqual(guard);
+    expect(JSON.parse(String(init?.body))).toEqual({
+      ...guard,
+      spokenCodeConfirmed: true,
+    });
 
     resolveFetch(jsonResponse({ application: { id: applicationId } }));
 
@@ -223,6 +233,7 @@ describe("AdminReviewDecision", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: copy.approve }));
+    fireEvent.click(screen.getByLabelText(copy.spokenCodeLabel));
     fireEvent.click(screen.getByRole("button", { name: copy.approveConfirm }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(copy.conflict);

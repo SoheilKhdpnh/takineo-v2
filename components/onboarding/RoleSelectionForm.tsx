@@ -4,7 +4,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
-import type { UserRole } from "@/lib/domain/user-role";
+import {
+  getPostOnboardingHref,
+  type UserRole,
+} from "@/lib/domain/user-role";
 
 export function RoleSelectionForm() {
   const router = useRouter();
@@ -71,8 +74,8 @@ export function RoleSelectionForm() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      router.replace(getPostOnboardingHref(selectedRole));
+      await router.refresh();
     } catch {
       setError(t("networkError"));
       setIsSubmitting(false);

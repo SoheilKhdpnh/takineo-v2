@@ -4,6 +4,9 @@ import {
   prisma,
 } from "@/lib/db/prisma";
 import {
+  interactiveTransactionOptions,
+} from "@/lib/db/interactive-transaction";
+import {
   isPublicTeacher,
 } from "@/lib/domain/teacher-application";
 import {
@@ -391,5 +394,6 @@ export async function repairPublicTeacherDiscoveryEligibility():
         deletedMemberships,
       };
     },
+    interactiveTransactionOptions,
   );
 }

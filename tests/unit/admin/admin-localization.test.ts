@@ -98,11 +98,11 @@ describe("admin localization catalogs", () => {
     expect(en.AdminReviewDetail.eyebrow).toBe(
       "Application detail",
     );
-    expect(en.AdminReviewDetail.playbackStart).toBe(
-      "Load private playback",
+    expect(en.AdminReviewDetail.playbackCodeLabel).toBe(
+      "Expected spoken code",
     );
-    expect(fa.AdminReviewDetail.playbackStart).toBe(
-      "بارگذاری پخش خصوصی",
+    expect(fa.AdminReviewDetail.playbackCodeLabel).toBe(
+      "کد گفتاری مورد انتظار",
     );
     expect(en.AdminReviewDetail.decisionHeading).toBe(
       "Review decision",

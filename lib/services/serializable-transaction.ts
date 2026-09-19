@@ -1,6 +1,9 @@
 import "server-only";
 
 import {
+  interactiveTransactionOptions,
+} from "@/lib/db/interactive-transaction";
+import {
   prisma,
 } from "@/lib/db/prisma";
 import {
@@ -217,6 +220,7 @@ export async function runSerializableTransaction<T>(
       return await prisma.$transaction(
         work,
         {
+          ...interactiveTransactionOptions,
           isolationLevel:
             "Serializable",
         },

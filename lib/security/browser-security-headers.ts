@@ -28,13 +28,13 @@ const PRODUCTION_CSP_REPORT_ONLY = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' https://src.litix.io",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "img-src 'self' data: blob: https://image.mux.com https://*.mux.com https://*.litix.io",
-  "media-src 'self' blob: https://*.mux.com",
-  "connect-src 'self' https://*.mux.com https://*.litix.io https://storage.googleapis.com",
-  "frame-src 'self' https://player.mux.com",
+  "img-src 'self' data: blob: https://www.aparat.com https://*.aparat.com",
+  "media-src 'self' blob:",
+  "connect-src 'self'",
+  "frame-src 'self' https://www.aparat.com",
   "worker-src 'self' blob:",
 ].join("; ");
 

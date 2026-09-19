@@ -49,7 +49,7 @@ Read the relevant documents before implementing a task:
 - Better Auth
 - Prisma ORM 7
 - PostgreSQL / Neon
-- Mux for teacher introduction video
+- Aparat link submission for teacher introduction video
 - GitHub
 
 ## Interface quality
@@ -143,15 +143,16 @@ Application-specific rules live in:
 
 Requirements:
 
-- 60–120 seconds
-- direct upload to Mux
-- application server must not proxy video bytes
-- pending/rejected/failed videos are not public
-- public playback is created only when appropriate for approved teachers
-- webhook processing must be idempotent
-- a provider-sync fallback exists for missed webhook events
+- Applicant records on Aparat and submits an `aparat.com` URL
+- A short random verification code is generated for the application
+- The applicant must say “This video is recorded for the Talkinu team”
+  plus that code in the video
+- 60–120 seconds remains reviewer guidance, not a technical gate
+- Aparat links are public on submission; Talkinu approval only controls
+  Talkinu visibility
+- Talkinu cannot revoke the underlying Aparat video
 
-Never expose Mux API secrets to client code.
+Server-side URL validation must accept only https aparat.com hosts.
 
 ## Database rules
 
@@ -188,7 +189,6 @@ Never commit:
 - API secrets
 - database passwords
 - Better Auth secrets
-- Mux secrets
 - private keys
 
 Client-visible environment variables must be intentionally prefixed with `NEXT_PUBLIC_`.

@@ -36,7 +36,7 @@ Next.js App Router
         v
   Service Layer
         |-- Prisma --> PostgreSQL / Neon
-        `-- External providers (Mux / future AI / future session provider)
+        `-- External providers (Aparat embeds / future AI / future session provider)
 ```
 
 ## App Router boundaries

@@ -1,169 +1,59 @@
 # Teacher Introduction Video
 
-Teacher introduction videos are stored and processed by Mux.
+Teacher introduction videos are hosted on Aparat. Talkinu stores only a
+validated `aparat.com` URL, a canonical video hash, and a short spoken
+verification code tied to the teacher application.
 
-Video bytes do not pass through the Takineo application server. The browser
-uploads directly to a temporary authenticated Mux Direct Upload URL created by
-an authorized Takineo server workflow.
+Talkinu does not upload, transcode, or proxy video bytes.
 
-## Applicant requirements
+This replaced Mux after Mux Terms §13.7 was confirmed to use the same OFAC
+restricted-country warranty already found for OpenAI, Anthropic, Twilio, and
+other U.S. vendors. See `docs/engineering/vendor-eligibility.md`.
 
-- Minimum processed duration: 60 seconds
-- Maximum processed duration: 120 seconds
-- Maximum client file size: approximately 500 MB
-- Only teacher applications in `DRAFT` or `REJECTED` may upload or replace
-- The teacher profile must be completed before upload creation
-- One current introduction-video record per teacher profile
-- Public playback is not created during applicant upload
-- Processed provider duration, not client-declared duration, is authoritative
+## Applicant flow
 
-## Environment variables
+1. A teacher reaches the introduction-video step after completing their
+   professional profile.
+2. Talkinu generates a 5-character verification code for that application if
+   one does not already exist.
+3. The teacher records on Aparat and, somewhere in the video, says:
+   “This video is recorded for the Talkinu team” plus that exact code.
+4. They paste an `https` Aparat watch or embed URL.
+5. The server accepts the URL only when the host is `aparat.com`,
+   `www.aparat.com`, or `m.aparat.com`, and a video hash can be parsed.
+6. The checklist step is complete when a valid Aparat link is stored in
+   `READY_FOR_REVIEW`.
+7. Preview uses Aparat’s public embed iframe. There is no uploaded file to
+   play natively.
+8. “Manage introduction video” edits or replaces that submitted link.
 
-Local and deployed server environments require:
+Only applications in `DRAFT` or `REJECTED` may submit or replace a link.
 
-- `MUX_TOKEN_ID`
-- `MUX_TOKEN_SECRET`
-- `MUX_WEBHOOK_SECRET`
-- `INTERNAL_JOB_SECRET`: server-only secret (at least 32 characters) protecting
-  the internal Mux playback reconciliation job endpoint
+## Reviewer flow
 
-Wave 1 signed playback will additionally require server-only Mux signing
-configuration:
+- The expected verification code is shown next to the embedded player.
+- Approval requires an explicit checkbox:
+  the reviewer confirmed the applicant said their code.
+- Approval and rejection control Talkinu visibility only. They do not create,
+  hide, or delete the video on Aparat.
 
-- `MUX_SIGNING_KEY`: Mux signing key ID
-- `MUX_PRIVATE_KEY`: the corresponding RSA private key, supplied either as a
-  PEM value or its base64-encoded PEM representation as accepted by the Mux
-  Node SDK. Deployment secret stores should preserve the complete key and PEM
-  line breaks/encoding.
+## Deliberate tradeoffs versus Mux
 
-Mux credentials and signing keys must never be exposed through `NEXT_PUBLIC_*`
-variables or returned to the client.
+These are accepted gaps, not silent omissions:
 
-## Current upload and processing lifecycle
+| Mux capability | Aparat-link replacement |
+|---|---|
+| Video stays private until Talkinu approval | Aparat links are public as soon as the applicant publishes and submits them |
+| Processed duration is measured and 60–120s is enforced | Reviewers glance at duration; Talkinu cannot measure it |
+| Talkinu can revoke public playback | Talkinu cannot revoke or delete the underlying Aparat video |
+| Direct upload, webhooks, and provider reconciliation | Dropped entirely. No Mux credentials, webhooks, or jobs remain |
 
-```text
-UPLOAD_PENDING
--> PROCESSING
--> READY_FOR_REVIEW
-```
+60–120 seconds remains product guidance for applicants and reviewers. It is
+not a technical gate.
 
-Provider or validation failures may instead produce:
+## Environment
 
-```text
-UPLOAD_PENDING / PROCESSING
--> FAILED
+No Mux secrets are required. Do not reintroduce `MUX_*` variables.
 
-PROCESSING
--> REJECTED (processed duration outside 60-120 seconds)
-```
-
-Current behavior includes:
-
-1. The authenticated teacher requests an upload.
-2. The server verifies teacher ownership, completed profile, and editable
-   application state.
-3. The server creates a Mux Direct Upload using server-only credentials.
-4. The browser uploads directly to Mux.
-5. Signed Mux webhooks update processing state.
-6. An authenticated provider-sync endpoint can recover from missed webhooks.
-7. Processed duration is validated server-side.
-
-Webhook processing must remain signature-verified, retry-safe, and matched to
-Takineo-owned provider identifiers. Duplicate delivery must not corrupt state.
-
-## Wave 1 review lifecycle
-
-`READY_FOR_REVIEW` does not mean public. Pending videos must use signed/private
-administrative review playback:
-
-- an authenticated authorized administrator requests playback
-- the server returns only a short-lived playback token and required playback
-  data
-- Mux signing credentials remain server-only
-- review responses are not publicly cacheable
-
-Administrative video review may transition the current reviewed video to:
-
-```text
-READY_FOR_REVIEW -> APPROVED
-READY_FOR_REVIEW -> REJECTED
-```
-
-A video rejection retains its reason and allows replacement after the
-application returns to an editable state. Every replacement requires review.
-
-## Public playback
-
-Final application approval may create a separate public playback ID for the
-approved public teacher profile. The signed/private review playback identifier
-and public playback identifier are distinct pieces of state.
-
-Public playback must not be created unless the complete teacher approval
-invariant passes. It must be revoked or removed when required by video
-replacement, video rejection, teacher suspension, account moderation, or asset
-withdrawal.
-
-Each replacement increments a monotonic video revision. Public playback
-enable/revoke work is persisted per video revision with desired state,
-monotonic intent generation, attempt count, next-attempt time, lease token and
-expiry, status, provider identifiers, and a safe last-error code. Provider
-calls are reconciled from this durable state; a live playback identifier is
-retained until provider deletion is confirmed.
-
-The processor conditionally leases bounded batches of due work. Completion is
-accepted only while the lease, intent generation, and target video revision
-still match. Failures retain durable intent and retry with exponential backoff
-(starting at 30 seconds and capped at one hour); expired leases become eligible
-for another worker. A provider effect from a stale lease requeues and advances
-the current intent without changing its desired state. Reconciliation inspects
-the authoritative Mux asset so it
-can adopt a public playback ID created before a failed database write, remove
-duplicate public IDs, and revoke provider IDs even when the local playback ID
-is missing. Signed review IDs are not treated as public IDs.
-
-Successful intents remain periodically verifiable: `SUCCEEDED` schedules its
-next authoritative check five minutes later. Scheduled processing includes due
-terminal rows, and manual `--id` replay forces terminal verification while
-respecting active leases. This repairs missing, obsolete, or duplicate public
-IDs even if a superseded worker performs a provider mutation and exits before
-it can update database intent.
-
-Operations may replay one reconciliation or a bounded due batch with:
-
-```text
-npm run ops:mux-reconcile -- --id <reconciliation-id>
-npm run ops:mux-reconcile -- --limit <1-50>
-```
-
-A future scheduler can call:
-
-```text
-POST /api/internal/jobs/mux-playback-reconciliation
-x-takineo-job-secret: <INTERNAL_JOB_SECRET>
-```
-
-The endpoint returns safe batch counts and is not a user endpoint. No hosting
-scheduler is deployed by this foundation; production deployment owns attaching
-a scheduler to this protected endpoint and monitoring failures.
-
-The binding Wave 1 lifecycle and security contract is
-[admin-review-contract.md](engineering/admin-review-contract.md).
-
-## Failure and cleanup behavior
-
-- A provider failure must not falsely mark a video approved or public.
-- Cleanup must be retry-safe and observable.
-- A failed cleanup must not make stale public playback acceptable indefinitely.
-- Signed review playback IDs are deleted after approval, video rejection, or
-  replacement when possible. Database references are cleared only after
-  provider-confirmed deletion in the shared cleanup helper. If cleanup after a
-  replacement cannot complete, no new signed token is issued for that obsolete
-  target and previously issued tokens retain their short expiry.
-- A first-upload eligibility race never attaches the upload or returns its URL.
-  The server attempts to cancel the Mux direct upload; because its URL was never
-  disclosed, an unsuccessful cancellation leaves an unusable upload that
-  expires under the provider upload timeout rather than a usable teacher video.
-- Logs must not contain upload URLs, signing keys, private playback tokens, or
-  unnecessary media metadata.
-- Rate limiting is required before public beta for upload creation and manual
-  provider synchronization.
+Aparat embed playback needs `https://www.aparat.com` in the production
+report-only CSP `frame-src`.

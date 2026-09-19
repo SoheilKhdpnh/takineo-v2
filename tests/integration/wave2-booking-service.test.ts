@@ -409,9 +409,6 @@ async function seedUsersAndTeachers():
   /*
    * Public booking eligibility currently
    * requires an APPROVED intro-video state.
-   *
-   * Real Mux playback material is not needed
-   * for this booking-domain integration test.
    */
   await fixtureClient.query(
     `
@@ -419,8 +416,8 @@ async function seedUsersAndTeachers():
         "teacher_intro_video" (
           "id",
           "teacherProfileId",
+          "provider",
           "status",
-          "durationSeconds",
           "createdAt",
           "updatedAt"
         )
@@ -428,16 +425,16 @@ async function seedUsersAndTeachers():
         (
           $1,
           $2,
+          'aparat',
           'APPROVED',
-          90,
           CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
         ),
         (
           $3,
           $4,
+          'aparat',
           'APPROVED',
-          90,
           CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
         )

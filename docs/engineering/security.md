@@ -116,9 +116,6 @@ High-value secrets include:
 
 - database credentials
 - Better Auth secret
-- Mux token secret
-- Mux webhook secret
-- Mux playback signing private keys
 - future AI provider keys
 - payment credentials
 
@@ -139,8 +136,6 @@ Rate limiting is required before public beta for at least:
 - sign-in attempts
 - sign-up attempts
 - password/reset-sensitive flows where applicable
-- upload creation
-- video status synchronization
 - booking mutations
 - public high-cost APIs
 - AI generation/analysis endpoints
@@ -148,24 +143,17 @@ Rate limiting is required before public beta for at least:
 
 Rate limits must distinguish abuse prevention from business quotas.
 
-## Upload security
+## Introduction video security
 
-Large media bytes should upload directly to the media provider.
+Talkinu stores an Aparat URL, not video bytes. Validate untrusted URLs at the
+server boundary and accept only https `aparat.com` hosts.
 
-Takineo should validate:
+Aparat links are public on submission. Talkinu approval is a visibility
+decision for Talkinu, not a privacy or revocation control over the hosted
+video. Reviewers must confirm the spoken verification code as part of
+approval.
 
-- authenticated ownership
-- application eligibility
-- provider identifiers
-- processed duration
-- relevant media status
-
-Do not trust client-declared duration as authoritative.
-
-Pending teacher videos require signed/private admin review playback. The server
-issues short-lived playback tokens after admin authorization; clients never
-receive signing credentials. Public playback uses a separate identifier created
-only after final approval and revoked when eligibility is withdrawn.
+See `docs/teacher-intro-video.md` and `docs/engineering/vendor-eligibility.md`.
 
 ## Administrative actions
 

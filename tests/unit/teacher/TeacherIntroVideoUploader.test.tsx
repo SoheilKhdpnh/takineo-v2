@@ -9,46 +9,54 @@ import faMessages from "@/messages/fa.json";
 const copy = {
   currentStatus: "Current video status",
   statusMissing: "No video",
-  statusUploadPending: "Upload pending",
-  statusProcessing: "Processing",
   statusReadyForReview: "Ready",
   statusApproved: "Approved",
   statusRejected: "Replace your video before resubmitting.",
-  statusFailed: "Failed",
-  durationRejected: "Your video is outside the required duration.",
+  statusRetiredProvider: "Provider retired",
   reviewFeedbackTitle: "Review feedback",
   reviewFeedbackUnavailable: "No detailed reviewer feedback is available.",
-  duration: "Duration",
+  verificationTitle: "Say this code",
+  spokenInstruction: "Say the phrase.",
+  spokenScript: "{phrase}, {code}",
   requirementsTitle: "Recording guide",
   requirementDuration: "Duration requirement",
+  requirementSpoken: "Spoken requirement",
   requirementContent: "Content requirement",
   requirementLanguage: "Language requirement",
-  requirementConsent: "Consent requirement",
-  selectVideo: "Select video",
-  replaceVideo: "Replace video",
-  creatingUpload: "Preparing",
-  uploadError: "Upload error",
-  createUploadError: "Create error",
-  providerUnavailable: "Provider unavailable",
+  requirementPublic: "Public warning",
+  urlLabel: "Aparat video link",
+  urlPlaceholder: "https://www.aparat.com/v/...",
+  urlHint: "Only aparat.com",
+  saveLink: "Save Aparat link",
+  replaceVideo: "Replace Aparat link",
+  saving: "Saving",
+  saveSuccess: "Saved",
+  invalidUrl: "Invalid URL",
+  profileIncomplete: "Profile incomplete",
   networkError: "Network error",
   applicationLocked: "Application locked",
   pendingLocked: "Pending locked",
-  checkStatus: "Check status",
-  checkingStatus: "Checking",
-  statusSaveError: "Save error",
-  statusSyncError: "Sync error",
+  previewTitle: "Preview",
+  previewDescription: "Preview description",
+  previewPlayerTitle: "Preview player",
 };
 
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: keyof typeof copy) => copy[key],
+  useTranslations: () => (key: keyof typeof copy, values?: Record<string, string>) => {
+    const template = copy[key];
+    if (!values) {
+      return template;
+    }
+
+    return Object.entries(values).reduce(
+      (current, [name, value]) => current.replaceAll(`{${name}}`, value),
+      template,
+    );
+  },
 }));
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-}));
-
-vi.mock("@mux/mux-uploader-react", () => ({
-  default: () => <div data-testid="mux-uploader" />,
 }));
 
 import { TeacherIntroVideoUploader } from "@/components/profiles/TeacherIntroVideoUploader";
@@ -58,7 +66,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("TeacherIntroVideoUploader rejection feedback", () => {
+describe("TeacherIntroVideoUploader", () => {
   it("shows the exact applicant-safe admin reason for a rejected video", () => {
     const feedback =
       "Please record in a quieter room and keep your face clearly visible.";
@@ -66,10 +74,12 @@ describe("TeacherIntroVideoUploader rejection feedback", () => {
     render(
       <TeacherIntroVideoUploader
         applicationStatus="REJECTED"
-        canUpload
+        canEdit
+        verificationCode="AB12C"
         initialVideo={{
           status: "REJECTED",
-          durationSeconds: 91,
+          aparatUrl: "https://www.aparat.com/v/abcDE12",
+          embedUrl: "https://www.aparat.com/video/video/embed/videohash/abcDE12/vt/frame",
           rejectionReason: feedback,
         }}
       />,
@@ -82,38 +92,19 @@ describe("TeacherIntroVideoUploader rejection feedback", () => {
     expect(region).toHaveTextContent(feedback);
     expect(region).not.toHaveTextContent(copy.reviewFeedbackUnavailable);
     expect(screen.getByText(copy.statusRejected)).toBeInTheDocument();
+    expect(screen.getByText("AB12C")).toBeInTheDocument();
   });
 
-  it("translates the duration-system rejection instead of exposing its internal code", () => {
+  it("uses a safe fallback for rejected videos with no detailed reason", () => {
     render(
       <TeacherIntroVideoUploader
         applicationStatus="REJECTED"
-        canUpload
+        canEdit
+        verificationCode="AB12C"
         initialVideo={{
           status: "REJECTED",
-          durationSeconds: 143,
-          rejectionReason: "VIDEO_DURATION_OUT_OF_RANGE",
-        }}
-      />,
-    );
-
-    expect(screen.getByText(copy.durationRejected)).toBeInTheDocument();
-    expect(
-      screen.queryByRole("region", { name: copy.reviewFeedbackTitle }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("VIDEO_DURATION_OUT_OF_RANGE"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("uses a safe fallback for legacy rejected videos with no detailed reason", () => {
-    render(
-      <TeacherIntroVideoUploader
-        applicationStatus="REJECTED"
-        canUpload
-        initialVideo={{
-          status: "REJECTED",
-          durationSeconds: 82,
+          aparatUrl: null,
+          embedUrl: null,
           rejectionReason: null,
         }}
       />,
@@ -128,10 +119,12 @@ describe("TeacherIntroVideoUploader rejection feedback", () => {
     render(
       <TeacherIntroVideoUploader
         applicationStatus="DRAFT"
-        canUpload
+        canEdit
+        verificationCode="AB12C"
         initialVideo={{
           status: "READY_FOR_REVIEW",
-          durationSeconds: 84,
+          aparatUrl: "https://www.aparat.com/v/abcDE12",
+          embedUrl: "https://www.aparat.com/video/video/embed/videohash/abcDE12/vt/frame",
           rejectionReason: "Old feedback that must remain hidden.",
         }}
       />,
@@ -149,7 +142,5 @@ describe("TeacherIntroVideoUploader rejection feedback", () => {
     expect(Object.keys(faMessages.TeacherVideo).sort()).toEqual(
       Object.keys(enMessages.TeacherVideo).sort(),
     );
-    expect(enMessages.TeacherVideo.reviewFeedbackTitle.trim()).not.toBe("");
-    expect(faMessages.TeacherVideo.reviewFeedbackTitle.trim()).not.toBe("");
   });
 });

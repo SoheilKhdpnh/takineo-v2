@@ -156,9 +156,6 @@ function access(
 
               status:
                 "APPROVED",
-
-              durationSeconds:
-                90,
             },
           }
         : null,

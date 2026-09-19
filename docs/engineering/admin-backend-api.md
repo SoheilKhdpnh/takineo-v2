@@ -22,8 +22,6 @@ Enums:
 - `TeacherApplicationStatus`: `DRAFT | PENDING_REVIEW | APPROVED | REJECTED | SUSPENDED`
 - `TeacherIntroVideoStatus`: `UPLOAD_PENDING | PROCESSING | READY_FOR_REVIEW | APPROVED | REJECTED | FAILED`
 - `ReviewRejectionTarget`: `PROFILE | VIDEO | BOTH`
-- `PlaybackDesiredState`: `ENABLED | REVOKED`
-- `PlaybackReconciliationStatus`: `PENDING | PROCESSING | SUCCEEDED | FAILED`
 - `Timezone`: `Asia_Tehran | Asia_Dubai | Europe_Berlin | Europe_Istanbul |
   Europe_London | America_Toronto | America_New_York | America_Chicago |
   America_Los_Angeles | UTC`
@@ -80,7 +78,6 @@ type QueueResponse = {
       id: string;
       revision: number;
       status: TeacherIntroVideoStatus;
-      durationSeconds: number | null;
     };
   }>;
   nextCursor: string | null;
@@ -119,8 +116,8 @@ type ApplicationDetail = {
   submittedProfileRevision: number | null;
   submittedVideoId: string | null;
   submittedVideoRevision: number | null;
-  submittedVideoUploadId: string | null;
-  submittedVideoAssetId: string | null;
+  submittedAparatHash: string | null;
+  videoVerificationCode: string | null;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -132,36 +129,24 @@ type ApplicationDetail = {
   introVideo: null | {
     id: string;
     provider: string;
-    uploadId: string | null;
-    assetId: string | null;
-    publicPlaybackId: string | null;
+    aparatUrl: string | null;
+    aparatHash: string | null;
     revision: number;
     status: TeacherIntroVideoStatus;
-    durationSeconds: number | null;
     rejectionReason: string | null;
     submittedAt: string | null;
     reviewedAt: string | null;
     createdAt: string;
     updatedAt: string;
-    playbackReconciliations: Array<{
-      videoRevision: number;
-      desiredState: PlaybackDesiredState;
-      intentGeneration: number;
-      status: PlaybackReconciliationStatus;
-      attemptCount: number;
-      nextAttemptAt: string;
-      leaseExpiresAt: string | null;
-      lastErrorCode: string | null;
-      lastAttemptAt: string | null;
-    }>;
   };
 };
 ```
 
-The reconciliation array contains at most the most recently created record.
-`FAILED` is durable and retryable by the server reconciliation service;
-`lastErrorCode` is opaque, operational, non-secret metadata and must not drive
-product behavior.
+The detail DTO includes the submitted Aparat URL, canonical hash, and the
+expected spoken verification code. Reviewers watch Aparat’s public embed; there
+is no signed playback token. `UPLOAD_PENDING`, `PROCESSING`, and `FAILED` remain
+on the enum for retired Mux-era rows and must not be treated as a current
+reviewable Aparat submission.
 
 ## Concurrency guard
 
@@ -176,47 +161,25 @@ type ReviewGuard = {
 };
 ```
 
-The server additionally compares the submitted upload ID and asset ID. Any
-changed cycle, profile revision, video row/revision, upload, asset, status, or
+The server additionally compares the submitted Aparat hash. Any
+changed cycle, profile revision, video row/revision, Aparat hash, status, or
 target account state fails with `409 REVIEW_STATE_CONFLICT`.
 
-## Signed review playback
+## Aparat review playback
 
-`POST /api/admin/teacher-applications/:applicationId/playback` with no body.
-Allowed only for the unchanged current submitted video in `READY_FOR_REVIEW` or
-`APPROVED` while the application is `PENDING_REVIEW`.
-Any non-empty request body, including `{}`, JSON `null`, whitespace, or
-authoritative review fields, returns `400 INVALID_REQUEST`.
-
-```ts
-type PlaybackResponse = {
-  playback: {
-    playbackId: string;
-    token: string;
-    expiresInSeconds: 300;
-  };
-};
-```
-
-The token and signed review playback ID are private. Applicant APIs do not
-return `reviewPlaybackId`. Immediately before returning the token, the server
-revalidates the active administrator, pending application cycle, profile/video
-revisions, provider, upload, and asset. Rejected/replaced/finally approved
-review IDs are deleted best-effort; failed deletion does not permit new tokens,
-and already issued tokens expire after at most five minutes. If this final
-administrator check observes revocation or inactivity, it remains
-`403 ADMIN_FORBIDDEN`; it is never mapped to a Mux provider error.
+There is no `POST .../playback` endpoint. The detail DTO is enough to embed
+Aparat’s public player and show `videoVerificationCode` beside it. Approval
+controls Talkinu visibility only; it cannot hide or delete the video on Aparat.
 
 ## Approve
 
 `POST /api/admin/teacher-applications/:applicationId/approve`
 
-Body: `ReviewGuard`. Success: `{ application: ApplicationDetail }`.
+Body: `ReviewGuard & { spokenCodeConfirmed: true }`. Success: `{ application: ApplicationDetail }`.
 Approval accepts an unchanged submitted video in `READY_FOR_REVIEW` or already
-`APPROVED`, requires an `ACTIVE` target account and completed unchanged profile,
-and atomically approves the video/application. Public Mux playback is queued in
-durable reconciliation. Provider failure does not roll back valid review state;
-it appears as reconciliation `FAILED` and remains retryable.
+`APPROVED`, requires an `ACTIVE` target account, a completed unchanged profile,
+and an explicit spoken-code confirmation. It atomically approves the
+video/application. Talkinu does not create, hide, or delete the video on Aparat.
 
 ## Reject
 
@@ -233,7 +196,8 @@ type RejectBody = ReviewGuard & {
 Success: `{ application: ApplicationDetail }`. Profile-only rejection promotes
 `READY_FOR_REVIEW` video to `APPROVED` or preserves existing `APPROVED`, so the
 same unchanged revision may be resubmitted. Video rejection marks that revision
-`REJECTED` and durably requests public playback revocation.
+`REJECTED` and requires a replacement Aparat link. Talkinu cannot revoke the
+underlying Aparat video.
 
 ## Teacher moderation index
 
@@ -265,10 +229,10 @@ type ModerationIndexResponse = {
 };
 ```
 
-The index intentionally excludes intro-video provider identifiers, playback
-identifiers, submitted upload/asset snapshots, audit metadata, and admin
-capability data. The detail endpoint remains authoritative before a mutation;
-index state is only a discoverability snapshot and may become stale.
+The index intentionally excludes intro-video URLs, verification codes, submitted
+Aparat hashes, audit metadata, and admin capability data. The detail endpoint
+remains authoritative before a mutation; index state is only a discoverability
+snapshot and may become stale.
 
 ## Teacher moderation
 
@@ -284,18 +248,18 @@ type ModerationBody = {
 
 Success: `{ application: ApplicationDetail }`. `SUSPEND` requires `APPROVED`;
 `REINSTATE` requires `SUSPENDED`, an approved video, and an `ACTIVE` target
-account. Suspension queues playback revocation; reinstatement queues enablement.
+account. Suspension removes Talkinu eligibility; reinstatement restores it.
+Neither action can change the video on Aparat.
 
 ## Status-dependent actions
 
-- `PENDING_REVIEW`: detail, signed playback, approve, reject.
+- `PENDING_REVIEW`: detail, Aparat embed, approve, reject.
 - `APPROVED`: `SUPER_ADMIN` may suspend.
 - `SUSPENDED`: `SUPER_ADMIN` may reinstate only while target account is active.
 - `DRAFT`/`REJECTED`: detail only; applicant correction/resubmission owns the
   next transition.
 - Inactive administrator: no admin operation.
-- Inactive target account: never final approval, reinstatement, or public
-  playback enablement.
+- Inactive target account: never final approval or reinstatement.
 
 ## Stable errors
 
@@ -308,69 +272,14 @@ type ErrorResponse = {
     | "INVALID_REQUEST"              // 400; malformed ID/query/body
     | "APPLICATION_NOT_FOUND"        // 404
     | "REVIEW_STATE_CONFLICT"        // 409; stale/duplicate/invalid/P2034 serialization conflict
-    | "REVIEW_PLAYBACK_UNAVAILABLE"  // 502; signed-review Mux/config failure
     | "INTERNAL_SERVER_ERROR";       // 500
   issues?: Record<string, string[]>;
 };
 ```
 
-Public-playback provider failures are not returned as false approval/rejection
-failures. They are persisted as reconciliation `FAILED` with a safe operational
-code and retried through the reconciliation processor.
-
-## Mux playback reconciliation operations
-
-Every provider mutation is preceded by renewal of the exact
-`intentGeneration` + `leaseToken` lease. A worker that loses its fence stops
-without modifying newer database intent. Because a provider call is external,
-a generation can still become stale immediately after the final lease check;
-therefore terminal `SUCCEEDED` intents remain periodically verifiable and
-repair any resulting provider drift.
-
-`SUCCEEDED` means provider state was observed converged and the fenced database
-finalization succeeded; it is not permanently retired. Its `nextAttemptAt` is
-set five minutes ahead for terminal verification. Due `SUCCEEDED` rows are
-leased and checked again, so an old worker that mutates Mux and dies after a
-newer generation succeeded cannot leave permanent drift. `nextAttemptAt`
-therefore represents either a failure retry or a terminal verification.
-
-Retries start at 30 seconds with exponential backoff capped at one hour.
-Revocation always retrieves the authoritative Mux asset and removes every
-`public` playback ID, including duplicates or IDs absent from local storage;
-signed review IDs are distinguished by policy. Enablement adopts an existing
-public ID or creates one, removes duplicates, and verifies full teacher
-eligibility again before finalization.
-
-Processing entry points:
-
-- Server service: `processDueMuxPlaybackReconciliations(limit)` processes a
-  bounded 1–50 row batch and returns safe selected/succeeded/failed/requeued/
-  skipped counts.
-- Manual replay: `npm run ops:mux-reconcile -- --limit 20`, or force one intent,
-  including terminal `SUCCEEDED`, with
-  `npm run ops:mux-reconcile -- --id <reconciliation-cuid>`.
-- Future scheduler endpoint: `POST /api/internal/jobs/mux-playback-reconciliation`
-  with `X-Takineo-Job-Secret` and strict body `{ "limit": 20 }`.
-
-The internal endpoint uses server-only `INTERNAL_JOB_SECRET` (minimum 32
-characters), is not a user/admin browser API, and returns
-`INTERNAL_JOB_UNAUTHORIZED`, `INTERNAL_JOB_NOT_CONFIGURED`, or
-`INVALID_REQUEST` when applicable. The processor exists, but production
-deployment must explicitly attach a scheduler; no scheduler is currently
-deployed.
-
-Count semantics are operationally strict:
-
-- `succeeded`: authoritative provider state was converged and fenced
-  finalization succeeded
-- `requeued`: immediate durable `PENDING` recovery was persisted
-- `skipped`: no claim was acquired, work was not due or was actively leased, or
-  the worker lost its generation/lease fence and therefore could not
-  authoritatively finalize the attempt
-- `failed`: the leased attempt encountered an error while still owning its
-  fence and was durably marked `FAILED` with backoff
-
-Pending/requeued work is never counted as succeeded.
+Mux playback reconciliation has been removed. Do not reintroduce
+`ops:mux-reconcile`, Mux webhooks, or `MUX_*` secrets. See
+`docs/engineering/vendor-eligibility.md`.
 
 ## Provisioning, account moderation, and secrets
 
@@ -381,11 +290,6 @@ admin set, the literal privileged confirmation, and emits audit history.
 `SUPER_ADMIN`, emit audits, and use serializable transactions. The last active
 `SUPER_ADMIN` cannot be revoked, demoted, suspended, or disabled.
 
-Signed playback requires server-only `MUX_SIGNING_KEY` and `MUX_PRIVATE_KEY`.
-The private key may be PEM or base64-encoded PEM accepted by the Mux Node SDK.
-Neither signing material nor `reviewPlaybackId` is returned by ordinary
-applicant APIs.
-
-Applicant application/video DTOs omit submitted/current upload IDs, asset IDs,
-review playback IDs, and public provider playback IDs. Those identifiers remain
-server/admin-only for concurrency, audit, and reconciliation.
+No Mux signing keys are required. Applicant video DTOs expose the canonical
+Aparat URL needed for the teacher's own preview; admin detail also returns the
+verification code used for spoken-code confirmation.

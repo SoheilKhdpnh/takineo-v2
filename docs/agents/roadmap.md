@@ -39,8 +39,8 @@ All Wave 1 agents must follow:
 `docs/engineering/admin-review-contract.md`
 
 No agent may independently change the admin identity boundary, permission
-matrix, account-state semantics, teacher review transitions, Mux playback
-lifecycle, audit requirements, or test-database safety rules without
+matrix, account-state semantics, teacher review transitions, Aparat
+intro-video review, audit requirements, or test-database safety rules without
 integration-lead approval and a contract update.
 
 Primary owner:
@@ -59,15 +59,15 @@ Deliverables:
 - admin route protection
 - pending teacher queue
 - teacher application detail
-- signed/private Mux intro-video review and short-lived server-issued playback
-  tokens
+- Aparat intro-video review with the expected spoken verification code and
+  public embed playback
 - transactionally safe profile/video/final approval actions
 - `PROFILE`, `VIDEO`, and `BOTH` rejection targets
 - target-specific rejection reasons
 - teacher resubmission behavior
 - suspension foundation
 - immutable audit trail for admin review and administrative access changes
-- separate approved public-playback lifecycle and revocation behavior
+- explicit documentation that Talkinu cannot revoke the underlying Aparat video
 - tests
 
 Parallelizable:
@@ -78,7 +78,7 @@ Frontend agent:
 Security agent:
 - admin authorization review
 - privilege-escalation tests
-- Mux signed/public playback review
+- Aparat public-link and spoken-code review
 - account-state bypass review
 
 QA agent:

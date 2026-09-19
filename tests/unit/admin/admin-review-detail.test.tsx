@@ -53,7 +53,7 @@ const copy = {
   submittedProfileRevisionLabel: "Submitted profile revision",
   submittedVideoRevisionLabel: "Submitted video revision",
   videoStatusLabel: "Video status",
-  videoDurationLabel: "Processed duration",
+  videoUrlLabel: "Aparat link",
   videoRevisionLabel: "Current video revision",
   videoSubmittedLabel: "Video submitted",
   videoReviewedLabel: "Video reviewed",
@@ -76,21 +76,14 @@ const copy = {
   videoRejected: "Rejected",
   videoFailed: "Failed",
   noVideo: "No introduction video",
-  playbackHeading: "Private video review",
-  playbackDescription: "Request short-lived playback.",
-  playbackStart: "Load private playback",
-  playbackRefresh: "Request fresh playback",
-  playbackLoading: "Requesting private playback…",
-  playbackActive: "Private playback is active.",
-  playbackExpiresSoon: "It expires soon.",
-  playbackExpired: "Playback expired.",
+  playbackHeading: "Introduction video",
+  playbackDescription: "Watch the submitted Aparat video.",
+  playbackCodeLabel: "Expected spoken code",
+  playbackSpokenPhraseLabel: "Expected spoken phrase",
+  playbackSpokenPhrase: "This video is recorded for the Talkinu team",
   playbackUnavailableState: "Playback unavailable for this state.",
-  playbackUnauthorized: "Session unavailable.",
-  playbackForbidden: "Admin access revoked.",
-  playbackConflict: "Review state changed.",
-  playbackUnavailable: "Playback unavailable.",
-  playbackGenericError: "Playback failed.",
-  playbackPlayerTitle: "Private teacher introduction video",
+  playbackPublicHostNote: "This player embeds a public Aparat URL.",
+  playbackPlayerTitle: "Teacher introduction video",
   decisionHeading: "Review decision",
   decisionDescription: "Decide against the current snapshot.",
   decisionUnavailable: "Decision unavailable.",
@@ -100,6 +93,9 @@ const copy = {
   approveDescription: "Approve the submitted profile and video.",
   approveUnavailable: "Approval unavailable.",
   approveConfirm: "Confirm approval",
+  spokenCodeLabel: "I confirmed the applicant said their verification code.",
+  spokenCodeRequired: "Confirm the spoken code.",
+  approveVisibilityNote: "Approval only controls Talkinu visibility.",
   rejectHeading: "Record a rejection",
   rejectDescription: "Choose what failed review.",
   rejectTargetLabel: "Reject",
@@ -172,6 +168,7 @@ const application: AdminReviewDetailApplication = {
   submittedProfileRevision: 3,
   submittedVideoRevision: 4,
   snapshotAligned: true,
+  videoVerificationCode: "AB12C",
   user: {
     name: "Teacher Applicant",
     email: "teacher@example.com",
@@ -180,7 +177,8 @@ const application: AdminReviewDetailApplication = {
   introVideo: {
     revision: 4,
     status: "READY_FOR_REVIEW",
-    durationSeconds: 90,
+    aparatUrl: "https://www.aparat.com/v/abcDE12",
+    embedUrl: "https://www.aparat.com/video/video/embed/videohash/abcDE12/vt/frame",
     rejectionReason: null,
     submittedAt: new Date("2026-08-13T09:50:00.000Z"),
     reviewedAt: null,
@@ -188,7 +186,7 @@ const application: AdminReviewDetailApplication = {
 };
 
 describe("AdminReviewDetail", () => {
-  it("renders a complete review detail with private playback and guarded decision entry", () => {
+  it("renders a complete review detail with Aparat playback and guarded decision entry", () => {
     render(
       <AdminReviewDetail
         application={application}
@@ -203,7 +201,6 @@ describe("AdminReviewDetail", () => {
         moderationGuard={null}
         copy={copy}
         formatDate={() => "Aug 13, 2026, 1:30 PM"}
-        formatDuration={() => "90 sec"}
       />,
     );
 
@@ -216,13 +213,13 @@ describe("AdminReviewDetail", () => {
     expect(screen.getByText("A detailed professional biography for review.")).toBeInTheDocument();
     expect(screen.getByText("Asia/Tehran")).toBeInTheDocument();
     expect(screen.getByText("Ready for review")).toBeInTheDocument();
-    expect(screen.getByText("90 sec")).toBeInTheDocument();
+    expect(screen.getByText("AB12C")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Back to review queue" }),
     ).toHaveAttribute("href", "/admin/teacher-applications");
 
     expect(
-      screen.getByRole("button", { name: "Load private playback" }),
+      screen.getByTitle("Teacher introduction video"),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Approve application" }),
@@ -253,7 +250,6 @@ describe("AdminReviewDetail", () => {
         moderationGuard={null}
         copy={copy}
         formatDate={() => "Submitted time"}
-        formatDuration={() => "Unavailable"}
       />,
     );
 

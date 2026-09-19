@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   getCurrentAdminCapabilities: vi.fn(),
   listPendingTeacherApplications: vi.fn(),
   getAdminTeacherApplication: vi.fn(),
-  createAdminReviewPlayback: vi.fn(),
   approveTeacherApplication: vi.fn(),
   rejectTeacherApplication: vi.fn(),
   setTeacherSuspension: vi.fn(),
@@ -28,8 +27,6 @@ vi.mock("@/lib/services/admin-review.service", () => ({
     mocks.listPendingTeacherApplications,
   getAdminTeacherApplication:
     mocks.getAdminTeacherApplication,
-  createAdminReviewPlayback:
-    mocks.createAdminReviewPlayback,
   approveTeacherApplication:
     mocks.approveTeacherApplication,
   rejectTeacherApplication:
@@ -52,9 +49,6 @@ import {
 import {
   POST as moderateTeacherApplication,
 } from "@/app/api/admin/teacher-applications/[applicationId]/moderation/route";
-import {
-  POST as createPlayback,
-} from "@/app/api/admin/teacher-applications/[applicationId]/playback/route";
 import {
   POST as rejectTeacherApplicationRoute,
 } from "@/app/api/admin/teacher-applications/[applicationId]/reject/route";
@@ -95,7 +89,6 @@ describe("admin teacher application routes", () => {
     mocks.getCurrentAdminCapabilities.mockReset();
     mocks.listPendingTeacherApplications.mockReset();
     mocks.getAdminTeacherApplication.mockReset();
-    mocks.createAdminReviewPlayback.mockReset();
     mocks.approveTeacherApplication.mockReset();
     mocks.rejectTeacherApplication.mockReset();
     mocks.setTeacherSuspension.mockReset();
@@ -127,12 +120,6 @@ describe("admin teacher application routes", () => {
 
     mocks.getAdminTeacherApplication.mockResolvedValue({
       id: validApplicationId,
-    });
-
-    mocks.createAdminReviewPlayback.mockResolvedValue({
-      playbackId: "playback-id",
-      token: "signed-token",
-      expiresInSeconds: 300,
     });
 
     mocks.approveTeacherApplication.mockResolvedValue({
@@ -413,112 +400,6 @@ describe("admin teacher application routes", () => {
     });
   });
 
-  describe("review playback POST", () => {
-    it("rejects an untrusted origin before request validation", async () => {
-      mocks.hasTrustedRequestOrigin.mockReturnValue(false);
-
-      const response = await createPlayback(
-        new Request(
-          `http://localhost:3000/api/admin/teacher-applications/${validApplicationId}/playback`,
-          {
-            method: "POST",
-            body: "{}",
-          },
-        ),
-        context(),
-      );
-
-      expect(response.status).toBe(403);
-
-      await expect(response.json()).resolves.toEqual({
-        error: "UNTRUSTED_ORIGIN",
-      });
-
-      expect(
-        mocks.createAdminReviewPlayback,
-      ).not.toHaveBeenCalled();
-    });
-
-    it.each([
-      ["{}", "{}"],
-      ["JSON null", "null"],
-      ["whitespace", "   "],
-      ["arbitrary content", "anything"],
-    ])(
-      "rejects non-empty playback body: %s",
-      async (_label, body) => {
-        const response = await createPlayback(
-          new Request(
-            `http://localhost:3000/api/admin/teacher-applications/${validApplicationId}/playback`,
-            {
-              method: "POST",
-              body,
-            },
-          ),
-          context(),
-        );
-
-        expect(response.status).toBe(400);
-
-        await expect(response.json()).resolves.toEqual({
-          error: "INVALID_REQUEST",
-          issues: {
-            body: ["Request body must be empty."],
-          },
-        });
-
-        expect(
-          mocks.createAdminReviewPlayback,
-        ).not.toHaveBeenCalled();
-      },
-    );
-
-    it("accepts an absent request body", async () => {
-      const response = await createPlayback(
-        new Request(
-          `http://localhost:3000/api/admin/teacher-applications/${validApplicationId}/playback`,
-          {
-            method: "POST",
-          },
-        ),
-        context(),
-      );
-
-      expect(response.status).toBe(200);
-
-      expect(
-        mocks.createAdminReviewPlayback,
-      ).toHaveBeenCalledWith(
-        "admin-user",
-        validApplicationId,
-      );
-    });
-
-    it("preserves revoked-admin authorization as 403 instead of converting it to 502", async () => {
-      mocks.createAdminReviewPlayback.mockRejectedValue(
-        new AdminForbiddenError(),
-      );
-
-      const response = await createPlayback(
-        new Request(
-          `http://localhost:3000/api/admin/teacher-applications/${validApplicationId}/playback`,
-          {
-            method: "POST",
-          },
-        ),
-        context(),
-      );
-
-      expect(response.status).toBe(403);
-
-      await expect(response.json()).resolves.toEqual({
-        error: "ADMIN_FORBIDDEN",
-      });
-
-      expect(response.status).not.toBe(502);
-    });
-  });
-
   describe("review decision POST routes", () => {
     const guard = {
       reviewCycle: 2,
@@ -549,7 +430,7 @@ describe("admin teacher application routes", () => {
       );
 
       const response = await approveTeacherApplicationRoute(
-        decisionRequest("approve", guard),
+        decisionRequest("approve", { ...guard, spokenCodeConfirmed: true }),
         context(),
       );
 

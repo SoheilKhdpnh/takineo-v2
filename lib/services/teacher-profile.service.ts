@@ -14,6 +14,9 @@ import {
   Prisma,
 } from "@/lib/generated/prisma/client";
 import {
+  interactiveTransactionOptions,
+} from "@/lib/db/interactive-transaction";
+import {
   prisma,
 } from "@/lib/db/prisma";
 import {
@@ -88,7 +91,7 @@ const teacherProfileSelect = {
       status:
         true,
 
-      durationSeconds:
+      aparatUrl:
         true,
 
       rejectionReason:
@@ -294,6 +297,7 @@ export async function saveTeacherProfile(
           tx,
         );
       },
+      interactiveTransactionOptions,
     );
 
     /*

@@ -94,7 +94,6 @@ const profile = {
     id: "video-id",
     revision: 2,
     status: "APPROVED" as const,
-    durationSeconds: 84,
     rejectionReason: null,
     submittedAt: new Date("2026-08-10T08:00:00.000Z"),
     reviewedAt: new Date("2026-08-11T08:00:00.000Z"),
@@ -118,7 +117,7 @@ beforeEach(() => {
         id: "teacher-profile",
         applicationStatus: "REJECTED",
         profileCompletedAt: profile.profileCompletedAt,
-        introVideo: { id: "video-id", status: "APPROVED", durationSeconds: 84 },
+        introVideo: { id: "video-id", status: "APPROVED" },
       },
     },
   });
@@ -150,6 +149,7 @@ describe("teacher dashboard rejection feedback", () => {
       "data-feedback",
       profile.applicationReviewNote,
     );
+    expect(screen.queryByTestId("teacher-availability")).toBeNull();
   });
 
   it("still redirects an incomplete teacher profile before rendering applicant feedback", async () => {

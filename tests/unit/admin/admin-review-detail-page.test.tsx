@@ -59,8 +59,8 @@ const detail = {
   submittedProfileRevision: 3,
   submittedVideoId: "ck22345678901234567890123",
   submittedVideoRevision: 4,
-  submittedVideoUploadId: "upload-id",
-  submittedVideoAssetId: "asset-id",
+  submittedAparatHash: "abcDE12",
+  videoVerificationCode: "AB12C",
   createdAt: new Date("2026-08-01T10:00:00.000Z"),
   updatedAt: new Date("2026-08-13T10:00:00.000Z"),
   user: {
@@ -71,19 +71,16 @@ const detail = {
   },
   introVideo: {
     id: "ck22345678901234567890123",
-    provider: "mux",
-    uploadId: "upload-id",
-    assetId: "asset-id",
-    publicPlaybackId: null,
+    provider: "aparat",
+    aparatUrl: "https://www.aparat.com/v/abcDE12",
+    aparatHash: "abcDE12",
     revision: 4,
     status: "READY_FOR_REVIEW",
-    durationSeconds: 90,
     rejectionReason: null,
     submittedAt: new Date("2026-08-13T09:50:00.000Z"),
     reviewedAt: null,
     createdAt: new Date("2026-08-13T09:00:00.000Z"),
     updatedAt: new Date("2026-08-13T09:50:00.000Z"),
-    playbackReconciliations: [],
   },
 };
 
@@ -170,12 +167,11 @@ describe("admin teacher application detail page", () => {
     expect(result.props.canModerateTeachers).toBe(false);
     expect(result.props.moderationGuard).toBeNull();
     expect(result.props.application.timezoneLabel).toBe("Asia/Tehran");
-    expect(result.props.application).not.toHaveProperty("submittedVideoUploadId");
+    expect(result.props.application).not.toHaveProperty("submittedAparatHash");
     expect(result.props.application.user).not.toHaveProperty("id");
     expect(result.props.application.introVideo).not.toHaveProperty("id");
-    expect(result.props.application.introVideo).not.toHaveProperty("assetId");
-    expect(result.props.application.introVideo).not.toHaveProperty("uploadId");
-    expect(result.props.application.introVideo).not.toHaveProperty("publicPlaybackId");
+    expect(result.props.application.introVideo).not.toHaveProperty("aparatHash");
+    expect(result.props.application.introVideo).not.toHaveProperty("provider");
   });
 
   it("detects hidden provider identity drift without exposing provider identifiers", async () => {
@@ -183,7 +179,7 @@ describe("admin teacher application detail page", () => {
       ...detail,
       introVideo: {
         ...detail.introVideo,
-        assetId: "different-asset-id",
+        aparatHash: "different-hash",
       },
     });
 
@@ -204,7 +200,7 @@ describe("admin teacher application detail page", () => {
     expect(result.props.application.snapshotAligned).toBe(false);
     expect(result.props.decisionGuard).toBeNull();
     expect(result.props.canApprove).toBe(false);
-    expect(result.props.application.introVideo).not.toHaveProperty("assetId");
+    expect(result.props.application.introVideo).not.toHaveProperty("aparatHash");
   });
 
   it("keeps an aligned rejection guard while withholding approval for an inactive applicant", async () => {

@@ -34,6 +34,7 @@ export interface AdminReviewDetailApplication {
   submittedProfileRevision: number | null;
   submittedVideoRevision: number | null;
   snapshotAligned: boolean;
+  videoVerificationCode: string | null;
   user: {
     name: string;
     email: string;
@@ -48,7 +49,8 @@ export interface AdminReviewDetailApplication {
       | "APPROVED"
       | "REJECTED"
       | "FAILED";
-    durationSeconds: number | null;
+    aparatUrl: string | null;
+    embedUrl: string | null;
     rejectionReason: string | null;
     submittedAt: Date | null;
     reviewedAt: Date | null;
@@ -85,7 +87,7 @@ interface AdminReviewDetailCopy {
   submittedProfileRevisionLabel: string;
   submittedVideoRevisionLabel: string;
   videoStatusLabel: string;
-  videoDurationLabel: string;
+  videoUrlLabel: string;
   videoRevisionLabel: string;
   videoSubmittedLabel: string;
   videoReviewedLabel: string;
@@ -110,18 +112,11 @@ interface AdminReviewDetailCopy {
   noVideo: string;
   playbackHeading: string;
   playbackDescription: string;
-  playbackStart: string;
-  playbackRefresh: string;
-  playbackLoading: string;
-  playbackActive: string;
-  playbackExpiresSoon: string;
-  playbackExpired: string;
+  playbackCodeLabel: string;
+  playbackSpokenPhraseLabel: string;
+  playbackSpokenPhrase: string;
   playbackUnavailableState: string;
-  playbackUnauthorized: string;
-  playbackForbidden: string;
-  playbackConflict: string;
-  playbackUnavailable: string;
-  playbackGenericError: string;
+  playbackPublicHostNote: string;
   playbackPlayerTitle: string;
   decisionHeading: string;
   decisionDescription: string;
@@ -132,6 +127,9 @@ interface AdminReviewDetailCopy {
   approveDescription: string;
   approveUnavailable: string;
   approveConfirm: string;
+  spokenCodeLabel: string;
+  spokenCodeRequired: string;
+  approveVisibilityNote: string;
   rejectHeading: string;
   rejectDescription: string;
   rejectTargetLabel: string;
@@ -194,7 +192,6 @@ interface AdminReviewDetailProps {
   moderationGuard: AdminTeacherModerationGuard | null;
   copy: AdminReviewDetailCopy;
   formatDate: (value: Date) => string;
-  formatDuration: (seconds: number | null) => string;
 }
 
 const accountStatusKey = {
@@ -266,7 +263,6 @@ export function AdminReviewDetail({
   moderationGuard,
   copy,
   formatDate,
-  formatDuration,
 }: AdminReviewDetailProps) {
   const video = application.introVideo;
   const playbackEnabled = Boolean(
@@ -371,8 +367,12 @@ export function AdminReviewDetail({
                 <Definition label={copy.videoStatusLabel}>
                   {copy[videoStatusKey[video.status]]}
                 </Definition>
-                <Definition label={copy.videoDurationLabel}>
-                  {formatDuration(video.durationSeconds)}
+                <Definition label={copy.videoUrlLabel}>
+                  {video.aparatUrl ? (
+                    <span dir="ltr">{video.aparatUrl}</span>
+                  ) : (
+                    copy.noValue
+                  )}
                 </Definition>
                 <Definition label={copy.videoRevisionLabel}>
                   {video.revision}
@@ -472,23 +472,17 @@ export function AdminReviewDetail({
               {copy.playbackHeading}
             </h2>
             <AdminReviewPlayback
-              applicationId={application.id}
+              embedUrl={video?.embedUrl ?? null}
+              verificationCode={application.videoVerificationCode}
               enabled={playbackEnabled}
               copy={{
                 description: copy.playbackDescription,
-                start: copy.playbackStart,
-                refresh: copy.playbackRefresh,
-                loading: copy.playbackLoading,
-                active: copy.playbackActive,
-                expiresSoon: copy.playbackExpiresSoon,
-                expired: copy.playbackExpired,
-                unavailableState: copy.playbackUnavailableState,
-                unauthorized: copy.playbackUnauthorized,
-                forbidden: copy.playbackForbidden,
-                conflict: copy.playbackConflict,
-                unavailable: copy.playbackUnavailable,
-                genericError: copy.playbackGenericError,
+                codeLabel: copy.playbackCodeLabel,
+                spokenPhraseLabel: copy.playbackSpokenPhraseLabel,
+                spokenPhrase: copy.playbackSpokenPhrase,
                 playerTitle: copy.playbackPlayerTitle,
+                unavailableState: copy.playbackUnavailableState,
+                publicHostNote: copy.playbackPublicHostNote,
               }}
             />
           </aside>
@@ -515,6 +509,9 @@ export function AdminReviewDetail({
                 approveDescription: copy.approveDescription,
                 approveUnavailable: copy.approveUnavailable,
                 approveConfirm: copy.approveConfirm,
+                spokenCodeLabel: copy.spokenCodeLabel,
+                spokenCodeRequired: copy.spokenCodeRequired,
+                approveVisibilityNote: copy.approveVisibilityNote,
                 rejectHeading: copy.rejectHeading,
                 rejectDescription: copy.rejectDescription,
                 rejectTargetLabel: copy.rejectTargetLabel,
