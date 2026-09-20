@@ -36,14 +36,34 @@
     "featuredEmpty": "No public teachers are listed in the current booking window yet."
   },
   "Auth": {
+    "brand": "Talkinu",
     "signUpTitle": "Create your account",
     "signUpDescription": "Create an account, then choose whether you want to learn or teach.",
+    "photoTitle": "Speak with a real teacher, not a script.",
+    "photoSubtitle": "Talkinu is built around focused 15-minute English speaking sessions with human teachers.",
     "signInTitle": "Sign in to Talkinu",
     "signInDescription": "Continue to your Talkinu workspace.",
+    "username": "Username",
+    "usernameHint": "Usernames are exclusive. If this username is already taken, you will need to choose another.",
+    "usernameTaken": "This username is already taken.",
+    "usernameInvalid": "Use 3 to 30 characters, starting with a letter. Only letters, numbers, and underscores are allowed.",
+    "usernameChecking": "Checking username...",
+    "usernameAvailable": "This username is available.",
+    "signUpWithPhone": "Sign up with phone number",
+    "signUpWithEmail": "Sign up with email",
+    "phoneLabel": "Phone number",
+    "phoneHint": "Enter your Iranian mobile number without a leading 0. Example: 9142928321",
+    "phoneInvalid": "Enter a 10-digit Iranian mobile number starting with 9, without a leading 0.",
+    "phoneTaken": "This phone number is already registered.",
+    "countryIran": "Iran",
     "name": "Name",
     "email": "Email",
     "password": "Password",
     "passwordHint": "Use between 8 and 128 characters.",
+    "agreeToTerms": "I agree to the <terms>Talkinu Terms of Use</terms>.",
+    "termsRequired": "You must agree to the Talkinu Terms of Use to create an account.",
+    "rememberMe": "Remember me",
+    "rememberMeHint": "Stay signed in on this device so you do not have to enter your details again next time.",
     "createAccount": "Create account",
     "creatingAccount": "Creating account...",
     "signIn": "Sign in",
@@ -53,6 +73,75 @@
     "signUpError": "We could not create your account. Check the information and try again.",
     "signInError": "The email or password is incorrect.",
     "networkError": "We could not connect to the server. Try again."
+  },
+  "Terms": {
+    "brand": "Talkinu",
+    "title": "Talkinu Terms of Use",
+    "updated": "Last updated: 20 September 2026",
+    "intro": "These Terms of Use govern access to and use of Talkinu, an online English-teaching platform that connects students with human teachers for focused speaking sessions. By creating an account or using Talkinu, you agree to these terms. These terms do not currently include a personal-information or privacy section.",
+    "backToSignUp": "Back to sign up",
+    "sections": {
+      "agreement": {
+        "title": "1. Agreement to the terms",
+        "body": "You may use Talkinu only if you accept these Terms of Use. If you do not agree, you must not create an account or use the platform. Talkinu may refuse, suspend, or end access when these terms are not followed."
+      },
+      "service": {
+        "title": "2. The Talkinu service",
+        "body": "Talkinu is a marketplace and classroom platform for English speaking practice. Students can discover approved teachers, book sessions, and receive instructional feedback. Teachers can apply to teach, publish availability after approval, and conduct sessions.\n\nThe core product is an exactly 15-minute speaking session between a student and a human teacher. AI tools may analyze sessions and assist teachers, but AI does not replace teachers."
+      },
+      "accounts": {
+        "title": "3. Accounts and usernames",
+        "body": "You must provide accurate account details and keep your login credentials secure. Usernames on Talkinu are exclusive. A username can be used by only one account, and you may not choose a username that is already taken, impersonates Talkinu, impersonates another person, or is reserved by the platform.\n\nYou are responsible for activity that happens through your account. Notify Talkinu if you believe your account has been used without permission."
+      },
+      "students": {
+        "title": "4. Student use",
+        "body": "Students use Talkinu to learn English through live speaking practice. Students must join booked sessions on time, participate respectfully, and use the session for language learning rather than unrelated commercial activity.\n\nStudents must not harass teachers, record sessions except where Talkinu expressly provides recording as part of the product, or try to move paid teaching off the platform in order to avoid Talkinu’s rules."
+      },
+      "teachers": {
+        "title": "5. Teacher use",
+        "body": "Selecting the teacher option means you are applying to teach. It does not make you a public teacher. You may appear publicly, publish availability, or receive bookings only after Talkinu approves your application and the required professional profile and introduction video.\n\nTeachers must teach professionally, keep session commitments, and not misrepresent qualifications, availability, or the results a student should expect. Teachers remain responsible for the instruction they provide."
+      },
+      "sessions": {
+        "title": "6. Sessions, scheduling, and cancellation",
+        "body": "Speaking sessions are exactly 15 minutes. A booking is a commitment by both the student and the teacher to attend at the scheduled time. Late arrival, absence, or last-minute cancellation can reduce the value of the session.\n\nTalkinu may set cancellation windows, no-show rules, and scheduling limits to keep the marketplace fair. Do not create overlapping bookings or interfere with another user’s scheduled session."
+      },
+      "payments": {
+        "title": "7. Fees and platform payments",
+        "body": "Talkinu may charge students for sessions and related learning services, and may compensate approved teachers through the platform. Prices, teacher earnings, refunds, and payout timing will be shown in the product when those features are available.\n\nYou must not request or make payment outside Talkinu in order to avoid platform fees, booking rules, or quality standards. Unauthorized off-platform payment arrangements may lead to account limits or removal."
+      },
+      "conduct": {
+        "title": "8. Community standards",
+        "body": "Talkinu is a professional learning environment. You must treat other users with respect. Harassment, hate, threats, sexual misconduct, discrimination, spam, and any behavior that makes a session unsafe are prohibited.\n\nDo not share lesson materials in a way that violates another person’s rights, and do not use Talkinu to recruit users into unrelated businesses during sessions."
+      },
+      "intellectualProperty": {
+        "title": "9. Intellectual property and platform content",
+        "body": "Talkinu owns the platform, branding, software, and the content it publishes. Teachers retain rights in their own original teaching materials, and students retain rights in their own original contributions, except for the limited license needed for Talkinu to operate the service, host sessions, and provide instructional feedback.\n\nYou may not copy, scrape, reverse engineer, or resell Talkinu, teacher profiles, or session content except as allowed by these terms or by a separate written permission."
+      },
+      "prohibitedUse": {
+        "title": "10. Prohibited uses",
+        "body": "You may not use Talkinu to break the law, interfere with the service, probe or disrupt our systems, create fake accounts, manipulate reviews or bookings, share account access, or circumvent teacher-approval, scheduling, or payment rules.\n\nAutomated access, scraping, and attempts to extract teaching inventory or user lists without permission are forbidden."
+      },
+      "termination": {
+        "title": "11. Suspension and termination",
+        "body": "Talkinu may suspend or close an account, hide a teacher profile, cancel sessions, or refuse future use when these terms are violated, when required for safety or operational integrity, or when an application or account is rejected or suspended under Talkinu’s review rules.\n\nYou may stop using Talkinu at any time. Ending an account does not cancel obligations that already arose from completed or booked sessions."
+      },
+      "disclaimers": {
+        "title": "12. Educational nature of the service",
+        "body": "Talkinu provides language-learning services. It does not guarantee a particular exam score, job outcome, visa result, or fluency timeline. Teachers and AI-assisted feedback are instructional aids, not legal, medical, or immigration advice.\n\nSession quality can vary with internet connection, device quality, and whether both participants attend as scheduled."
+      },
+      "liability": {
+        "title": "13. Limitation of liability",
+        "body": "To the fullest extent allowed by applicable law, Talkinu is not liable for indirect, incidental, or consequential losses arising from use of the platform, missed sessions, teacher or student conduct, or service interruptions. Talkinu’s total liability for a claim relating to the service is limited to the amount you paid to Talkinu for the affected service during the three months before the claim, unless applicable law requires otherwise."
+      },
+      "changes": {
+        "title": "14. Changes to these terms",
+        "body": "Talkinu may update these Terms of Use as the product grows. When changes are material, we will present the updated terms in the product. Continued use of Talkinu after the updated terms take effect means you accept the revised terms."
+      },
+      "contact": {
+        "title": "15. Contact",
+        "body": "Questions about these Terms of Use can be sent through Talkinu support once support contact details are published in the product. Until then, use the in-product account and application flows to manage your relationship with Talkinu."
+      }
+    }
   },
   "Onboarding": {
     "eyebrow": "Talkinu onboarding",

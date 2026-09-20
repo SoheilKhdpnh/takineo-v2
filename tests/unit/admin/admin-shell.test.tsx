@@ -34,7 +34,7 @@ afterEach(() => {
 
 const copy = {
   skipToContent: "Skip to admin content",
-  brand: "Takineo",
+  brand: "Talkinu",
   workspace: "Admin workspace",
   navigationLabel: "Administration",
   overview: "Overview",

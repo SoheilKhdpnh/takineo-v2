@@ -28,7 +28,7 @@ describe("TeacherProfileLockedView", () => {
         statusLabel="Under review"
         description="Editing is locked during review."
         snapshotLabel="Reviewed profile"
-        footnote="Changes reopen only after Takineo requests them."
+        footnote="Changes reopen only after Talkinu requests them."
         fields={fields}
       />,
     );

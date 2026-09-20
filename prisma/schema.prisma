@@ -139,9 +139,15 @@ model User {
   name                  String
   email                 String
   emailVerified         Boolean
+  username              String?
+  displayUsername       String?
   image                 String?
   role                  UserRole?
   accountStatus         AccountStatus @default(ACTIVE)
+  phoneNumber           String?
+  phoneNumberVerified   Boolean       @default(false)
+  termsAccepted         Boolean       @default(false)
+  termsAcceptedAt       DateTime?
   onboardingCompletedAt DateTime?
   createdAt             DateTime
   updatedAt             DateTime
@@ -156,6 +162,8 @@ model User {
   speakingSessionCancellations SpeakingSessionCancellation[] @relation("SpeakingSessionCancellationActor")
 
   @@unique([email])
+  @@unique([username])
+  @@unique([phoneNumber])
   @@map("user")
 }
 
