@@ -768,29 +768,37 @@ export function UpcomingSessionsPanel({
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      aria-expanded={
-                        cancelling
-                      }
-                      aria-controls={
-                        cancelling
-                          ? `cancel-session-${session.id}`
-                          : undefined
-                      }
-                      onClick={() =>
-                        cancelling
-                          ? closeCancellation()
-                          : openCancellation(
-                              session.id,
-                            )
-                      }
-                      className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-zinc-950 hover:bg-zinc-950 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
-                    >
-                      {cancelling
-                        ? t("keepSession")
-                        : t("cancelAction")}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/sessions/${session.id}/join`}
+                        className="rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+                      >
+                        {t("joinAction")}
+                      </Link>
+                      <button
+                        type="button"
+                        aria-expanded={
+                          cancelling
+                        }
+                        aria-controls={
+                          cancelling
+                            ? `cancel-session-${session.id}`
+                            : undefined
+                        }
+                        onClick={() =>
+                          cancelling
+                            ? closeCancellation()
+                            : openCancellation(
+                                session.id,
+                              )
+                        }
+                        className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-zinc-950 hover:bg-zinc-950 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+                      >
+                        {cancelling
+                          ? t("keepSession")
+                          : t("cancelAction")}
+                      </button>
+                    </div>
                   </div>
 
                   {cancelling ? (

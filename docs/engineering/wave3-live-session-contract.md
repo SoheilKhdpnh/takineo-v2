@@ -8,7 +8,9 @@
 **M1-B status:** **CLOSED — `REJOIN_GRACE` and `EVIDENCE_HORIZON_GRACE` are frozen as two independent policies. Their production values remain deliberately unfrozen.**
 **M1-C status:** **CLOSED — join-window derivation consumes `REJOIN_GRACE`, and the evidence-based completion decision is defined as a pure rule separate from any write.**
 **M2 status:** **CLOSED — additive grant and event persistence, with executable database invariants.**
-**M3 status:** **CLOSED — services and transport against a fake provider adapter. Production grace values and vendor selection remain unfrozen.**
+**M3 status:** **CLOSED — services and transport against a fake provider adapter. Production grace values remain unfrozen.**
+**LiveKit adapter status:** **implemented behind the frozen M3 port.** 2026-09-20: a full local join was proven (both roles, real audio, correct webhooks). Public 80/443 routing and TURN remain the open item for a two-computer test. The SSH tunnel in §14 is not a working media path.
+**M4 status:** **minimal join surface present.** Teacher and student can enter a real room. This is not the polished product join UI.
 
 This file is the canonical Wave 3 contract. It records decisions that are already
 frozen in `lib/domain/live-session/**` and constrains the persistence, service,
@@ -534,15 +536,38 @@ database identity with `DIRECT_URL`.
 ### M3 — services and transport
 
 **Status: CLOSED** against the frozen `LiveSessionProviderAdapter` with a fake
-runtime adapter. Vendor selection remains open and is out of scope.
+runtime adapter. The LiveKit runtime adapter is now authorized and selected by
+`LIVE_SESSION_PROVIDER=livekit`. The fake adapter remains the test double.
 
 Production grace values are still unfrozen. Services read them from:
 
 ```text
 LIVE_SESSION_REJOIN_GRACE_MS
 LIVE_SESSION_EVIDENCE_HORIZON_GRACE_MS
+LIVE_SESSION_PROVIDER
 LIVE_SESSION_WEBHOOK_SECRET
+LIVEKIT_API_KEY
+LIVEKIT_API_SECRET
+LIVEKIT_WS_URL
+LIVEKIT_HTTP_URL
 ```
+
+`LIVE_SESSION_PROVIDER` must be `fake` or `livekit`. Absent or unknown values
+fail closed. `LIVE_SESSION_WEBHOOK_SECRET` is required only for `fake`.
+`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and `LIVEKIT_WS_URL` are required only
+for `livekit`. `LIVEKIT_HTTP_URL` is optional and is derived from
+`LIVEKIT_WS_URL` when unset.
+
+The LiveKit adapter issues AccessTokens whose identity is
+`providerParticipantRef` and whose room name is `spk_{sessionId}`. The webhook
+receiver verifies LiveKit's JWT `Authorization` header, then maps
+`participant_joined`, `participant_left`, and `room_finished` onto
+`SpeakingSessionLiveEvent`. Unmapped LiveKit events are acknowledged without
+ingest.
+
+`revokeCredential` remains a no-op on LiveKit because the frozen revocation
+command does not carry `sessionId`, which LiveKit needs as the room name. No
+service calls revoke yet.
 
 Absent, blank, or non-integer grace values fail closed. That is configuration,
 not a default.
@@ -569,8 +594,10 @@ Database conflicts are classified by constraint identity in
 
 ### M4 — product surface
 
-Localized join experience in both message catalogs, RTL and LTR, with loading,
-error, and denied states. No authorization logic may exist only in the UI.
+A minimal join page exists at `/{locale}/sessions/{sessionId}/join` so a teacher
+and a student can enter the same LiveKit room. Copy lives in both catalogs.
+Authorization remains server-side on `POST /api/sessions/{sessionId}/join`.
+This is not the polished product join UI.
 
 ## 11. Out of scope for Wave 3
 
@@ -579,8 +606,8 @@ error, and denied states. No authorization logic may exist only in the UI.
 - rescheduling;
 - any change to Wave 2-owned booking columns, statuses, or transitions;
 - production values for `REJOIN_GRACE` and `EVIDENCE_HORIZON_GRACE`;
-- provider selection, until an adapter implementation task is authorized;
-- the localized product join UI (M4).
+- the polished product join UI beyond the minimal room-entry surface;
+- public 80/443 routing, TLS termination, and Iran-path TURN for production.
 
 Iran-network signalling and media reachability for a candidate LiveKit/TURN
 host is validated with the standalone operator diagnostic in
@@ -616,13 +643,13 @@ For the M1-A/M1-B domain foundation and this contract document: **NO**.
 
 ## 13. Iran network reachability (operator diagnostic)
 
-Vendor selection remains unfrozen. Before a production media host is chosen,
-operators must prove that an Iranian client network can complete a full
-15-minute speaking path to that host.
+LiveKit is the selected live-session vendor. Before production media routing is
+chosen, operators must still prove that an Iranian client network can complete a
+full 15-minute speaking path to that host.
 
 That proof must not go through the Next.js / Netlify product surface. Hosting
 reachability and media reachability are different questions; mixing them would
-confound the result. M4 join UI is out of scope here.
+confound the result. The minimal join page is not this diagnostic.
 
 The standalone diagnostic lives at `diagnostics/iran-webrtc/`. Serve that
 directory with `node server.mjs` or `npx serve` (README in the folder). It is
@@ -644,4 +671,73 @@ It reports:
 Transports are isolated so ICE cannot pick silently: UDP/3478, UDP/443,
 UDP/53, TCP/443 TLS, TCP/80.
 
-This diagnostic does not issue join grants, complete sessions, or start M4.
+This diagnostic does not issue join grants or complete sessions.
+
+## 14. First local session test — SSH tunnel shortcut
+
+The first real teacher/student join test may run the Next.js app on a workstation
+and `livekit-server` plus Egress on `takineo-livekit`, with public 80/443 routing
+still unresolved.
+
+That test may use an SSH local forward:
+
+```text
+ssh -L 7880:localhost:7880 -L 7881:localhost:7881 -R 3000:localhost:3000 takineo-livekit
+```
+
+Meaning:
+
+- `7880` is LiveKit HTTP/WebSocket signalling.
+- `7881` is LiveKit RTC over TCP. SSH `-L` is TCP-only, so UDP media ports
+  cannot traverse this tunnel. The first test therefore depends on LiveKit's
+  TCP RTC port, not on UDP ICE or production TURN.
+- `-R 3000:localhost:3000` is the reverse path so `livekit-server` on the VPS
+  can POST webhooks to the local Next.js app at
+  `http://127.0.0.1:3000/api/webhooks/live-session`. Without the reverse
+  forward, join credentials can be issued and the room can connect, but
+  `SpeakingSessionLiveEvent` rows will not appear.
+
+Workstation env for this shortcut:
+
+```text
+LIVE_SESSION_PROVIDER=livekit
+LIVEKIT_WS_URL=ws://127.0.0.1:7880
+LIVEKIT_HTTP_URL=http://127.0.0.1:7880
+```
+
+Copy `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` from the VPS file
+`/home/masa/livekit-first-test/api.keys`. Do not commit that file.
+
+On `takineo-livekit`, the first-test process (not production systemd, not
+`provision-host.sh`) is:
+
+- config: `/home/masa/livekit-first-test/livekit.test.yaml`
+- keys: `/home/masa/livekit-first-test/api.keys`
+- start helper: `diagnostics/iran-webrtc/start-first-test-livekit.sh`
+  (copied to `/home/masa/start-first-test-livekit.sh`)
+- `livekit-server` 1.13.7 listens on `0.0.0.0:7880` and TCP RTC `7881`,
+  advertising `node_ip: 127.0.0.1` so a tunneled client can use TCP ICE
+- Egress runs as Docker `takineo-egress` on host networking, using a masa-owned
+  copy of the egress YAML because `/home/masa/amd-livekit/` is root-owned
+- webhook URL is `http://127.0.0.1:3000/api/webhooks/live-session`, which only
+  reaches the local Next app while the reverse forward is up
+
+`/usr/local/bin/livekit-server` is installed. Production `/etc/livekit.yaml` and
+`livekit.service` were **not** created. Public 80/443, TURN TLS, and Let's Encrypt
+remain unresolved.
+
+This tunnel is a **test shortcut**, not a production fix. It does not replace
+public TLS, 80/443 routing, TURN, or Iran-path reachability. Do not treat a
+successful tunneled join as evidence that Iranian clients can reach the host.
+
+## 15. 2026-09-20 local join result
+
+On 2026-09-20 a full real join ran on a workstation with local `livekit-server`
+1.13.7, not the SSH tunnel in §14. Teacher (Chrome) and student (Edge) entered
+the same room, both published microphone audio, and Talkinu accepted
+`room_started`, `participant_joined`, `track_published`, `participant_left`,
+and `room_finished` webhooks. They left by client request after a few minutes.
+
+Public 80/443 routing and TURN remain the open item blocking a genuine
+two-computer test. Join URLs stay in `.env` (`LIVEKIT_WS_URL`); they are not
+hardcoded in application source.

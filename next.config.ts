@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   images: {
     qualities: [70, 75],
   },
+  transpilePackages: [
+    "livekit-client",
+    "livekit-server-sdk",
+  ],
   async headers() {
     return [
       {

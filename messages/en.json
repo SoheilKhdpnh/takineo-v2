@@ -653,7 +653,8 @@
       "generic": "The session could not be cancelled. Its current schedule remains unchanged.",
       "invalidResponse": "Talkinu could not confirm the cancellation result. The session remains unchanged."
     },
-    "loading": "Loading upcoming sessions…"
+    "loading": "Loading upcoming sessions…",
+    "joinAction": "Join session"
   },
   "StudentBooking": {
     "loadingProfile": "Loading teacher profile and current slots…",
@@ -750,6 +751,32 @@
     "selectSlot": "Select {time}",
     "videoPlaceholder": "A public introduction video will appear here when playback is available for this teacher.",
     "chooseTime": "Choose a time"
+  },
+  "LiveSessionJoin": {
+    "eyebrow": "15-minute speaking",
+    "title": "Join the speaking room",
+    "description": "This is a minimal join surface so a teacher and a student can enter the same live room. Authorization is decided on the server.",
+    "pageReady": "Speaking session join",
+    "join": "Join room",
+    "joining": "Joining…",
+    "connected": "{count, plural, =0 {You are in the room. Waiting for the other participant.} one {You are in the room with one other participant.} other {You are in the room with # other participants.}}",
+    "mute": "Mute microphone",
+    "unmute": "Unmute microphone",
+    "leave": "Leave room",
+    "errors": {
+      "notParticipant": "You are not a participant of this speaking session.",
+      "accountInactive": "This account cannot join a speaking session.",
+      "notJoinable": "This session is not currently joinable.",
+      "windowNotOpen": "The join window has not opened yet.",
+      "windowClosed": "The join window has closed.",
+      "notConfigured": "Live-session joining is not configured on this server.",
+      "untrustedOrigin": "Talkinu could not verify this join request. Reload the app from its normal address.",
+      "unauthorized": "Sign in again before joining.",
+      "invalidResponse": "Talkinu could not confirm a usable join credential.",
+      "network": "We could not reach Talkinu. The room was not joined.",
+      "mediaConnect": "Talkinu authorized this join, but the live media path did not connect. Retry from this same page.",
+      "generic": "The speaking room could not be joined."
+    }
   },
   "Site": {
     "brand": "Talkinu",
