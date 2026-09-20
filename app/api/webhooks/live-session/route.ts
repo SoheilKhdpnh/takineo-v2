@@ -7,6 +7,9 @@ import {
 import {
   getLiveSessionProvider,
 } from "@/lib/live-session/provider";
+import type {
+  LiveSessionWebhookParseResult,
+} from "@/lib/live-session/runtime";
 import {
   ingestLiveSessionProviderEvent,
 } from "@/lib/services/live-session-webhook.service";
@@ -16,12 +19,15 @@ export const runtime = "nodejs";
 export async function POST(
   request: Request,
 ): Promise<Response> {
-  let event;
+  let event: LiveSessionWebhookParseResult;
 
   try {
     const rawBody = await request.text();
     const provider = getLiveSessionProvider();
-    event = provider.verifyAndParseWebhook(rawBody, request.headers);
+    event = await provider.verifyAndParseWebhook(
+      rawBody,
+      request.headers,
+    );
   } catch (error) {
     if (error instanceof LiveSessionConfigurationError) {
       console.error(error);
@@ -33,6 +39,13 @@ export async function POST(
     }
 
     return liveSessionWebhookErrorResponse(error);
+  }
+
+  if (event === null) {
+    return Response.json({
+      received: true,
+      ignored: true,
+    });
   }
 
   try {

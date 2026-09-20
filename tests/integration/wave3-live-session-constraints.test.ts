@@ -110,6 +110,13 @@ async function cleanupFixtures() {
   `);
 
   await setupClient.query(`
+    DELETE FROM "session_review"
+    WHERE
+      "id" LIKE 'it_wave3_%'
+      OR "sessionId" LIKE 'it_wave3_%'
+  `);
+
+  await setupClient.query(`
     DELETE FROM "speaking_session"
     WHERE "id" LIKE 'it_wave3_%'
   `);

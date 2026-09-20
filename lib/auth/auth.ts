@@ -2,9 +2,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
-import { isActiveAccount, isInactiveAccountSelfServicePath } from "@/lib/auth/account-policy";
+import {
+  canCreateAuthSession,
+  getAccountStatusForAuth,
+  isActiveAccount,
+  isInactiveAccountSelfServicePath,
+} from "@/lib/auth/account-policy";
 import { prisma } from "@/lib/db/prisma";
 import { serverEnv } from "@/lib/env/server";
+import { getTrustedApplicationOrigins } from "@/lib/security/trusted-origins";
 
 export const auth = betterAuth({
   baseURL: serverEnv.BETTER_AUTH_URL,
@@ -17,8 +23,12 @@ export const auth = betterAuth({
   databaseHooks: {
     session: {
       create: {
-        before: async (session) => {
-          return isActiveAccount(session.userId);
+        before: async (session, context) => {
+          const accountStatus = await getAccountStatusForAuth(session.userId);
+          return canCreateAuthSession({
+            accountStatus,
+            path: context?.path,
+          });
         },
       },
       update: {
@@ -48,7 +58,7 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
   },
 
-  trustedOrigins: [serverEnv.BETTER_AUTH_URL],
+  trustedOrigins: getTrustedApplicationOrigins(),
 
   plugins: [
     // Keep nextCookies as the final plugin.

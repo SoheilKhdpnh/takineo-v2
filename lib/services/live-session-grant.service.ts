@@ -48,6 +48,7 @@ export type IssuedLiveSessionJoin = Readonly<{
   grant: LiveSessionCredentialGrant;
   credential: string;
   expiresAt: Date;
+  url: string;
   replayed: boolean;
 }>;
 
@@ -224,6 +225,7 @@ export async function issueLiveSessionJoinGrant(
     grant,
     credential: issued.credential,
     expiresAt: issued.expiresAt,
+    url: provider.getJoinUrl(),
     replayed: persisted.replayed,
   };
 }

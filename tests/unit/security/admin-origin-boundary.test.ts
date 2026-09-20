@@ -18,10 +18,13 @@ function request(origin?: string) {
 }
 
 describe("administrative trusted-origin boundary", () => {
-  it("accepts only the exact configured application origin", () => {
+  it("accepts the configured application origin and its www alternate", () => {
     expect(hasTrustedRequestOrigin(request("https://app.takineo.test"))).toBe(
       true,
     );
+    expect(
+      hasTrustedRequestOrigin(request("https://www.app.takineo.test")),
+    ).toBe(true);
   });
 
   it.each([

@@ -154,6 +154,8 @@ model User {
   studentSpeakingSessions      SpeakingSession[]             @relation("SpeakingSessionStudent")
   speakingSessionCancellations SpeakingSessionCancellation[] @relation("SpeakingSessionCancellationActor")
   speakingSessionLiveGrants    SpeakingSessionLiveGrant[]    @relation("SpeakingSessionLiveParticipant")
+  sessionReviewsAsStudent      SessionReview[]               @relation("SessionReviewStudent")
+  sessionReviewsAsTeacher      SessionReview[]               @relation("SessionReviewTeacher")
 
   @@unique([email])
   @@map("user")
@@ -290,7 +292,7 @@ model TeacherIntroVideo {
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
 
-  teacherProfile TeacherProfile   @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  teacherProfile TeacherProfile    @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
   auditEvents    AdminAuditEvent[]
 
   @@map("teacher_intro_video")
@@ -390,6 +392,7 @@ model SpeakingSession {
   cancellation   SpeakingSessionCancellation?
   liveGrants     SpeakingSessionLiveGrant[]
   liveEvents     SpeakingSessionLiveEvent[]
+  review         SessionReview?
 
   @@unique([studentUserId, bookingIdempotencyKey], map: "speaking_session_student_idempotency_key")
   @@index([teacherProfileId, status, startAt], map: "speaking_session_teacher_status_start_idx")
@@ -457,4 +460,24 @@ model SpeakingSessionLiveEvent {
   @@index([sessionId, occurredAt, providerEventRef], map: "ss_live_event_session_time_idx")
   @@index([providerParticipantRef, connectionRef, occurredAt], map: "ss_live_event_connection_idx")
   @@map("speaking_session_live_event")
+}
+
+/// Wave 3 capture-only student rating of a speaking session.
+/// Aggregation, profile surfacing, and moderation are Wave 5.
+model SessionReview {
+  id            String   @id @default(cuid())
+  sessionId     String   @unique
+  studentUserId String
+  teacherUserId String
+  rating        Int
+  comment       String?  @db.VarChar(500)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  session     SpeakingSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  studentUser User            @relation("SessionReviewStudent", fields: [studentUserId], references: [id], onDelete: Restrict)
+  teacherUser User            @relation("SessionReviewTeacher", fields: [teacherUserId], references: [id], onDelete: Restrict)
+
+  @@index([studentUserId], map: "session_review_student_idx")
+  @@index([teacherUserId], map: "session_review_teacher_idx")
+  @@map("session_review")
 }

@@ -17,8 +17,11 @@ export function SiteChrome({
   const isAdmin =
     pathname === "/admin" ||
     pathname.startsWith("/admin/");
+  const isLiveSessionJoin = /^\/sessions\/[^/]+\/join$/.test(
+    pathname,
+  );
 
-  if (isAdmin) {
+  if (isAdmin || isLiveSessionJoin) {
     return children;
   }
 

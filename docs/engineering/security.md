@@ -27,12 +27,19 @@ the supported endpoint-hook context rather than from the partial update payload.
 
 All other Better Auth catch-all operations for a known inactive session return
 `403 ACCOUNT_INACTIVE`. Sign-out is dispatched without an account-policy
-preflight so cookie/session cleanup remains available. Session creation fails
-closed for inactive accounts. Normal session refresh remains available only to
-`ACTIVE` accounts; inactive accounts cannot use `/get-session` to extend a
-session. The remaining self-service endpoints exist only for sign-out,
-inspection of other sessions, and session revocation. Authorization for Takineo
-product APIs continues to require an active server-side session independently.
+preflight so cookie/session cleanup remains available.
+
+Session creation fails closed for `SUSPENDED` and `DISABLED` rows, and for a
+missing row on any path other than `/sign-up/email`. A lag-hidden inactive
+user on sign-in must not be treated as a new `ACTIVE` account. The signup path
+may proceed when the new row is not yet visible because new users are `ACTIVE`
+by schema default. Product API session reads continue to fail closed when the
+user is missing. Normal session refresh remains available only to `ACTIVE`
+accounts; inactive accounts cannot use `/get-session` to extend a session.
+The remaining self-service endpoints exist only for sign-out, inspection of
+other sessions, and session revocation. Authorization for Takineo product APIs
+continues to require an active server-side session independently. Trusted auth
+origins are the configured `BETTER_AUTH_URL` origin and its `www` alternate.
 
 ## Authorization
 

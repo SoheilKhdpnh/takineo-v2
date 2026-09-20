@@ -110,6 +110,7 @@ export async function POST(
         authorizedAt: result.grant.authorizedAt.toISOString(),
       },
       credential: result.credential,
+      url: result.url,
       expiresAt: result.expiresAt.toISOString(),
       replayed: result.replayed,
     });

@@ -102,4 +102,19 @@ describe("live-session webhook route", () => {
       duplicate: true,
     });
   });
+
+  it("acknowledges unmapped provider events without ingestion", async () => {
+    mocks.getLiveSessionProvider.mockReturnValue({
+      verifyAndParseWebhook: vi.fn().mockResolvedValue(null),
+    });
+
+    const response = await ingestWebhook(signedRequest());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      received: true,
+      ignored: true,
+    });
+    expect(mocks.ingestLiveSessionProviderEvent).not.toHaveBeenCalled();
+  });
 });

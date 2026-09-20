@@ -9,18 +9,23 @@ import {
 } from "@/lib/domain/booking-policy";
 import type {
   LiveSessionProviderAdapter,
-  LiveSessionProviderEvidenceEvent,
 } from "@/lib/domain/live-session/provider";
 import {
   LiveSessionInvalidWebhookSignatureError,
   LiveSessionMalformedEventError,
 } from "@/lib/errors/live-session-errors";
+import type {
+  LiveSessionRuntimeProvider,
+} from "@/lib/live-session/runtime";
 import {
   liveSessionProviderWebhookEventSchema,
 } from "@/lib/validations/live-session";
 
 export const FAKE_LIVE_SESSION_SIGNATURE_HEADER =
   "x-takineo-live-session-signature";
+
+export const FAKE_LIVE_SESSION_JOIN_URL =
+  "fake://live-session";
 
 export type FakeLiveSessionProviderOptions = Readonly<{
   webhookSecret: string;
@@ -29,14 +34,10 @@ export type FakeLiveSessionProviderOptions = Readonly<{
 }>;
 
 export type FakeLiveSessionProvider =
+  LiveSessionRuntimeProvider &
   LiveSessionProviderAdapter &
   Readonly<{
-    allocateProviderParticipantRef: () => string;
     signWebhookBody: (rawBody: string) => string;
-    verifyAndParseWebhook: (
-      rawBody: string,
-      headers: Headers,
-    ) => LiveSessionProviderEvidenceEvent;
     revokedGrantIds: ReadonlySet<string>;
   }>;
 
@@ -74,6 +75,10 @@ export function createFakeLiveSessionProvider(
   return {
     allocateProviderParticipantRef() {
       return `fake-ppr:${randomUUID()}`;
+    },
+
+    getJoinUrl() {
+      return FAKE_LIVE_SESSION_JOIN_URL;
     },
 
     signWebhookBody(rawBody) {

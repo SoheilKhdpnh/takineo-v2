@@ -82,6 +82,7 @@ describe("live-session join route", () => {
         authorizedAt: new Date("2026-08-20T10:00:00.000Z"),
       },
       credential: "fake-live:grant-1:token",
+      url: "fake://live-session",
       expiresAt: new Date("2026-08-20T10:15:00.000Z"),
       replayed: false,
     });
@@ -122,6 +123,7 @@ describe("live-session join route", () => {
 
     expect(response.status).toBe(200);
     expect(body.credential).toBe("fake-live:grant-1:token");
+    expect(body.url).toBe("fake://live-session");
     expect(body.grant.grantId).toBe("grant-1");
     expect(body.grant).not.toHaveProperty("providerParticipantRef");
   });

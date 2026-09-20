@@ -41,6 +41,7 @@ describe("fake live-session provider", () => {
     expect(ref).not.toBe("student-user");
     expect(ref).toMatch(/^fake-ppr:/);
     expect(ref).not.toBe(provider.allocateProviderParticipantRef());
+    expect(provider.getJoinUrl()).toBe("fake://live-session");
   });
 
   it("treats credential expiration as distinct from explicit revocation", async () => {
@@ -65,7 +66,7 @@ describe("fake live-session provider", () => {
     expect(provider.revokedGrantIds.has("grant-1")).toBe(true);
   });
 
-  it("accepts a signature-verified webhook body and rejects a forged one", () => {
+  it("accepts a signature-verified webhook body and rejects a forged one", async () => {
     const provider = createFakeLiveSessionProvider({
       webhookSecret: SECRET,
     });
@@ -76,7 +77,7 @@ describe("fake live-session provider", () => {
       occurredAt: "2026-08-20T10:15:00.000Z",
     });
 
-    const accepted = provider.verifyAndParseWebhook(
+    const accepted = await provider.verifyAndParseWebhook(
       rawBody,
       new Headers({
         [FAKE_LIVE_SESSION_SIGNATURE_HEADER]:
@@ -84,19 +85,20 @@ describe("fake live-session provider", () => {
       }),
     );
 
-    expect(accepted.type).toBe("ROOM_ENDED");
+    expect(accepted?.type).toBe("ROOM_ENDED");
 
-    expect(() =>
-      provider.verifyAndParseWebhook(
-        rawBody,
-        new Headers({
-          [FAKE_LIVE_SESSION_SIGNATURE_HEADER]: "ab".repeat(32),
-        }),
-      ),
-    ).toThrow(LiveSessionInvalidWebhookSignatureError);
+    await expect(
+      (async () =>
+        provider.verifyAndParseWebhook(
+          rawBody,
+          new Headers({
+            [FAKE_LIVE_SESSION_SIGNATURE_HEADER]: "ab".repeat(32),
+          }),
+        ))(),
+    ).rejects.toBeInstanceOf(LiveSessionInvalidWebhookSignatureError);
   });
 
-  it("rejects a signed but malformed webhook body", () => {
+  it("rejects a signed but malformed webhook body", async () => {
     const provider = createFakeLiveSessionProvider({
       webhookSecret: SECRET,
     });
@@ -108,14 +110,15 @@ describe("fake live-session provider", () => {
       providerParticipantRef: "should-not-be-present",
     });
 
-    expect(() =>
-      provider.verifyAndParseWebhook(
-        rawBody,
-        new Headers({
-          [FAKE_LIVE_SESSION_SIGNATURE_HEADER]:
-            provider.signWebhookBody(rawBody),
-        }),
-      ),
-    ).toThrow(LiveSessionMalformedEventError);
+    await expect(
+      (async () =>
+        provider.verifyAndParseWebhook(
+          rawBody,
+          new Headers({
+            [FAKE_LIVE_SESSION_SIGNATURE_HEADER]:
+              provider.signWebhookBody(rawBody),
+          }),
+        ))(),
+    ).rejects.toBeInstanceOf(LiveSessionMalformedEventError);
   });
 });

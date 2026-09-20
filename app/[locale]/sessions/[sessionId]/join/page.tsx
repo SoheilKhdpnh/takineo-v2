@@ -7,6 +7,13 @@ import { notFound } from "next/navigation";
 import { LiveSessionJoinRoom } from "@/components/live-session/LiveSessionJoinRoom";
 import { requireAppLocale } from "@/i18n/locale";
 import { requireAuthenticatedPage } from "@/lib/auth/page-guards";
+import {
+  SessionReadForbiddenError,
+  SessionReadTargetNotFoundError,
+} from "@/lib/errors/session-read-errors";
+import {
+  getSpeakingSessionForViewer,
+} from "@/lib/services/speaking-session-read.service";
 import { liveSessionReadIdSchema } from "@/lib/validations/live-session";
 
 interface LiveSessionJoinPageProps {
@@ -34,21 +41,59 @@ export default async function LiveSessionJoinPage({
     notFound();
   }
 
-  await requireAuthenticatedPage(locale);
+  const { session } = await requireAuthenticatedPage(locale);
 
-  const t = await getTranslations({
+  let view;
+
+  try {
+    view = await getSpeakingSessionForViewer(
+      session.user.id,
+      parsedSessionId.data,
+    );
+  } catch (error) {
+    if (
+      error instanceof SessionReadTargetNotFoundError ||
+      error instanceof SessionReadForbiddenError
+    ) {
+      notFound();
+    }
+
+    throw error;
+  }
+
+  const tJoin = await getTranslations({
     locale,
     namespace: "LiveSessionJoin",
   });
+  const tSite = await getTranslations({
+    locale,
+    namespace: "Site",
+  });
+
+  const viewerRole =
+    view.counterparty.type === "TEACHER" ? "STUDENT" : "TEACHER";
+  const selfName =
+    session.user.name?.trim() || tJoin("call.you");
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12">
-      <section className="mx-auto max-w-3xl">
-        <p className="sr-only">
-          {t("pageReady")}
-        </p>
-        <LiveSessionJoinRoom sessionId={parsedSessionId.data} />
-      </section>
-    </main>
+    <>
+      <p className="sr-only">{tJoin("pageReady")}</p>
+      <LiveSessionJoinRoom
+        brand={tSite("brand")}
+        context={{
+          sessionId: view.id,
+          viewerRole,
+          selfName,
+          selfImage: session.user.image ?? null,
+          counterparty: {
+            name: view.counterparty.name,
+            image: view.counterparty.image,
+          },
+          startAt: view.startAt.toISOString(),
+          endAt: view.endAt.toISOString(),
+          status: view.status,
+        }}
+      />
+    </>
   );
 }

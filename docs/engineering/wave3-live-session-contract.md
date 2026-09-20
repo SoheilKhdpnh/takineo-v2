@@ -10,7 +10,7 @@
 **M2 status:** **CLOSED — additive grant and event persistence, with executable database invariants.**
 **M3 status:** **CLOSED — services and transport against a fake provider adapter. Production grace values remain unfrozen.**
 **LiveKit adapter status:** **implemented behind the frozen M3 port.** 2026-09-20: a full local join was proven (both roles, real audio, correct webhooks). Public 80/443 routing and TURN remain the open item for a two-computer test. The SSH tunnel in §14 is not a working media path.
-**M4 status:** **minimal join surface present.** Teacher and student can enter a real room. This is not the polished product join UI.
+**M4 status:** **product session UI.** Pre-join lobby, audio-first in-session view, and post-session wrap-up sit on the proven LiveKit join path. Join authorization, the provider adapter, and webhook handling are unchanged. `SessionReview` is capture-only (student rates teacher); aggregation, profile surfacing, and moderation remain Wave 5.
 
 This file is the canonical Wave 3 contract. It records decisions that are already
 frozen in `lib/domain/live-session/**` and constrains the persistence, service,
@@ -61,7 +61,8 @@ Wave 3 **owns**, as an additive-only surface:
 
 - `SpeakingSessionLiveGrant`;
 - `SpeakingSessionLiveEvent`;
-- enums and relations introduced solely for those two models;
+- `SessionReview` (capture-only student rating; no aggregation);
+- enums and relations introduced solely for those models;
 - `lib/domain/live-session/**`;
 - live-session services, validations, errors, and routes added by this wave.
 
@@ -741,3 +742,42 @@ and `room_finished` webhooks. They left by client request after a few minutes.
 Public 80/443 routing and TURN remain the open item blocking a genuine
 two-computer test. Join URLs stay in `.env` (`LIVEKIT_WS_URL`); they are not
 hardcoded in application source.
+
+## 16. Product session UI and capture-only review
+
+M4 replaces the minimal join/mute/leave test surface with the product session
+flow. This is a UI layer on the proven join path. It does not change join
+authorization, the LiveKit adapter, or webhook handling.
+
+### Audio-first
+
+The in-session view defaults to audio. Each participant is shown as an avatar
+(or profile photo) with a speaking indicator tied to LiveKit active-speaker
+state. Video is an explicit opt-in. If connection quality is `Poor` or `Lost`,
+video degrades back to the avatar view so a frozen frame cannot remain on
+screen. Connection quality uses LiveKit's own reporter: Excellent / Good /
+Poor / Lost.
+
+The session always shows remaining time until `endAt`, not only elapsed time.
+
+### SessionReview (capture only)
+
+`SessionReview` is an additive table keyed by `SpeakingSession`. It stores:
+
+- student user id
+- teacher user id
+- integer star rating 1–5
+- optional short comment
+- created timestamp
+
+Only the student may rate the teacher. The prompt is skippable; skip does not
+write a row. Duplicate submits for the same session are rejected.
+
+This is intentionally **not** the Wave 5 review system. Out of scope here:
+
+- teacher rating aggregation
+- surfacing ratings on teacher profiles
+- comment moderation or admin review
+- teacher-rates-student
+
+Those belong to Wave 5 ("teacher review & student report publishing").

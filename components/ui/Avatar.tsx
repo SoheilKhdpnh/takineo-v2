@@ -17,29 +17,33 @@ export function initialsFor(name: string): string {
     .toUpperCase();
 }
 
-type AvatarSize = "sm" | "md" | "lg";
+type AvatarSize = "sm" | "md" | "lg" | "xl";
 
 const sizeClass: Record<AvatarSize, string> = {
   sm: "size-11 text-sm",
   md: "size-14 text-sm",
   lg: "size-24 text-2xl",
+  xl: "size-32 text-3xl",
 };
 
 const dimension: Record<AvatarSize, number> = {
   sm: 44,
   md: 56,
   lg: 96,
+  xl: 128,
 };
 
 export function Avatar({
   name,
   image,
   size = "md",
+  rounded = "md",
   className,
 }: {
   name: string;
   image: string | null;
   size?: AvatarSize;
+  rounded?: "md" | "full";
   className?: string;
 }) {
   const initials = initialsFor(name);
@@ -48,7 +52,8 @@ export function Avatar({
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-md bg-ink text-white",
+        "relative shrink-0 overflow-hidden bg-ink text-white",
+        rounded === "full" ? "rounded-full" : "rounded-md",
         sizeClass[size],
         className,
       )}

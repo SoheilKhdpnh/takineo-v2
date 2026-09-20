@@ -127,6 +127,7 @@ describe("live-session grant issuance", () => {
     expect(result.replayed).toBe(false);
     expect(result.grant.participantRole).toBe("STUDENT");
     expect(result.credential.startsWith("fake-live:")).toBe(true);
+    expect(result.url).toBe("fake://live-session");
     expect(result.grant.providerParticipantRef).not.toBe("student-user");
   });
 
