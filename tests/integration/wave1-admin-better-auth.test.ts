@@ -73,6 +73,8 @@ describe("Wave 1 Better Auth administrative session acceptance", () => {
         email,
         password,
         name: "Better Auth Admin",
+        username: `ba_${randomUUID().slice(0, 8)}`,
+        termsAccepted: true,
       },
     });
 

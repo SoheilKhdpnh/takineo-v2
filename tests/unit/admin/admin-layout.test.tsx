@@ -31,7 +31,7 @@ import AdminLayout from "@/app/[locale]/admin/layout";
 
 const translations: Record<string, string> = {
   skipToContent: "Skip",
-  brand: "Takineo",
+  brand: "Talkinu",
   workspace: "Admin workspace",
   navigationLabel: "Administration",
   overview: "Overview",

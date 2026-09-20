@@ -1,10 +1,15 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
+import { phoneNumber, username } from "better-auth/plugins";
 
 import { isActiveAccount, isInactiveAccountSelfServicePath } from "@/lib/auth/account-policy";
+import { signupAuthHooks } from "@/lib/auth/signup-hooks";
 import { prisma } from "@/lib/db/prisma";
+import { iranPhoneToInternalEmail } from "@/lib/domain/iran-phone";
+import { isAllowedUsername } from "@/lib/domain/username";
 import { serverEnv } from "@/lib/env/server";
+import { isIranOtpPhoneNumber, deliverSignupOtp } from "@/lib/services/sms-otp.service";
 
 export const auth = betterAuth({
   baseURL: serverEnv.BETTER_AUTH_URL,
@@ -13,6 +18,8 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+
+  hooks: signupAuthHooks,
 
   databaseHooks: {
     session: {
@@ -30,12 +37,49 @@ export const auth = betterAuth({
         },
       },
     },
+    user: {
+      create: {
+        before: async (user) => {
+          const data = {
+            ...user,
+            termsAccepted: true,
+            termsAcceptedAt: new Date(),
+          };
+
+          return { data };
+        },
+      },
+    },
   },
 
   user: {
     additionalFields: {
       role: {
         type: ["STUDENT", "TEACHER"],
+        required: false,
+        input: false,
+      },
+      phoneNumber: {
+        type: "string",
+        required: false,
+        unique: true,
+        input: true,
+      },
+      phoneNumberVerified: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
+      termsAccepted: {
+        type: "boolean",
+        required: true,
+        defaultValue: false,
+        input: true,
+        returned: false,
+      },
+      termsAcceptedAt: {
+        type: "date",
         required: false,
         input: false,
       },
@@ -51,6 +95,34 @@ export const auth = betterAuth({
   trustedOrigins: [serverEnv.BETTER_AUTH_URL],
 
   plugins: [
+    username({
+      minUsernameLength: 3,
+      maxUsernameLength: 30,
+      usernameValidator: isAllowedUsername,
+    }),
+    phoneNumber({
+      otpLength: 6,
+      expiresIn: 300,
+      allowedAttempts: 3,
+      requireVerification: true,
+      phoneNumberValidator: isIranOtpPhoneNumber,
+      signUpOnVerification: {
+        getTempEmail: iranPhoneToInternalEmail,
+        getTempName: (value) => value,
+      },
+      sendOTP: async ({ phoneNumber: otpPhoneNumber, code }) => {
+        await deliverSignupOtp({
+          phoneNumber: otpPhoneNumber,
+          code,
+        });
+      },
+      sendPasswordResetOTP: async ({ phoneNumber: otpPhoneNumber, code }) => {
+        await deliverSignupOtp({
+          phoneNumber: otpPhoneNumber,
+          code,
+        });
+      },
+    }),
     // Keep nextCookies as the final plugin.
     nextCookies(),
   ],

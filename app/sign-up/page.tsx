@@ -75,7 +75,7 @@ export default function SignUpPage() {
       <section className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
         <div className="mb-8">
           <p className="text-sm font-medium text-zinc-500">
-            Takineo
+            Talkinu
           </p>
 
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">

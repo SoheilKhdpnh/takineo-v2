@@ -1,10 +1,10 @@
 {
   "Metadata": {
-    "title": "Takineo",
+    "title": "Talkinu",
     "description": "Focused English speaking practice with human teachers and AI-assisted feedback"
   },
   "Common": {
-    "brand": "Takineo",
+    "brand": "Talkinu",
     "loading": "Loading...",
     "tryAgain": "Try again"
   },
@@ -13,21 +13,41 @@
     "switchToEnglish": "Change language to English"
   },
   "Home": {
-    "eyebrow": "Takineo",
+    "eyebrow": "Talkinu",
     "title": "Focused speaking practice with human teachers and AI-assisted feedback",
-    "description": "Takineo is built around focused 15-minute English speaking sessions, where teachers teach and AI supports analysis and improvement.",
+    "description": "Talkinu is built around focused 15-minute English speaking sessions, where teachers teach and AI supports analysis and improvement.",
     "createAccount": "Create account",
     "signIn": "Sign in"
   },
   "Auth": {
+    "brand": "Talkinu",
     "signUpTitle": "Create your account",
     "signUpDescription": "Create an account, then choose whether you want to learn or teach.",
-    "signInTitle": "Sign in to Takineo",
-    "signInDescription": "Continue to your Takineo workspace.",
-    "name": "Name",
+    "photoTitle": "Speak with a real teacher, not a script.",
+    "photoSubtitle": "Talkinu is built around focused 15-minute English speaking sessions with human teachers.",
+    "signInTitle": "Sign in to Talkinu",
+    "signInDescription": "Continue to your Talkinu workspace.",
+    "username": "Username",
+    "usernameHint": "Usernames are exclusive. If this username is already taken, you will need to choose another.",
+    "usernameTaken": "This username is already taken.",
+    "usernameInvalid": "Use 3 to 30 characters, starting with a letter. Only letters, numbers, and underscores are allowed.",
+    "usernameChecking": "Checking username...",
+    "usernameAvailable": "This username is available.",
+    "signUpWithPhone": "Sign up with phone number",
+    "signUpWithEmail": "Sign up with email",
+    "phoneLabel": "Phone number",
+    "phoneHint": "Enter your Iranian mobile number without a leading 0. Example: 9142928321",
+    "phoneInvalid": "Enter a 10-digit Iranian mobile number starting with 9, without a leading 0.",
+    "phoneTaken": "This phone number is already registered.",
+    "countryIran": "Iran",
+    "name": "Username",
     "email": "Email",
     "password": "Password",
     "passwordHint": "Use between 8 and 128 characters.",
+    "agreeToTerms": "I agree to the <terms>Talkinu Terms of Use</terms>.",
+    "termsRequired": "You must agree to the Talkinu Terms of Use to create an account.",
+    "rememberMe": "Remember me",
+    "rememberMeHint": "Stay signed in on this device so you do not have to enter your details again next time.",
     "createAccount": "Create account",
     "creatingAccount": "Creating account...",
     "signIn": "Sign in",
@@ -38,15 +58,84 @@
     "signInError": "The email or password is incorrect.",
     "networkError": "We could not connect to the server. Try again."
   },
+  "Terms": {
+    "brand": "Talkinu",
+    "title": "Talkinu Terms of Use",
+    "updated": "Last updated: 20 September 2026",
+    "intro": "These Terms of Use govern access to and use of Talkinu, an online English-teaching platform that connects students with human teachers for focused speaking sessions. By creating an account or using Talkinu, you agree to these terms. These terms do not currently include a personal-information or privacy section.",
+    "backToSignUp": "Back to sign up",
+    "sections": {
+      "agreement": {
+        "title": "1. Agreement to the terms",
+        "body": "You may use Talkinu only if you accept these Terms of Use. If you do not agree, you must not create an account or use the platform. Talkinu may refuse, suspend, or end access when these terms are not followed."
+      },
+      "service": {
+        "title": "2. The Talkinu service",
+        "body": "Talkinu is a marketplace and classroom platform for English speaking practice. Students can discover approved teachers, book sessions, and receive instructional feedback. Teachers can apply to teach, publish availability after approval, and conduct sessions.\n\nThe core product is an exactly 15-minute speaking session between a student and a human teacher. AI tools may analyze sessions and assist teachers, but AI does not replace teachers."
+      },
+      "accounts": {
+        "title": "3. Accounts and usernames",
+        "body": "You must provide accurate account details and keep your login credentials secure. Usernames on Talkinu are exclusive. A username can be used by only one account, and you may not choose a username that is already taken, impersonates Talkinu, impersonates another person, or is reserved by the platform.\n\nYou are responsible for activity that happens through your account. Notify Talkinu if you believe your account has been used without permission."
+      },
+      "students": {
+        "title": "4. Student use",
+        "body": "Students use Talkinu to learn English through live speaking practice. Students must join booked sessions on time, participate respectfully, and use the session for language learning rather than unrelated commercial activity.\n\nStudents must not harass teachers, record sessions except where Talkinu expressly provides recording as part of the product, or try to move paid teaching off the platform in order to avoid Talkinu’s rules."
+      },
+      "teachers": {
+        "title": "5. Teacher use",
+        "body": "Selecting the teacher option means you are applying to teach. It does not make you a public teacher. You may appear publicly, publish availability, or receive bookings only after Talkinu approves your application and the required professional profile and introduction video.\n\nTeachers must teach professionally, keep session commitments, and not misrepresent qualifications, availability, or the results a student should expect. Teachers remain responsible for the instruction they provide."
+      },
+      "sessions": {
+        "title": "6. Sessions, scheduling, and cancellation",
+        "body": "Speaking sessions are exactly 15 minutes. A booking is a commitment by both the student and the teacher to attend at the scheduled time. Late arrival, absence, or last-minute cancellation can reduce the value of the session.\n\nTalkinu may set cancellation windows, no-show rules, and scheduling limits to keep the marketplace fair. Do not create overlapping bookings or interfere with another user’s scheduled session."
+      },
+      "payments": {
+        "title": "7. Fees and platform payments",
+        "body": "Talkinu may charge students for sessions and related learning services, and may compensate approved teachers through the platform. Prices, teacher earnings, refunds, and payout timing will be shown in the product when those features are available.\n\nYou must not request or make payment outside Talkinu in order to avoid platform fees, booking rules, or quality standards. Unauthorized off-platform payment arrangements may lead to account limits or removal."
+      },
+      "conduct": {
+        "title": "8. Community standards",
+        "body": "Talkinu is a professional learning environment. You must treat other users with respect. Harassment, hate, threats, sexual misconduct, discrimination, spam, and any behavior that makes a session unsafe are prohibited.\n\nDo not share lesson materials in a way that violates another person’s rights, and do not use Talkinu to recruit users into unrelated businesses during sessions."
+      },
+      "intellectualProperty": {
+        "title": "9. Intellectual property and platform content",
+        "body": "Talkinu owns the platform, branding, software, and the content it publishes. Teachers retain rights in their own original teaching materials, and students retain rights in their own original contributions, except for the limited license needed for Talkinu to operate the service, host sessions, and provide instructional feedback.\n\nYou may not copy, scrape, reverse engineer, or resell Talkinu, teacher profiles, or session content except as allowed by these terms or by a separate written permission."
+      },
+      "prohibitedUse": {
+        "title": "10. Prohibited uses",
+        "body": "You may not use Talkinu to break the law, interfere with the service, probe or disrupt our systems, create fake accounts, manipulate reviews or bookings, share account access, or circumvent teacher-approval, scheduling, or payment rules.\n\nAutomated access, scraping, and attempts to extract teaching inventory or user lists without permission are forbidden."
+      },
+      "termination": {
+        "title": "11. Suspension and termination",
+        "body": "Talkinu may suspend or close an account, hide a teacher profile, cancel sessions, or refuse future use when these terms are violated, when required for safety or operational integrity, or when an application or account is rejected or suspended under Talkinu’s review rules.\n\nYou may stop using Talkinu at any time. Ending an account does not cancel obligations that already arose from completed or booked sessions."
+      },
+      "disclaimers": {
+        "title": "12. Educational nature of the service",
+        "body": "Talkinu provides language-learning services. It does not guarantee a particular exam score, job outcome, visa result, or fluency timeline. Teachers and AI-assisted feedback are instructional aids, not legal, medical, or immigration advice.\n\nSession quality can vary with internet connection, device quality, and whether both participants attend as scheduled."
+      },
+      "liability": {
+        "title": "13. Limitation of liability",
+        "body": "To the fullest extent allowed by applicable law, Talkinu is not liable for indirect, incidental, or consequential losses arising from use of the platform, missed sessions, teacher or student conduct, or service interruptions. Talkinu’s total liability for a claim relating to the service is limited to the amount you paid to Talkinu for the affected service during the three months before the claim, unless applicable law requires otherwise."
+      },
+      "changes": {
+        "title": "14. Changes to these terms",
+        "body": "Talkinu may update these Terms of Use as the product grows. When changes are material, we will present the updated terms in the product. Continued use of Talkinu after the updated terms take effect means you accept the revised terms."
+      },
+      "contact": {
+        "title": "15. Contact",
+        "body": "Questions about these Terms of Use can be sent through Talkinu support once support contact details are published in the product. Until then, use the in-product account and application flows to manage your relationship with Talkinu."
+      }
+    }
+  },
   "Onboarding": {
-    "eyebrow": "Takineo onboarding",
-    "title": "How will you use Takineo?",
+    "eyebrow": "Talkinu onboarding",
+    "title": "How will you use Talkinu?",
     "description": "Choose the workspace that matches your role. This selection creates your initial profile.",
-    "roleGroupLabel": "Choose your Takineo role",
+    "roleGroupLabel": "Choose your Talkinu role",
     "studentTitle": "I want to learn",
     "studentDescription": "Find teachers, book 15-minute speaking sessions, and receive personalized feedback.",
     "teacherTitle": "Apply to teach English",
-    "teacherDescription": "Create a professional application, upload a short introduction video, and submit it for Takineo review.",
+    "teacherDescription": "Create a professional application, upload a short introduction video, and submit it for Talkinu review.",
     "selectionHint": "Your initial role determines your workspace and the next onboarding steps.",
     "selectRoleError": "Select a role before continuing.",
     "genericError": "Unable to complete onboarding.",
@@ -56,13 +145,13 @@
   },
   "StudentDashboard": {
     "eyebrow": "Student workspace",
-    "title": "Welcome to Takineo",
+    "title": "Welcome to Talkinu",
     "description": "Your student profile is ready. Teacher discovery and session booking will be added in upcoming milestones.",
     "editProfile": "Edit profile"
   },
   "TeacherDashboard": {
     "eyebrow": "Teacher workspace",
-    "title": "Welcome to Takineo",
+    "title": "Welcome to Talkinu",
     "description": "Your teacher profile is ready. Availability management and teacher verification will be added in upcoming milestones.",
     "editProfile": "Edit profile",
     "applicationHeading": "Teaching application",
@@ -89,7 +178,7 @@
     "submitting": "Signing out..."
   },
   "Error": {
-    "eyebrow": "Takineo",
+    "eyebrow": "Talkinu",
     "title": "Something went wrong",
     "description": "We could not load this page. The problem may be temporary.",
     "retry": "Try again",
@@ -113,7 +202,7 @@
 "StudentProfile": {
   "eyebrow": "Student profile",
   "title": "Tell us about your learning goals",
-  "description": "This information will help Takineo recommend suitable teachers and speaking sessions.",
+  "description": "This information will help Talkinu recommend suitable teachers and speaking sessions.",
   "englishLevel": "Current English level",
   "selectLevel": "Select your level",
   "learningGoal": "Learning goal",
@@ -129,7 +218,7 @@
   "bioPlaceholder": "Describe your experience, teaching approach, preferred learners, and the speaking skills you focus on.",
   "experienceYears": "Years of teaching experience",
   "lockedTitle": "Your teaching profile is read-only",
-  "lockedPendingDescription": "Your application is under review. Profile editing is locked until Takineo completes the review.",
+  "lockedPendingDescription": "Your application is under review. Profile editing is locked until Talkinu completes the review.",
   "lockedApprovedDescription": "This approved profile is locked to preserve the reviewed information associated with your teacher account.",
   "lockedSuspendedDescription": "This teacher profile is suspended. Profile editing remains locked while the suspension is active.",
   "statusPendingReview": "Under review",
@@ -137,7 +226,7 @@
   "statusSuspended": "Suspended",
   "profileSnapshot": "Reviewed profile",
   "notProvided": "Not provided",
-  "lockedPendingFootnote": "If Takineo requests changes during review, your application will return to an editable state before resubmission.",
+  "lockedPendingFootnote": "If Talkinu requests changes during review, your application will return to an editable state before resubmission.",
   "lockedApprovedFootnote": "Profile editing remains unavailable while this approved review snapshot is active.",
   "lockedSuspendedFootnote": "Profile editing remains unavailable while the teacher suspension is active."
 },
@@ -149,13 +238,13 @@
   "statusMissing": "No introduction video has been uploaded.",
   "statusUploadPending": "Choose a file and complete the upload.",
   "statusProcessing": "Your upload is complete and the video is being processed.",
-  "statusReadyForReview": "Your video meets the duration requirement and is ready for Takineo review.",
+  "statusReadyForReview": "Your video meets the duration requirement and is ready for Talkinu review.",
   "statusApproved": "Your introduction video has been approved.",
   "statusRejected": "Your video needs to be replaced before you can submit the application.",
   "statusFailed": "The upload or video processing failed. Upload the video again.",
   "durationRejected": "The processed video is outside the required 60–120 second duration. Please replace it.",
   "reviewFeedbackTitle": "Review feedback",
-  "reviewFeedbackUnavailable": "Takineo requested a new video, but no detailed reviewer feedback is available for this review.",
+  "reviewFeedbackUnavailable": "Talkinu requested a new video, but no detailed reviewer feedback is available for this review.",
   "duration": "Processed duration: {seconds} seconds",
   "requirementsTitle": "Recording guide",
   "requirementDuration": "Keep the final video between 60 and 120 seconds.",
@@ -166,19 +255,19 @@
   "replaceVideo": "Replace introduction video",
   "creatingUpload": "Preparing secure upload...",
   "uploadError": "The video upload failed. Check your connection and try again.",
-  "createUploadError": "Takineo could not prepare the video upload.",
+  "createUploadError": "Talkinu could not prepare the video upload.",
   "providerUnavailable": "The video provider has not been configured for this environment.",
-  "networkError": "Takineo could not connect to the server.",
+  "networkError": "Talkinu could not connect to the server.",
   "applicationLocked": "This application cannot currently be edited.",
   "pendingLocked": "Your application is under review, so its video cannot currently be replaced.",
   "checkStatus": "Check processing status",
   "checkingStatus": "Checking video status...",
-  "statusSaveError": "The upload completed, but Takineo could not save the processing state. Your video has not been lost.",
-  "statusSyncError": "Takineo could not check the video status with Mux. Try again when your connection is more stable."
+  "statusSaveError": "The upload completed, but Talkinu could not save the processing state. Your video has not been lost.",
+  "statusSyncError": "Talkinu could not check the video status with Mux. Try again when your connection is more stable."
 },
 "TeacherApplicationSubmit": {
   "title": "Submit your teaching application",
-  "description": "Complete your professional profile and introduction video before sending your application to Takineo for review.",
+  "description": "Complete your professional profile and introduction video before sending your application to Talkinu for review.",
   "profileCheck": "Professional profile completed",
   "videoCheck": "Introduction video ready for review",
   "submit": "Submit application",
@@ -187,23 +276,23 @@
   "profileIncomplete": "Complete your professional profile before submitting.",
   "videoMissing": "Upload your introduction video before submitting.",
   "videoNotReady": "Your introduction video must finish processing and meet the video requirements before submission.",
-  "submitError": "Takineo could not submit your application.",
+  "submitError": "Talkinu could not submit your application.",
   "networkError": "The connection was interrupted. Please try again.",
   "pendingTitle": "Your application is under review",
-  "pendingDescription": "Your professional profile and introduction video are temporarily locked while Takineo reviews your application.",
+  "pendingDescription": "Your professional profile and introduction video are temporarily locked while Talkinu reviews your application.",
   "approvedTitle": "Your teaching application is approved",
-  "approvedDescription": "Your teaching access is active. Approved teachers can use Takineo teacher features as they become available.",
+  "approvedDescription": "Your teaching access is active. Approved teachers can use Talkinu teacher features as they become available.",
   "rejectedTitle": "Changes requested before resubmission",
-  "rejectedProfileDescription": "Takineo reviewed your application and requested changes to your professional profile. Review the feedback below, update the relevant information, then resubmit when your application is ready.",
-  "rejectedVideoDescription": "Takineo reviewed your application and requested changes that include your introduction video. Review the feedback below and update the required application items before resubmitting.",
+  "rejectedProfileDescription": "Talkinu reviewed your application and requested changes to your professional profile. Review the feedback below, update the relevant information, then resubmit when your application is ready.",
+  "rejectedVideoDescription": "Talkinu reviewed your application and requested changes that include your introduction video. Review the feedback below and update the required application items before resubmitting.",
   "reviewerFeedback": "Review feedback",
-  "reviewerFeedbackUnavailable": "Takineo requested changes, but no detailed feedback is available for this review. Update the required application items or contact support before resubmitting.",
+  "reviewerFeedbackUnavailable": "Talkinu requested changes, but no detailed feedback is available for this review. Update the required application items or contact support before resubmitting.",
   "suspendedTitle": "Your teaching profile is suspended",
-  "suspendedDescription": "Your teaching access and public teacher visibility are currently paused. Contact Takineo support if you need help understanding the next steps."
+  "suspendedDescription": "Your teaching access and public teacher visibility are currently paused. Contact Talkinu support if you need help understanding the next steps."
 },
 "AdminShell": {
   "skipToContent": "Skip to admin content",
-  "brand": "Takineo",
+  "brand": "Talkinu",
   "workspace": "Admin workspace",
   "navigationLabel": "Administration",
   "overview": "Overview",
@@ -217,7 +306,7 @@
 "AdminDashboard": {
   "eyebrow": "Administration overview",
   "title": "A focused workspace for trusted operations",
-  "description": "Takineo administration keeps teacher review and operational controls behind a dedicated, server-protected access boundary.",
+  "description": "Talkinu administration keeps teacher review and operational controls behind a dedicated, server-protected access boundary.",
   "reviewHeading": "Teacher applications",
   "reviewTitle": "Teacher application queue is ready",
   "nextMilestone": "Available now",
