@@ -7,6 +7,7 @@ import {
 import { AdminReviewDetail } from "@/components/admin/AdminReviewDetail";
 import { requireAppLocale } from "@/i18n/locale";
 import { requireAdminPageAccess } from "@/lib/auth/admin-page-guard";
+import { parseAparatVideoUrl, APARAT_SPOKEN_PHRASE } from "@/lib/domain/aparat-video";
 import { AdminTargetNotFoundError } from "@/lib/errors/admin-errors";
 import { getAdminTeacherApplication } from "@/lib/services/admin-review.service";
 import { fromTimezoneEnum } from "@/lib/timezone";
@@ -72,10 +73,10 @@ export default async function AdminTeacherApplicationDetailPage({
     },
   );
 
-  const numberFormatter = new Intl.NumberFormat(
-    locale === "fa" ? "fa-IR" : "en-US",
-  );
   const video = application.introVideo;
+  const parsedVideo = video?.aparatUrl
+    ? parseAparatVideoUrl(video.aparatUrl)
+    : null;
   const snapshotAligned = Boolean(
     application.applicationSubmittedAt &&
       application.reviewCycle > 0 &&
@@ -83,14 +84,14 @@ export default async function AdminTeacherApplicationDetailPage({
       application.submittedProfileRevision === application.profileRevision &&
       application.submittedVideoId &&
       application.submittedVideoRevision !== null &&
-      application.submittedVideoUploadId &&
-      application.submittedVideoAssetId &&
+      application.submittedAparatHash &&
+      application.videoVerificationCode &&
       video &&
-      video.provider === "mux" &&
+      video.provider === "aparat" &&
       video.id === application.submittedVideoId &&
       video.revision === application.submittedVideoRevision &&
-      video.uploadId === application.submittedVideoUploadId &&
-      video.assetId === application.submittedVideoAssetId,
+      video.aparatHash === application.submittedAparatHash &&
+      parsedVideo?.hash === video.aparatHash,
   );
   const decisionGuard =
     snapshotAligned &&
@@ -115,7 +116,7 @@ export default async function AdminTeacherApplicationDetailPage({
   const moderationGuard =
     admin.capabilities.moderateTeachers &&
     video?.status === "APPROVED" &&
-    video.assetId &&
+    video.aparatHash &&
     (application.applicationStatus === "APPROVED" ||
       (application.applicationStatus === "SUSPENDED" &&
         application.user.accountStatus === "ACTIVE"))
@@ -157,6 +158,7 @@ export default async function AdminTeacherApplicationDetailPage({
         submittedProfileRevision: application.submittedProfileRevision,
         submittedVideoRevision: application.submittedVideoRevision,
         snapshotAligned,
+        videoVerificationCode: application.videoVerificationCode,
         user: {
           name: application.user.name,
           email: application.user.email,
@@ -166,7 +168,8 @@ export default async function AdminTeacherApplicationDetailPage({
           ? {
               revision: video.revision,
               status: video.status,
-              durationSeconds: video.durationSeconds,
+              aparatUrl: parsedVideo?.canonicalUrl ?? video.aparatUrl,
+              embedUrl: parsedVideo?.embedUrl ?? null,
               rejectionReason: video.rejectionReason,
               submittedAt: video.submittedAt,
               reviewedAt: video.reviewedAt,
@@ -203,7 +206,7 @@ export default async function AdminTeacherApplicationDetailPage({
         submittedProfileRevisionLabel: t("submittedProfileRevisionLabel"),
         submittedVideoRevisionLabel: t("submittedVideoRevisionLabel"),
         videoStatusLabel: t("videoStatusLabel"),
-        videoDurationLabel: t("videoDurationLabel"),
+        videoUrlLabel: t("videoUrlLabel"),
         videoRevisionLabel: t("videoRevisionLabel"),
         videoSubmittedLabel: t("videoSubmittedLabel"),
         videoReviewedLabel: t("videoReviewedLabel"),
@@ -228,18 +231,11 @@ export default async function AdminTeacherApplicationDetailPage({
         noVideo: t("noVideo"),
         playbackHeading: t("playbackHeading"),
         playbackDescription: t("playbackDescription"),
-        playbackStart: t("playbackStart"),
-        playbackRefresh: t("playbackRefresh"),
-        playbackLoading: t("playbackLoading"),
-        playbackActive: t("playbackActive"),
-        playbackExpiresSoon: t("playbackExpiresSoon"),
-        playbackExpired: t("playbackExpired"),
+        playbackCodeLabel: t("playbackCodeLabel"),
+        playbackSpokenPhraseLabel: t("playbackSpokenPhraseLabel"),
+        playbackSpokenPhrase: APARAT_SPOKEN_PHRASE,
         playbackUnavailableState: t("playbackUnavailableState"),
-        playbackUnauthorized: t("playbackUnauthorized"),
-        playbackForbidden: t("playbackForbidden"),
-        playbackConflict: t("playbackConflict"),
-        playbackUnavailable: t("playbackUnavailable"),
-        playbackGenericError: t("playbackGenericError"),
+        playbackPublicHostNote: t("playbackPublicHostNote"),
         playbackPlayerTitle: t("playbackPlayerTitle"),
         decisionHeading: t("decisionHeading"),
         decisionDescription: t("decisionDescription"),
@@ -250,6 +246,9 @@ export default async function AdminTeacherApplicationDetailPage({
         approveDescription: t("approveDescription"),
         approveUnavailable: t("approveUnavailable"),
         approveConfirm: t("approveConfirm"),
+        spokenCodeLabel: t("spokenCodeLabel"),
+        spokenCodeRequired: t("spokenCodeRequired"),
+        approveVisibilityNote: t("approveVisibilityNote"),
         rejectHeading: t("rejectHeading"),
         rejectDescription: t("rejectDescription"),
         rejectTargetLabel: t("rejectTargetLabel"),
@@ -304,13 +303,6 @@ export default async function AdminTeacherApplicationDetailPage({
         moderationReload: t("moderationReload"),
       }}
       formatDate={(value) => dateFormatter.format(value)}
-      formatDuration={(seconds) =>
-        seconds === null || !Number.isFinite(seconds) || seconds < 0
-          ? t("noValue")
-          : t("durationValue", {
-              seconds: numberFormatter.format(Math.round(seconds)),
-            })
-      }
     />
   );
 }

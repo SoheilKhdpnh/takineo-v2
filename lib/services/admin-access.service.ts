@@ -1,16 +1,8 @@
 import "server-only";
 
 import { requireAdminAccess } from "@/lib/auth/admin-access";
-import { isPublicTeacher } from "@/lib/domain/teacher-application";
-import {
-  AdminReviewConflictError,
-  AdminTargetNotFoundError,
-} from "@/lib/errors/admin-errors";
+import { AdminReviewConflictError, AdminTargetNotFoundError } from "@/lib/errors/admin-errors";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import {
-  queueMuxPlaybackIntent,
-  reconcileMuxPlayback,
-} from "@/lib/services/mux-playback-reconciliation.service";
 import {
   reconcilePublicTeacherDiscoveryEligibility,
 } from "@/lib/services/public-teacher-discovery-eligibility.service";
@@ -179,8 +171,7 @@ export async function setAccountStatus(
     "MODERATE_ACCOUNT",
   );
 
-  const reconciliationId =
-    await runSerializableAdminTransaction(
+  await runSerializableAdminTransaction(
       async (tx) => {
         const target =
           await tx.user.findUnique({
@@ -193,18 +184,6 @@ export async function setAccountStatus(
               teacherProfile: {
                 select: {
                   id: true,
-                  applicationStatus: true,
-                  profileCompletedAt: true,
-
-                  introVideo: {
-                    select: {
-                      id: true,
-                      revision: true,
-                      status: true,
-                      assetId: true,
-                      publicPlaybackId: true,
-                    },
-                  },
                 },
               },
             },
@@ -261,55 +240,6 @@ export async function setAccountStatus(
           );
         }
 
-        let playbackReconciliationId:
-          string | null = null;
-
-        const video =
-          teacherProfile?.introVideo;
-
-        if (
-          teacherProfile &&
-          video?.assetId
-        ) {
-          /*
-           * Reuse the canonical eligibility policy rather
-           * than maintaining a second inline definition.
-           */
-          const eligible =
-            isPublicTeacher(
-              accountStatus,
-              teacherProfile.applicationStatus,
-              teacherProfile.profileCompletedAt,
-              video.status,
-            );
-
-          const reconciliation =
-            await queueMuxPlaybackIntent(
-              tx,
-              {
-                introVideoId:
-                  video.id,
-
-                videoRevision:
-                  video.revision,
-
-                assetId:
-                  video.assetId,
-
-                playbackId:
-                  video.publicPlaybackId,
-
-                desiredState:
-                  eligible
-                    ? "ENABLED"
-                    : "REVOKED",
-              },
-            );
-
-          playbackReconciliationId =
-            reconciliation.id;
-        }
-
         await tx.adminAuditEvent.create({
           data: {
             actorUserId,
@@ -326,16 +256,8 @@ export async function setAccountStatus(
             },
           },
         });
-
-        return playbackReconciliationId;
       },
     );
-
-  if (reconciliationId) {
-    await reconcileMuxPlayback(
-      reconciliationId,
-    );
-  }
 
   return {
     id: targetUserId,

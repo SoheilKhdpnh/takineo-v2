@@ -44,7 +44,7 @@ export function SignInForm() {
     setError(null);
 
     if (!termsAccepted) {
-      setError(t("termsRequired"));
+      setError(t("signInTermsRequired"));
       return;
     }
 

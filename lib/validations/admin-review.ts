@@ -15,7 +15,9 @@ const staleGuardSchema = z.object({
 export const adminApplicationIdSchema = z.string().cuid();
 export const adminEmptyBodySchema = z.literal("");
 
-export const approveApplicationSchema = staleGuardSchema;
+export const approveApplicationSchema = staleGuardSchema.extend({
+  spokenCodeConfirmed: z.literal(true),
+}).strict();
 
 export const rejectApplicationSchema = staleGuardSchema.extend({
   target: z.enum(["PROFILE", "VIDEO", "BOTH"]),

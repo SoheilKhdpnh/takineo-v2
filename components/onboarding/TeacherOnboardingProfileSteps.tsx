@@ -1,6 +1,5 @@
 "use client";
 
-import { BOOKING_WEEKDAYS } from "@/lib/domain/booking";
 import { PROFILE_LANGUAGE_CODES, PROFILE_TIMEZONES } from "@/lib/domain/profile";
 import {
   CERTIFICATE_OPTIONS,
@@ -8,34 +7,23 @@ import {
   emptyCertificate,
   emptyEducation,
   type TeacherOnboardingDraft,
-  type TeacherOnboardingStep,
 } from "@/lib/onboarding/teacher-draft";
 import {
   authInputClassName,
   authSecondaryButtonClassName,
 } from "@/lib/ui/auth-styles";
+import type { TeacherOnboardingPanelProps } from "@/components/onboarding/teacher-onboarding-types";
 
-function formatMinute(minute: number) {
-  const hours = Math.floor(minute / 60)
-    .toString()
-    .padStart(2, "0");
-  const minutes = (minute % 60).toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
+const PHOTO_EXAMPLES = [
+  { label: "A", className: "bg-[#fed7aa]" },
+  { label: "B", className: "bg-[#fdba74]" },
+  { label: "C", className: "bg-[#fb923c]" },
+  { label: "D", className: "bg-[#f97316]" },
+] as const;
 
-const TIME_OPTIONS = Array.from({ length: 24 * 4 + 1 }, (_, index) => index * 15);
-
-export type TeacherOnboardingPanelProps = {
-  step: TeacherOnboardingStep;
-  draft: TeacherOnboardingDraft;
-  updateDraft: (patch: Partial<TeacherOnboardingDraft>) => void;
-  t: (key: string) => string;
-  common: (key: string) => string;
-  openDescription: 1 | 2 | 3 | 4;
-  setOpenDescription: (section: 1 | 2 | 3 | 4) => void;
-  weekdayLabels: Record<string, string>;
-  setError: (value: string | null) => void;
-};
+const YEAR_OPTIONS = Array.from({ length: 60 }, (_, index) =>
+  String(new Date().getFullYear() + 6 - index),
+);
 
 export function TeacherOnboardingProfileSteps({
   step,
@@ -134,6 +122,7 @@ export function TeacherOnboardingProfileSteps({
             <div>
               <p className="font-semibold text-zinc-950">{draft.about.name || t("photoPreviewName")}</p>
               <p className="text-sm text-zinc-500">{t("photoPreviewRole")}</p>
+              <p className="text-sm text-zinc-500">{t("photoPreviewLanguages")}</p>
             </div>
           </div>
           <label className={`${authSecondaryButtonClassName} block cursor-pointer text-center`}>
@@ -160,7 +149,18 @@ export function TeacherOnboardingProfileSteps({
           </label>
           <div className="rounded-2xl border border-[#edddd4] bg-white p-5">
             <p className="font-semibold text-zinc-950">{t("photoNeedsTitle")}</p>
-            <ul className="mt-3 space-y-2 text-sm text-zinc-700">
+            <div className="mt-4 flex gap-3">
+              {PHOTO_EXAMPLES.map((example) => (
+                <div
+                  key={example.label}
+                  className={`flex size-16 items-center justify-center rounded-2xl text-sm font-semibold text-[#9a3412] ${example.className}`}
+                  aria-hidden="true"
+                >
+                  {example.label}
+                </div>
+              ))}
+            </div>
+            <ul className="mt-4 space-y-2 text-sm text-zinc-700">
               <li>✓ {t("photoNeedOne")}</li>
               <li>✓ {t("photoNeedTwo")}</li>
               <li>✓ {t("photoNeedThree")}</li>
@@ -187,34 +187,51 @@ export function TeacherOnboardingProfileSteps({
             {t("noCertificate")}
           </label>
           {!draft.noCertificate
-            ? draft.certificates.map((certificate, index) => (
+            ? draft.certificates.map((certificate) => (
                 <div key={certificate.id} className="space-y-3 rounded-2xl border border-[#edddd4] bg-white p-4">
-                  <label className="block space-y-2 text-sm font-medium">
-                    {t("subject")}
-                    <select
-                      value={certificate.subject}
-                      onChange={(event) => {
-                        const certificates = draft.certificates.map((item) =>
-                          item.id === certificate.id
-                            ? { ...item, subject: event.target.value }
-                            : item,
-                        );
-                        updateDraft({ certificates });
-                      }}
-                      className={authInputClassName}
-                    >
-                      <option value="English">English</option>
-                    </select>
-                  </label>
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="block min-w-0 flex-1 space-y-2 text-sm font-medium">
+                      {t("subject")}
+                      <select
+                        value={certificate.subject}
+                        onChange={(event) => {
+                          updateDraft({
+                            certificates: draft.certificates.map((item) =>
+                              item.id === certificate.id
+                                ? { ...item, subject: event.target.value }
+                                : item,
+                            ),
+                          });
+                        }}
+                        className={authInputClassName}
+                      >
+                        <option value="English">English</option>
+                      </select>
+                    </label>
+                    {draft.certificates.length > 1 ? (
+                      <button
+                        type="button"
+                        className="mt-7 text-sm text-[#9a3412]"
+                        onClick={() =>
+                          updateDraft({
+                            certificates: draft.certificates.filter((item) => item.id !== certificate.id),
+                          })
+                        }
+                      >
+                        {t("remove")}
+                      </button>
+                    ) : null}
+                  </div>
                   <label className="block space-y-2 text-sm font-medium">
                     {t("certificate")}
                     <select
                       value={certificate.name}
                       onChange={(event) => {
-                        const certificates = draft.certificates.map((item) =>
-                          item.id === certificate.id ? { ...item, name: event.target.value } : item,
-                        );
-                        updateDraft({ certificates });
+                        updateDraft({
+                          certificates: draft.certificates.map((item) =>
+                            item.id === certificate.id ? { ...item, name: event.target.value } : item,
+                          ),
+                        });
                       }}
                       className={authInputClassName}
                     >
@@ -235,26 +252,19 @@ export function TeacherOnboardingProfileSteps({
                       onChange={(event) => {
                         const file = event.target.files?.[0];
                         if (!file) return;
-                        const certificates = draft.certificates.map((item) =>
-                          item.id === certificate.id ? { ...item, fileName: file.name } : item,
-                        );
-                        updateDraft({ certificates });
+                        if (file.size > 20 * 1024 * 1024) {
+                          setError(t("errors.photoSize"));
+                          return;
+                        }
+                        updateDraft({
+                          certificates: draft.certificates.map((item) =>
+                            item.id === certificate.id ? { ...item, fileName: file.name } : item,
+                          ),
+                        });
                       }}
                     />
                   </label>
-                  {index === 0 ? null : (
-                    <button
-                      type="button"
-                      className="text-sm text-[#9a3412]"
-                      onClick={() =>
-                        updateDraft({
-                          certificates: draft.certificates.filter((item) => item.id !== certificate.id),
-                        })
-                      }
-                    >
-                      {t("remove")}
-                    </button>
-                  )}
+                  <p className="text-xs text-zinc-500">{t("fileHint")}</p>
                 </div>
               ))
             : null}
@@ -332,6 +342,7 @@ export function TeacherOnboardingProfileSteps({
                       }
                       className={authInputClassName}
                     >
+                      <option value="">{t("chooseDegreeType")}</option>
                       {DEGREE_TYPES.map((type) => (
                         <option key={type} value={type}>
                           {t(`degreeTypes.${type}`)}
@@ -357,7 +368,7 @@ export function TeacherOnboardingProfileSteps({
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block space-y-2 text-sm font-medium">
                       {t("fromYear")}
-                      <input
+                      <select
                         value={item.fromYear}
                         onChange={(event) =>
                           updateDraft({
@@ -367,11 +378,18 @@ export function TeacherOnboardingProfileSteps({
                           })
                         }
                         className={authInputClassName}
-                      />
+                      >
+                        <option value="">{t("fromYear")}</option>
+                        {YEAR_OPTIONS.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <label className="block space-y-2 text-sm font-medium">
                       {t("toYear")}
-                      <input
+                      <select
                         value={item.toYear}
                         onChange={(event) =>
                           updateDraft({
@@ -381,9 +399,51 @@ export function TeacherOnboardingProfileSteps({
                           })
                         }
                         className={authInputClassName}
-                      />
+                      >
+                        <option value="">{t("toYear")}</option>
+                        {YEAR_OPTIONS.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                   </div>
+                  <div className="rounded-2xl bg-[#fff4ed] p-4">
+                    <p className="text-sm font-semibold text-zinc-950">{t("diplomaBadgeTitle")}</p>
+                    <p className="mt-1 text-sm leading-6 text-zinc-600">{t("diplomaBadgeBody")}</p>
+                    <label className={`${authSecondaryButtonClassName} mt-3 block cursor-pointer text-center text-sm`}>
+                      {item.diplomaFileName ?? t("diplomaUpload")}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="sr-only"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          updateDraft({
+                            education: draft.education.map((row) =>
+                              row.id === item.id ? { ...row, diplomaFileName: file.name } : row,
+                            ),
+                          });
+                        }}
+                      />
+                    </label>
+                    <p className="mt-2 text-xs text-zinc-500">{t("fileHint")}</p>
+                  </div>
+                  {draft.education.length > 1 ? (
+                    <button
+                      type="button"
+                      className="text-sm text-[#9a3412]"
+                      onClick={() =>
+                        updateDraft({
+                          education: draft.education.filter((row) => row.id !== item.id),
+                        })
+                      }
+                    >
+                      {t("remove")}
+                    </button>
+                  ) : null}
                 </div>
               ))
             : null}
@@ -398,7 +458,6 @@ export function TeacherOnboardingProfileSteps({
           ) : null}
         </section>
       ) : null}
-
     </>
   );
 }

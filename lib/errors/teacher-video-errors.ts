@@ -1,7 +1,7 @@
 export class TeacherProfileIncompleteError extends Error {
   constructor() {
     super(
-      "The teacher profile must be completed before uploading a video.",
+      "The teacher profile must be completed before submitting an introduction video.",
     );
 
     this.name =
@@ -28,5 +28,16 @@ export class TeacherVideoNotFoundError extends Error {
 
     this.name =
       "TeacherVideoNotFoundError";
+  }
+}
+
+export class TeacherVideoInvalidAparatUrlError extends Error {
+  constructor() {
+    super(
+      "The introduction video URL must be an https aparat.com link.",
+    );
+
+    this.name =
+      "TeacherVideoInvalidAparatUrlError";
   }
 }

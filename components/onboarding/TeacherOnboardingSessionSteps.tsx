@@ -1,15 +1,7 @@
 "use client";
 
 import { BOOKING_WEEKDAYS } from "@/lib/domain/booking";
-import { PROFILE_LANGUAGE_CODES, PROFILE_TIMEZONES } from "@/lib/domain/profile";
-import {
-  CERTIFICATE_OPTIONS,
-  DEGREE_TYPES,
-  emptyCertificate,
-  emptyEducation,
-  type TeacherOnboardingDraft,
-  type TeacherOnboardingStep,
-} from "@/lib/onboarding/teacher-draft";
+import type { TeacherOnboardingPanelProps } from "@/components/onboarding/teacher-onboarding-types";
 import {
   authInputClassName,
   authSecondaryButtonClassName,
@@ -25,17 +17,15 @@ function formatMinute(minute: number) {
 
 const TIME_OPTIONS = Array.from({ length: 24 * 4 + 1 }, (_, index) => index * 15);
 
-export type TeacherOnboardingPanelProps = {
-  step: TeacherOnboardingStep;
-  draft: TeacherOnboardingDraft;
-  updateDraft: (patch: Partial<TeacherOnboardingDraft>) => void;
-  t: (key: string) => string;
-  common: (key: string) => string;
-  openDescription: 1 | 2 | 3 | 4;
-  setOpenDescription: (section: 1 | 2 | 3 | 4) => void;
-  weekdayLabels: Record<string, string>;
-  setError: (value: string | null) => void;
-};
+function descriptionValue(
+  draft: TeacherOnboardingPanelProps["draft"],
+  section: 1 | 2 | 3 | 4,
+) {
+  if (section === 1) return draft.description.intro;
+  if (section === 2) return draft.description.experience;
+  if (section === 3) return draft.description.motivate;
+  return draft.description.headline;
+}
 
 export function TeacherOnboardingSessionSteps({
   step,
@@ -52,58 +42,79 @@ export function TeacherOnboardingSessionSteps({
         <section className="space-y-5">
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">{t("descTitle")}</h1>
           <p className="text-sm leading-6 text-zinc-600">{t("descDescription")}</p>
-          {([1, 2, 3, 4] as const).map((section) => (
-            <div key={section} className="border-b border-[#edddd4] pb-4">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-start font-semibold text-zinc-950"
-                onClick={() => setOpenDescription(section)}
-              >
-                {t(`descSection${section}Title`)}
-              </button>
-              {openDescription === section ? (
-                <div className="mt-3 space-y-3">
-                  <p className="text-sm text-zinc-600">{t(`descSection${section}Help`)}</p>
-                  {section === 4 ? (
-                    <input
-                      value={draft.description.headline}
-                      maxLength={120}
-                      onChange={(event) =>
-                        updateDraft({
-                          description: { ...draft.description, headline: event.target.value },
-                        })
-                      }
-                      className={authInputClassName}
-                    />
-                  ) : (
-                    <textarea
-                      rows={4}
-                      maxLength={400}
-                      value={
-                        section === 1
-                          ? draft.description.intro
-                          : section === 2
-                            ? draft.description.experience
-                            : draft.description.motivate
-                      }
-                      placeholder={t(`descSection${section}Placeholder`)}
-                      onChange={(event) => {
-                        const key =
-                          section === 1 ? "intro" : section === 2 ? "experience" : "motivate";
-                        updateDraft({
-                          description: { ...draft.description, [key]: event.target.value },
-                        });
-                      }}
-                      className={`${authInputClassName} resize-y`}
-                    />
-                  )}
-                  <p className="rounded-xl bg-[#fff4ed] px-3 py-2 text-xs text-[#9a3412]">
-                    {t("descWarning")}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          ))}
+          {([1, 2, 3, 4] as const).map((section) => {
+            const value = descriptionValue(draft, section);
+            const maxLength = section === 4 ? 120 : 400;
+
+            return (
+              <div key={section} className="border-b border-[#edddd4] pb-4">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between text-start font-semibold text-zinc-950"
+                  onClick={() => setOpenDescription(section)}
+                >
+                  {t(`descSection${section}Title`)}
+                </button>
+                {openDescription === section ? (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm text-zinc-600">{t(`descSection${section}Help`)}</p>
+                    {section === 4 ? (
+                      <input
+                        value={draft.description.headline}
+                        maxLength={120}
+                        placeholder={t("descSection4Placeholder")}
+                        onChange={(event) =>
+                          updateDraft({
+                            description: { ...draft.description, headline: event.target.value },
+                          })
+                        }
+                        className={authInputClassName}
+                      />
+                    ) : (
+                      <textarea
+                        rows={4}
+                        maxLength={400}
+                        value={
+                          section === 1
+                            ? draft.description.intro
+                            : section === 2
+                              ? draft.description.experience
+                              : draft.description.motivate
+                        }
+                        placeholder={t(`descSection${section}Placeholder`)}
+                        onChange={(event) => {
+                          const key =
+                            section === 1 ? "intro" : section === 2 ? "experience" : "motivate";
+                          updateDraft({
+                            description: { ...draft.description, [key]: event.target.value },
+                          });
+                        }}
+                        className={`${authInputClassName} resize-y`}
+                      />
+                    )}
+                    <p className="rounded-xl bg-[#fff4ed] px-3 py-2 text-xs text-[#9a3412]">
+                      {t("descWarning")}
+                    </p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-medium text-[#c2410c]">
+                        {t("characterCount", { count: value.length, max: maxLength })}
+                      </p>
+                      {section < 4 ? (
+                        <button
+                          type="button"
+                          disabled={value.trim().length < 30}
+                          onClick={() => setOpenDescription((current) => (current < 4 ? ((current + 1) as 1 | 2 | 3 | 4) : current))}
+                          className={authSecondaryButtonClassName}
+                        >
+                          {t("descContinue")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </section>
       ) : null}
 
@@ -191,7 +202,7 @@ export function TeacherOnboardingSessionSteps({
                           className={`${authInputClassName} text-left`}
                         >
                           {TIME_OPTIONS.map((minute) => (
-                            <option key={minute} value={minute}>
+                            <option key={`${weekday}-start-${minute}`} value={minute}>
                               {formatMinute(minute)}
                             </option>
                           ))}
@@ -214,7 +225,7 @@ export function TeacherOnboardingSessionSteps({
                           className={`${authInputClassName} text-left`}
                         >
                           {TIME_OPTIONS.map((minute) => (
-                            <option key={minute} value={minute}>
+                            <option key={`${weekday}-end-${minute}`} value={minute}>
                               {formatMinute(minute)}
                             </option>
                           ))}
@@ -251,7 +262,6 @@ export function TeacherOnboardingSessionSteps({
           </label>
         </section>
       ) : null}
-
     </>
   );
 }

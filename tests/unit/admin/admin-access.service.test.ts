@@ -14,12 +14,6 @@ const mocks =
     runTransaction:
       vi.fn(),
 
-    reconcileMuxPlayback:
-      vi.fn(),
-
-    queueMuxPlaybackIntent:
-      vi.fn(),
-
     reconcilePublicTeacherDiscoveryEligibility:
       vi.fn(),
   }));
@@ -37,17 +31,6 @@ vi.mock(
   () => ({
     runSerializableAdminTransaction:
       mocks.runTransaction,
-  }),
-);
-
-vi.mock(
-  "@/lib/services/mux-playback-reconciliation.service",
-  () => ({
-    queueMuxPlaybackIntent:
-      mocks.queueMuxPlaybackIntent,
-
-    reconcileMuxPlayback:
-      mocks.reconcileMuxPlayback,
   }),
 );
 
@@ -74,8 +57,6 @@ describe(
     beforeEach(() => {
       mocks.requireAdminAccess.mockReset();
       mocks.runTransaction.mockReset();
-      mocks.reconcileMuxPlayback.mockReset();
-      mocks.queueMuxPlaybackIntent.mockReset();
       mocks
         .reconcilePublicTeacherDiscoveryEligibility
         .mockReset();

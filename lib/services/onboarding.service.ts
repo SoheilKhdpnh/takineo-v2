@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import type { UserRole } from "@/lib/domain/user-role";
+import { generateVideoVerificationCode } from "@/lib/video/verification-code";
 import {
   OnboardingAlreadyCompletedError,
   OnboardingStateConflictError,
@@ -121,7 +122,9 @@ export async function completeOnboarding({
         onboardingCompletedAt,
 
         teacherProfile: {
-          create: {},
+          create: {
+            videoVerificationCode: generateVideoVerificationCode(),
+          },
         },
       },
 

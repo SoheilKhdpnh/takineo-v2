@@ -107,7 +107,6 @@ const baseProfile = {
     id: "video-id",
     revision: 2,
     status: "APPROVED" as const,
-    durationSeconds: 84,
     rejectionReason: null,
     submittedAt: new Date("2026-08-10T08:00:00.000Z"),
     reviewedAt: new Date("2026-08-11T08:00:00.000Z"),
@@ -134,7 +133,6 @@ beforeEach(() => {
         introVideo: {
           id: "video-id",
           status: "APPROVED",
-          durationSeconds: 84,
         },
       },
     },
@@ -167,6 +165,7 @@ describe("teacher moderation feedback policy", () => {
       "",
     );
     expect(screen.queryByText(internalModerationReason)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("teacher-availability")).toBeNull();
   });
 
   it("does not serialize an internal reinstatement reason after the teacher returns to approved", async () => {
@@ -191,6 +190,7 @@ describe("teacher moderation feedback policy", () => {
       "data-feedback",
       "",
     );
+    expect(screen.getByTestId("teacher-availability")).toBeInTheDocument();
   });
 
   it("continues to pass exact applicant review feedback only for rejected applications", async () => {

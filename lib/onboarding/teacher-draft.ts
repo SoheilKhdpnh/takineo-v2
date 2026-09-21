@@ -15,7 +15,35 @@ export const TEACHER_ONBOARDING_STEPS = [
   "pricing",
 ] as const;
 
+export const TEACHER_PROFILE_PANEL_STEPS = [
+  "about",
+  "photo",
+  "certification",
+  "education",
+] as const;
+
+export const TEACHER_SESSION_PANEL_STEPS = [
+  "description",
+  "video",
+  "availability",
+  "pricing",
+] as const;
+
 export type TeacherOnboardingStep = (typeof TEACHER_ONBOARDING_STEPS)[number];
+
+export type TeacherOnboardingErrorKey =
+  | "name"
+  | "experience"
+  | "photo"
+  | "certificate"
+  | "education"
+  | "intro"
+  | "experienceText"
+  | "motivate"
+  | "headline"
+  | "aparat"
+  | "availability"
+  | "pricing";
 
 export type TeacherCertificateDraft = {
   id: string;
@@ -32,6 +60,7 @@ export type TeacherEducationDraft = {
   specialization: string;
   fromYear: string;
   toYear: string;
+  diplomaFileName: string | null;
 };
 
 export type TeacherAvailabilityDayDraft = {
@@ -110,10 +139,11 @@ export function emptyEducation(): TeacherEducationDraft {
     id: createId(),
     university: "",
     degree: "",
-    degreeType: "bachelor",
+    degreeType: "",
     specialization: "",
     fromYear: "",
     toYear: "",
+    diplomaFileName: null,
   };
 }
 
@@ -188,4 +218,69 @@ export function writeTeacherOnboardingDraft(draft: TeacherOnboardingDraft) {
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+}
+
+export function validateTeacherOnboardingStep(
+  draft: TeacherOnboardingDraft,
+  step: TeacherOnboardingStep,
+): TeacherOnboardingErrorKey | null {
+  if (step === "about") {
+    if (draft.about.name.trim().length < 2) {
+      return "name";
+    }
+
+    const experienceYears = Number(draft.about.experienceYears);
+
+    if (
+      draft.about.experienceYears.trim() === "" ||
+      !Number.isInteger(experienceYears) ||
+      experienceYears < 0 ||
+      experienceYears > 60
+    ) {
+      return "experience";
+    }
+  }
+
+  if (step === "photo" && !draft.photoDataUrl) {
+    return "photo";
+  }
+
+  if (step === "certification" && !draft.noCertificate) {
+    if (draft.certificates.some((item) => !item.name)) {
+      return "certificate";
+    }
+  }
+
+  if (step === "education" && !draft.noEducation) {
+    if (
+      draft.education.some(
+        (item) => !item.university.trim() || !item.degree.trim() || !item.degreeType,
+      )
+    ) {
+      return "education";
+    }
+  }
+
+  if (step === "description") {
+    if (draft.description.intro.trim().length < 30) return "intro";
+    if (draft.description.experience.trim().length < 30) return "experienceText";
+    if (draft.description.motivate.trim().length < 30) return "motivate";
+    if (draft.description.headline.trim().length < 10) return "headline";
+  }
+
+  if (step === "video") {
+    if (!/^https?:\/\/(www\.)?aparat\.com\//i.test(draft.aparatUrl.trim())) {
+      return "aparat";
+    }
+  }
+
+  if (step === "availability" && !draft.availability.some((day) => day.enabled)) {
+    return "availability";
+  }
+
+  if (step === "pricing" && !draft.pricingAcknowledged) {
+    return "pricing";
+  }
+
+  return null;
 }

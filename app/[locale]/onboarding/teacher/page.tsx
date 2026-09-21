@@ -5,7 +5,6 @@ import { TeacherOnboardingWizard } from "@/components/onboarding/TeacherOnboardi
 import { requireAppLocale } from "@/i18n/locale";
 import { redirect } from "@/i18n/navigation";
 import { requireRolePage } from "@/lib/auth/page-guards";
-import { getTeacherProfileForUser } from "@/lib/services/teacher-profile.service";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +19,9 @@ export default async function TeacherOnboardingPage({
 }: TeacherOnboardingPageProps) {
   const { locale: requestedLocale } = await params;
   const locale = requireAppLocale(requestedLocale);
-  const { session } = await requireRolePage("TEACHER", locale);
-  const profile = await getTeacherProfileForUser(session.user.id);
+  const { session, access } = await requireRolePage("TEACHER", locale);
 
-  if (profile.applicationStatus !== "DRAFT") {
+  if (access.teacherProfile?.applicationStatus !== "DRAFT") {
     redirect({
       href: "/teacher/dashboard",
       locale,

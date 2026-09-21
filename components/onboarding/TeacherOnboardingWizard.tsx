@@ -3,17 +3,16 @@
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
-import { replaceTeacherAvailability } from "@/components/availability/teacher-availability-api";
 import { TeacherOnboardingProfileSteps } from "@/components/onboarding/TeacherOnboardingProfileSteps";
 import { TeacherOnboardingSessionSteps } from "@/components/onboarding/TeacherOnboardingSessionSteps";
 import { useRouter } from "@/i18n/navigation";
-import { authClient } from "@/lib/auth/auth-client";
+import { persistTeacherOnboardingApplication } from "@/lib/onboarding/teacher-application-persist";
 import {
   readTeacherOnboardingDraft,
   TEACHER_ONBOARDING_STEPS,
+  validateTeacherOnboardingStep,
   writeTeacherOnboardingDraft,
   type TeacherOnboardingDraft,
-  type TeacherOnboardingStep,
 } from "@/lib/onboarding/teacher-draft";
 import {
   authPrimaryButtonClassName,
@@ -58,100 +57,15 @@ export function TeacherOnboardingWizard({ initialName }: TeacherOnboardingWizard
     [t],
   );
 
-  function validateStep(current: TeacherOnboardingStep) {
-    if (current === "about") {
-      if (draft.about.name.trim().length < 2) return t("errors.name");
-      if (!draft.about.experienceYears) return t("errors.experience");
-    }
-
-    if (current === "photo" && !draft.photoDataUrl) {
-      return t("errors.photo");
-    }
-
-    if (current === "certification" && !draft.noCertificate) {
-      if (draft.certificates.some((item) => !item.name)) return t("errors.certificate");
-    }
-
-    if (current === "education" && !draft.noEducation) {
-      if (draft.education.some((item) => !item.university || !item.degree)) {
-        return t("errors.education");
-      }
-    }
-
-    if (current === "description") {
-      if (draft.description.intro.trim().length < 30) return t("errors.intro");
-      if (draft.description.experience.trim().length < 30) return t("errors.experienceText");
-      if (draft.description.motivate.trim().length < 30) return t("errors.motivate");
-      if (draft.description.headline.trim().length < 10) return t("errors.headline");
-    }
-
-    if (current === "video") {
-      if (!/^https?:\/\/(www\.)?aparat\.com\//i.test(draft.aparatUrl.trim())) {
-        return t("errors.aparat");
-      }
-    }
-
-    if (current === "availability") {
-      if (!draft.availability.some((day) => day.enabled)) return t("errors.availability");
-    }
-
-    if (current === "pricing" && !draft.pricingAcknowledged) {
-      return t("errors.pricing");
-    }
-
-    return null;
-  }
-
   async function persistAndFinish() {
-    const experienceYears = Number(draft.about.experienceYears);
-    const bio = [
-      draft.description.intro.trim(),
-      draft.description.experience.trim(),
-      draft.description.motivate.trim(),
-    ].join("\n\n");
-
-    const nameResult = await authClient.updateUser({
-      name: draft.about.name.trim(),
-    });
-
-    if (nameResult.error) {
-      throw new Error("name");
-    }
-
-    const profileResponse = await fetch("/api/profile/teacher", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        headline: draft.description.headline.trim(),
-        bio,
-        experienceYears,
-        nativeLanguage: draft.about.nativeLanguage,
-        teachingLanguage: "en",
-        timezone: draft.about.timezone,
-      }),
-    });
-
-    if (!profileResponse.ok) {
-      throw new Error("profile");
-    }
-
-    await replaceTeacherAvailability(
-      draft.availability
-        .filter((day) => day.enabled)
-        .map((day) => ({
-          weekday: day.weekday,
-          startMinute: day.startMinute,
-          endMinute: day.endMinute,
-          isActive: true,
-        })),
-    );
+    await persistTeacherOnboardingApplication(draft);
   }
 
   async function handleContinue() {
-    const validationError = validateStep(step);
-    setError(validationError);
+    const errorKey = validateTeacherOnboardingStep(draft, step);
+    setError(errorKey ? t(`errors.${errorKey}`) : null);
 
-    if (validationError) {
+    if (errorKey) {
       return;
     }
 
@@ -164,7 +78,7 @@ export function TeacherOnboardingWizard({ initialName }: TeacherOnboardingWizard
 
     try {
       await persistAndFinish();
-      router.push("/teacher/dashboard");
+      router.push("/onboarding/teacher/pending");
       router.refresh();
     } catch {
       setError(t("errors.save"));

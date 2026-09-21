@@ -1,14 +1,11 @@
 "use client";
 
-import MuxUploader from "@mux/mux-uploader-react";
 import { useTranslations } from "next-intl";
-import {
-  type CSSProperties,
-  useEffect,
-  useState,
-} from "react";
+import { useState } from "react";
 
+import { AparatEmbed } from "@/components/video/AparatEmbed";
 import { useRouter } from "@/i18n/navigation";
+import { APARAT_SPOKEN_PHRASE } from "@/lib/domain/aparat-video";
 import type {
   TeacherApplicationStatus,
   TeacherIntroVideoStatus,
@@ -16,219 +13,77 @@ import type {
 
 interface IntroVideoState {
   status: TeacherIntroVideoStatus | null;
-  durationSeconds: number | null;
+  aparatUrl: string | null;
+  embedUrl: string | null;
   rejectionReason: string | null;
 }
 
 interface TeacherIntroVideoUploaderProps {
-  applicationStatus:
-    TeacherApplicationStatus;
-
-  canUpload: boolean;
-
+  applicationStatus: TeacherApplicationStatus;
+  canEdit: boolean;
+  verificationCode: string;
   initialVideo: IntroVideoState;
 }
 
-const pollingStatuses:
-  TeacherIntroVideoStatus[] = [
-    "UPLOAD_PENDING",
-    "PROCESSING",
-  ];
-
 export function TeacherIntroVideoUploader({
   applicationStatus,
-  canUpload,
+  canEdit,
+  verificationCode,
   initialVideo,
 }: TeacherIntroVideoUploaderProps) {
   const router = useRouter();
-  const t = useTranslations(
-    "TeacherVideo",
-  );
+  const t = useTranslations("TeacherVideo");
 
-  const [video, setVideo] =
-    useState<IntroVideoState>(
-      initialVideo,
-    );
+  const [video, setVideo] = useState<IntroVideoState>(initialVideo);
+  const [aparatUrl, setAparatUrl] = useState(initialVideo.aparatUrl ?? "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  const [uploadUrl, setUploadUrl] =
-    useState<string | null>(null);
+  const statusMessage = (() => {
+    switch (video.status) {
+      case "READY_FOR_REVIEW":
+        return t("statusReadyForReview");
+      case "APPROVED":
+        return t("statusApproved");
+      case "REJECTED":
+        return t("statusRejected");
+      case "UPLOAD_PENDING":
+      case "PROCESSING":
+      case "FAILED":
+        return t("statusRetiredProvider");
+      default:
+        return t("statusMissing");
+    }
+  })();
 
-  const [uploadId, setUploadId] =
-    useState<string | null>(null);
+  const applicantRejectionFeedback =
+    video.status === "REJECTED"
+      ? video.rejectionReason?.trim() || t("reviewFeedbackUnavailable")
+      : null;
 
-  const [isCreatingUpload, setIsCreatingUpload] =
-    useState(false);
+  const hasSubmittedLink = Boolean(video.aparatUrl && video.embedUrl);
 
-  const [isSyncing, setIsSyncing] =
-    useState(false);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-  useEffect(() => {
-    if (
-      !video.status ||
-      !pollingStatuses.includes(
-        video.status,
-      )
-    ) {
+  async function submitLink() {
+    if (!canEdit || isSubmitting) {
       return;
     }
 
-    const interval = window.setInterval(
-      async () => {
-        try {
-          const response = await fetch(
-            "/api/profile/teacher/intro-video",
-            {
-              method: "GET",
-              cache: "no-store",
-            },
-          );
-
-          if (response.status === 401) {
-            router.push("/sign-in");
-            router.refresh();
-            return;
-          }
-
-          if (!response.ok) {
-            return;
-          }
-
-          const result = (await response.json()) as {
-            introVideo: {
-              status:
-                TeacherIntroVideoStatus;
-              durationSeconds:
-                number | null;
-              rejectionReason:
-                string | null;
-            } | null;
-          };
-        if (result.introVideo) {
-          setVideo((current) => {
-            const serverVideo = {
-              status:
-                result.introVideo!.status,
-
-              durationSeconds:
-                result.introVideo!
-                  .durationSeconds,
-
-              rejectionReason:
-                result.introVideo!
-                  .rejectionReason,
-            };
-
-            /*
-            * The browser already knows that the
-            * upload completed successfully.
-            *
-            * An older DB value must never move the
-            * UI backwards to UPLOAD_PENDING.
-            */
-            if (
-              current.status ===
-                "PROCESSING" &&
-              serverVideo.status ===
-                "UPLOAD_PENDING"
-            ) {
-              return current;
-            }
-
-            return serverVideo;
-          });
-        }
-        } catch {
-          /*
-           * A temporary polling failure should
-           * not cancel or invalidate the upload.
-           */
-        }
-      },
-      4000,
-    );
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [router, video.status]);
-
-  async function syncVideoStatus() {
-  setIsSyncing(true);
-  setError(null);
-
-  try {
-    const response = await fetch(
-      "/api/profile/teacher/intro-video/sync",
-      {
-        method: "POST",
-      },
-    );
-
-    if (response.status === 401) {
-      router.push("/sign-in");
-      router.refresh();
-      return;
-    }
-
-    if (!response.ok) {
-      setError(
-        t("statusSyncError"),
-      );
-
-      return;
-    }
-
-    const result =
-      (await response.json()) as {
-        introVideo: {
-          status:
-            TeacherIntroVideoStatus;
-
-          durationSeconds:
-            number | null;
-
-          rejectionReason:
-            string | null;
-        } | null;
-      };
-
-    if (result.introVideo) {
-      setVideo({
-        status:
-          result.introVideo.status,
-
-        durationSeconds:
-          result.introVideo
-            .durationSeconds,
-
-        rejectionReason:
-          result.introVideo
-            .rejectionReason,
-      });
-    }
-  } catch {
-    setError(
-      t("statusSyncError"),
-    );
-  } finally {
-    setIsSyncing(false);
-  }
-}
-
-  async function createUpload() {
     setError(null);
-    setIsCreatingUpload(true);
+    setSaved(false);
+    setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        "/api/profile/teacher/intro-video",
-        {
-          method: "POST",
+      const response = await fetch("/api/profile/teacher/intro-video", {
+        method: "PUT",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ aparatUrl }),
+      });
 
       if (response.status === 401) {
         router.push("/sign-in");
@@ -236,119 +91,37 @@ export function TeacherIntroVideoUploader({
         return;
       }
 
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+        introVideo?: IntroVideoState | null;
+      } | null;
+
       if (!response.ok) {
-        const result =
-          (await response.json()) as {
-            error?: string;
-          };
-
-        if (
-          result.error ===
-          "VIDEO_PROVIDER_UNAVAILABLE"
-        ) {
-          setError(
-            t("providerUnavailable"),
-          );
-        } else if (
-          result.error ===
-          "TEACHER_APPLICATION_LOCKED"
-        ) {
-          setError(
-            t("applicationLocked"),
-          );
+        if (result?.error === "INVALID_APARAT_URL") {
+          setError(t("invalidUrl"));
+        } else if (result?.error === "TEACHER_APPLICATION_LOCKED") {
+          setError(t("applicationLocked"));
+        } else if (result?.error === "TEACHER_PROFILE_INCOMPLETE") {
+          setError(t("profileIncomplete"));
         } else {
-          setError(t("createUploadError"));
+          setError(t("networkError"));
         }
-
         return;
       }
 
-      const result =
-        (await response.json()) as {
-          upload: {
-            id: string;
-            url: string;
-          };
-        };
+      if (result?.introVideo) {
+        setVideo(result.introVideo);
+        setAparatUrl(result.introVideo.aparatUrl ?? aparatUrl);
+      }
 
-      setUploadId(result.upload.id);
-      setUploadUrl(result.upload.url);
-
-      setVideo({
-        status: "UPLOAD_PENDING",
-        durationSeconds: null,
-        rejectionReason: null,
-      });
+      setSaved(true);
+      router.refresh();
     } catch {
       setError(t("networkError"));
     } finally {
-      setIsCreatingUpload(false);
+      setIsSubmitting(false);
     }
   }
-
-  const isDurationRejection =
-    video.status === "REJECTED" &&
-    video.rejectionReason ===
-      "VIDEO_DURATION_OUT_OF_RANGE";
-
-  const applicantRejectionFeedback =
-    video.status === "REJECTED" &&
-    !isDurationRejection
-      ? video.rejectionReason?.trim() ||
-        t("reviewFeedbackUnavailable")
-      : null;
-
-  const statusMessage = (() => {
-    switch (video.status) {
-      case "UPLOAD_PENDING":
-        return t("statusUploadPending");
-
-      case "PROCESSING":
-        return t("statusProcessing");
-
-      case "READY_FOR_REVIEW":
-        return t("statusReadyForReview");
-
-      case "APPROVED":
-        return t("statusApproved");
-
-      case "REJECTED":
-        return isDurationRejection
-          ? t("durationRejected")
-          : t("statusRejected");
-
-      case "FAILED":
-        return t("statusFailed");
-
-      default:
-        return t("statusMissing");
-    }
-  })();
-
-  const mayCreateUpload =
-    canUpload &&
-    (
-      video.status === null ||
-      video.status === "REJECTED" ||
-      video.status === "FAILED" ||
-      (
-        video.status ===
-          "UPLOAD_PENDING" &&
-        !uploadUrl
-      )
-    );
-
-  const uploaderStyle = {
-    "--progress-bar-fill-color": "#18181b",
-    "--button-background-color": "#18181b",
-    "--button-text-color": "#ffffff",
-    width: "100%",
-    minHeight: "18rem",
-    borderRadius: "1.5rem",
-    overflow: "hidden",
-    background: "#fafafa",
-    fontFamily: "var(--font-interface)",
-  } as CSSProperties;
 
   return (
     <div className="space-y-6">
@@ -356,19 +129,38 @@ export function TeacherIntroVideoUploader({
         <p className="text-sm font-semibold text-zinc-500">
           {t("currentStatus")}
         </p>
-
         <p className="mt-3 text-lg font-semibold leading-8 text-zinc-950">
           {statusMessage}
         </p>
-
-        {video.durationSeconds !== null ? (
-          <p className="mt-2 text-sm text-zinc-600">
-            {t("duration", {
-              seconds:
-                video.durationSeconds,
-            })}
+        {video.aparatUrl ? (
+          <p className="mt-2 break-all text-sm text-zinc-600" dir="ltr">
+            {video.aparatUrl}
           </p>
         ) : null}
+      </section>
+
+      <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6">
+        <p className="text-sm font-semibold text-amber-900">
+          {t("verificationTitle")}
+        </p>
+        <p
+          className="mt-4 font-mono text-4xl font-semibold tracking-[0.28em] text-zinc-950"
+          dir="ltr"
+        >
+          {verificationCode}
+        </p>
+        <p className="mt-4 text-sm leading-7 text-amber-950">
+          {t("spokenInstruction")}
+        </p>
+        <p
+          className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold leading-7 text-zinc-950"
+          dir="ltr"
+        >
+          {t("spokenScript", {
+            phrase: APARAT_SPOKEN_PHRASE,
+            code: verificationCode,
+          })}
+        </p>
       </section>
 
       {applicantRejectionFeedback ? (
@@ -382,7 +174,6 @@ export function TeacherIntroVideoUploader({
           >
             {t("reviewFeedbackTitle")}
           </p>
-
           <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-amber-950">
             {applicantRejectionFeedback}
           </p>
@@ -390,121 +181,88 @@ export function TeacherIntroVideoUploader({
       ) : null}
 
       <section className="rounded-3xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-xl text-zinc-950">
-          {t("requirementsTitle")}
-        </h2>
-
+        <h2 className="text-xl text-zinc-950">{t("requirementsTitle")}</h2>
         <div className="mt-4 space-y-2 text-sm leading-7 text-zinc-600">
           <p>{t("requirementDuration")}</p>
+          <p>{t("requirementSpoken")}</p>
           <p>{t("requirementContent")}</p>
           <p>{t("requirementLanguage")}</p>
-          <p>{t("requirementConsent")}</p>
+          <p>{t("requirementPublic")}</p>
         </div>
       </section>
 
-      {!canUpload ? (
+      {!canEdit ? (
         <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-950">
-          {applicationStatus ===
-          "PENDING_REVIEW"
+          {applicationStatus === "PENDING_REVIEW"
             ? t("pendingLocked")
             : t("applicationLocked")}
         </p>
       ) : null}
 
-      {mayCreateUpload &&
-      !uploadUrl ? (
-        <button
-          type="button"
-          disabled={isCreatingUpload}
-          onClick={createUpload}
-          className="w-full rounded-2xl bg-zinc-950 px-5 py-3.5 font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+      {canEdit ? (
+        <form
+          className="space-y-4 rounded-3xl border border-zinc-200 bg-white p-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitLink();
+          }}
         >
-          {isCreatingUpload
-            ? t("creatingUpload")
-            : video.status ===
-                "REJECTED" ||
-              video.status === "FAILED"
-              ? t("replaceVideo")
-              : t("selectVideo")}
-        </button>
+          <label className="block">
+            <span className="text-sm font-semibold text-zinc-900">
+              {t("urlLabel")}
+            </span>
+            <input
+              type="url"
+              name="aparatUrl"
+              dir="ltr"
+              inputMode="url"
+              autoComplete="off"
+              value={aparatUrl}
+              onChange={(event) => {
+                setAparatUrl(event.target.value);
+                setSaved(false);
+              }}
+              placeholder={t("urlPlaceholder")}
+              className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-950 focus:ring-2 focus:ring-zinc-950"
+            />
+          </label>
+          <p className="text-sm leading-7 text-zinc-600">{t("urlHint")}</p>
+          <button
+            type="submit"
+            disabled={isSubmitting || aparatUrl.trim().length === 0}
+            className="w-full rounded-2xl bg-zinc-950 px-5 py-3.5 font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting
+              ? t("saving")
+              : hasSubmittedLink
+                ? t("replaceVideo")
+                : t("saveLink")}
+          </button>
+        </form>
       ) : null}
 
-      {uploadUrl ? (
-        <div className="rounded-3xl border border-zinc-200 bg-white p-4">
-          <MuxUploader
-            key={uploadId}
-            endpoint={uploadUrl}
-            maxFileSize={512000}
-            dynamicChunkSize
-            style={uploaderStyle}
-            onSuccess={() => {
-              const completedUploadId =
-                uploadId;
-
-              setUploadUrl(null);
-
-              setVideo({
-                status: "PROCESSING",
-                durationSeconds: null,
-                rejectionReason: null,
-              });
-
-              if (!completedUploadId) {
-                return;
-              }
-
-              void fetch(
-                "/api/profile/teacher/intro-video/complete",
-                {
-                  method: "POST",
-
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-
-                  body: JSON.stringify({
-                    uploadId:
-                      completedUploadId,
-                  }),
-                },
-              ).then(async (response) => {
-                if (!response.ok) {
-                  setError(
-                    t("statusSaveError"),
-                  );
-                }
-              }).catch(() => {
-                setError(
-                  t("statusSaveError"),
-                );
-              });
-            }}
-            onUploadError={() => {
-              setError(t("uploadError"));
-            }}
-          />
-        </div>
+      {video.embedUrl ? (
+        <section className="rounded-3xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl text-zinc-950">{t("previewTitle")}</h2>
+          <p className="mt-2 text-sm leading-7 text-zinc-600">
+            {t("previewDescription")}
+          </p>
+          <div className="mt-4">
+            <AparatEmbed
+              embedUrl={video.embedUrl}
+              title={t("previewPlayerTitle")}
+            />
+          </div>
+        </section>
       ) : null}
 
-      {(
-        video.status === "PROCESSING" ||
-        (
-          video.status ===
-            "UPLOAD_PENDING" &&
-          !uploadUrl
-        )
-      ) ? (
-        <button
-          type="button"
-          disabled={isSyncing}
-          onClick={syncVideoStatus}
-          className="w-full rounded-2xl border border-zinc-300 bg-white px-5 py-3.5 font-semibold text-zinc-900 transition hover:border-zinc-950 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+      {saved ? (
+        <p
+          role="status"
+          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-7 text-emerald-800"
         >
-          {isSyncing
-            ? t("checkingStatus")
-            : t("checkStatus")}
-        </button>
+          {t("saveSuccess")}
+        </p>
       ) : null}
 
       {error ? (

@@ -1,6 +1,7 @@
 import "server-only";
 import { reconcilePublicTeacherDiscoveryEligibility } from "@/lib/services/public-teacher-discovery-eligibility.service";
 
+import { interactiveTransactionOptions } from "@/lib/db/interactive-transaction";
 import { prisma } from "@/lib/db/prisma";
 import {
   canSubmitTeacherApplication,
@@ -29,18 +30,16 @@ const teacherApplicationSelect = {
   submittedProfileRevision: true,
   submittedVideoId: true,
   submittedVideoRevision: true,
-  submittedVideoUploadId: true,
-  submittedVideoAssetId: true,
+  submittedAparatHash: true,
 
   introVideo: {
     select: {
       id: true,
       revision: true,
       provider: true,
-      uploadId: true,
-      assetId: true,
+      aparatUrl: true,
+      aparatHash: true,
       status: true,
-      durationSeconds: true,
       submittedAt: true,
       reviewedAt: true,
     },
@@ -53,14 +52,12 @@ type TeacherApplicationContext =
   }>;
 
 function toApplicantApplication(application: TeacherApplicationContext) {
-  const { submittedVideoUploadId: _submittedUpload, submittedVideoAssetId: _submittedAsset, introVideo, ...profile } = application;
-  void _submittedUpload;
-  void _submittedAsset;
+  const { submittedAparatHash: _submittedHash, introVideo, ...profile } = application;
+  void _submittedHash;
   if (!introVideo) return { ...profile, introVideo: null };
-  const { provider: _provider, uploadId: _upload, assetId: _asset, ...applicantVideo } = introVideo;
+  const { provider: _provider, aparatHash: _hash, ...applicantVideo } = introVideo;
   void _provider;
-  void _upload;
-  void _asset;
+  void _hash;
   return { ...profile, introVideo: applicantVideo };
 }
 
@@ -142,25 +139,14 @@ export async function submitTeacherApplication(
   const video =
     application.introVideo;
 
-  const uploadId =
-    video.uploadId;
-
-  const assetId =
-    video.assetId;
-
-  const durationSeconds =
-    video.durationSeconds;
+  const aparatHash =
+    video.aparatHash;
 
   if (
-    video.provider !== "mux" ||
-    !uploadId ||
-    /\s/.test(uploadId) ||
-    !assetId ||
-    /\s/.test(assetId) ||
-    uploadId === assetId ||
-    durationSeconds === null ||
-    durationSeconds < 60 ||
-    durationSeconds > 120 ||
+    video.provider !== "aparat" ||
+    !video.aparatUrl ||
+    !aparatHash ||
+    /\s/.test(aparatHash) ||
     ![
       "READY_FOR_REVIEW",
       "APPROVED",
@@ -212,16 +198,12 @@ export async function submitTeacherApplication(
                   video.revision,
 
                 provider:
-                  "mux",
+                  "aparat",
 
-                uploadId,
-
-                assetId,
+                aparatHash,
 
                 status:
                   video.status,
-
-                durationSeconds,
               },
             },
           },
@@ -247,11 +229,8 @@ export async function submitTeacherApplication(
             submittedVideoRevision:
               video.revision,
 
-            submittedVideoUploadId:
-              uploadId,
-
-            submittedVideoAssetId:
-              assetId,
+            submittedAparatHash:
+              aparatHash,
 
             updatedAt:
               submittedAt,
@@ -281,6 +260,7 @@ export async function submitTeacherApplication(
         tx,
       );
     },
+    interactiveTransactionOptions,
   );
 
   return getTeacherApplicationForUser(

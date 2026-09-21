@@ -22,7 +22,6 @@ export interface AdminQueueApplication {
       | "APPROVED"
       | "REJECTED"
       | "FAILED";
-    durationSeconds: number | null;
   };
 }
 
@@ -32,14 +31,12 @@ interface AdminReviewQueueCopy {
   submittedLabel: string;
   reviewCycleLabel: string;
   videoLabel: string;
-  durationLabel: string;
   accountLabel: string;
   snapshotLabel: string;
   snapshotReady: string;
   snapshotIncomplete: string;
   noSubmissionDate: string;
   noVideo: string;
-  noDuration: string;
   accountActive: string;
   accountSuspended: string;
   accountDisabled: string;
@@ -81,17 +78,6 @@ const videoCopyKey = {
   NonNullable<AdminQueueApplication["introVideo"]>["status"],
   keyof AdminReviewQueueCopy
 >;
-
-function formatDuration(seconds: number | null, fallback: string) {
-  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) {
-    return fallback;
-  }
-
-  const rounded = Math.round(seconds);
-  const minutes = Math.floor(rounded / 60);
-  const remainder = rounded % 60;
-  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
-}
 
 function hasCompleteReviewSnapshot(application: AdminQueueApplication) {
   const video = application.introVideo;
@@ -215,16 +201,6 @@ export function AdminReviewQueue({
                       </dt>
                       <dd className="mt-1.5 font-medium text-zinc-900">
                         {video ? copy[videoCopyKey[video.status]] : copy.noVideo}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs font-semibold text-zinc-500">
-                        {copy.durationLabel}
-                      </dt>
-                      <dd className="mt-1.5 font-medium tabular-nums text-zinc-900">
-                        {video
-                          ? formatDuration(video.durationSeconds, copy.noDuration)
-                          : copy.noDuration}
                       </dd>
                     </div>
                     <div>

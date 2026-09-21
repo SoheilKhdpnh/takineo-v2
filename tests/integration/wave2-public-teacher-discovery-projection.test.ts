@@ -226,9 +226,9 @@ async function seedTeacher(
         status:
           input.videoStatus ??
           "APPROVED",
-
-        durationSeconds:
-          90,
+        provider: "aparat",
+        aparatHash: `${input.introVideoId.slice(-8)}`,
+        aparatUrl: `https://www.aparat.com/v/${input.introVideoId.slice(-8)}`,
       },
     });
   }

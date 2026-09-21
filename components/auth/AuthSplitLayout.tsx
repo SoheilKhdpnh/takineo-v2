@@ -26,7 +26,7 @@ export function AuthSplitLayout({
   const useQuotes = aside === "quotes";
 
   return (
-    <main className="grid min-h-screen bg-[#1c1410] lg:grid-cols-[minmax(24rem,32rem)_1fr]">
+    <main className="grid min-h-screen bg-[#fffaf6] lg:grid-cols-[minmax(24rem,32rem)_1fr]">
       <div className="relative isolate h-44 overflow-hidden lg:hidden">
         {useQuotes ? (
           <div className="absolute inset-0 bg-gradient-to-br from-[#9a3412] via-[#c2410c] to-[#1c1410]" />
@@ -36,7 +36,7 @@ export function AuthSplitLayout({
             alt=""
             fill
             priority
-            sizes="100vw"
+            sizes="(max-width: 1023px) 100vw, 1px"
             className="object-cover"
           />
         )}
