@@ -21,7 +21,7 @@ export async function SiteHeader({
   });
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-canvas/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-line bg-[#fffaf6]/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link
           href="/"
@@ -39,7 +39,7 @@ export async function SiteHeader({
         >
           <Link
             href="/teachers"
-            className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-mint sm:inline-flex"
+            className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-[#fff4ed] sm:inline-flex"
           >
             {t("teachers")}
           </Link>

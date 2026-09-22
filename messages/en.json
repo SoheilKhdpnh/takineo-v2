@@ -62,7 +62,6 @@
     "passwordHint": "Use between 8 and 128 characters.",
     "agreeToTerms": "I agree to the <terms>Talkinu Terms of Use</terms>.",
     "termsRequired": "You must agree to the Talkinu Terms of Use to create an account.",
-    "signInTermsRequired": "You must agree to the Talkinu Terms of Use to sign in.",
     "rememberMe": "Remember me",
     "rememberMeHint": "Stay signed in on this device so you do not have to enter your details again next time.",
     "createAccount": "Create account",

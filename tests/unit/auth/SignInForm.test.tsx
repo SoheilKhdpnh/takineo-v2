@@ -80,14 +80,16 @@ beforeEach(() => {
 });
 
 describe("SignInForm", () => {
-  it("keeps submit disabled until terms are accepted", async () => {
+  it("does not ask for terms of use on sign in", async () => {
     const user = userEvent.setup();
     render(<SignInForm />);
 
     await user.type(screen.getByLabelText(copy.username), "soheil_n");
     await user.type(screen.getByLabelText(copy.password), "password12");
 
-    expect(screen.getByRole("button", { name: copy.signIn })).toBeDisabled();
+    expect(screen.queryByRole("checkbox", { name: /Talkinu Terms of Use/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: copy.signIn })).toBeEnabled();
+    expect(screen.getByRole("button", { name: copy.showPassword })).toHaveClass("right-2");
   });
 
   it("signs in with username and shows a welcome message", async () => {
@@ -97,7 +99,6 @@ describe("SignInForm", () => {
 
     await user.type(screen.getByLabelText(copy.username), "soheil_n");
     await user.type(screen.getByLabelText(copy.password), "password12");
-    await user.click(screen.getByRole("checkbox", { name: /Talkinu Terms of Use/ }));
     await user.click(screen.getByRole("button", { name: copy.signIn }));
 
     await waitFor(() => {

@@ -31,22 +31,16 @@ export function SignInForm() {
   const [username, setUsername] = useState(readInitialUsername);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => readRememberedSignup() !== null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
 
-  const canSubmit = termsAccepted && !isSubmitting && username.trim().length > 0;
+  const canSubmit = !isSubmitting && username.trim().length > 0;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-
-    if (!termsAccepted) {
-      setError(t("signInTermsRequired"));
-      return;
-    }
 
     const normalizedUsername = normalizeUsername(username);
 
@@ -140,7 +134,7 @@ export function SignInForm() {
           <label htmlFor="password" className="text-sm font-medium text-zinc-900">
             {t("password")}
           </label>
-          <div className="relative">
+          <div className="relative" dir="ltr">
             <input
               id="password"
               name="password"
@@ -152,12 +146,12 @@ export function SignInForm() {
               maxLength={128}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className={`${authInputClassName} pe-24 text-left`}
+              className={`${authInputClassName} pr-24 text-left`}
             />
             <button
               type="button"
               onClick={() => setShowPassword((current) => !current)}
-              className="absolute inset-y-0 end-2 my-auto h-8 rounded-lg px-2 text-xs font-medium text-[#9a3412]"
+              className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-xs font-medium text-[#9a3412]"
             >
               {showPassword ? t("hidePassword") : t("showPassword")}
             </button>
@@ -172,27 +166,6 @@ export function SignInForm() {
             {t("forgotPassword")}
           </Link>
         </div>
-
-        <label className="flex items-start gap-3 text-sm text-zinc-800">
-          <input
-            type="checkbox"
-            checked={termsAccepted}
-            onChange={(event) => setTermsAccepted(event.target.checked)}
-            className="mt-1 size-4 rounded border-zinc-300 text-[#c2410c]"
-          />
-          <span>
-            {t.rich("agreeToTerms", {
-              terms: (chunks) => (
-                <Link
-                  href="/terms"
-                  className="font-medium text-[#9a3412] underline-offset-4 hover:underline"
-                >
-                  {chunks}
-                </Link>
-              ),
-            })}
-          </span>
-        </label>
 
         <label className="flex items-start gap-3 text-sm text-zinc-800">
           <input

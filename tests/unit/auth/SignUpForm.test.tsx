@@ -104,6 +104,7 @@ describe("SignUpForm", () => {
     await user.type(screen.getByLabelText(copy.email), "soheil@example.com");
     await user.type(screen.getByLabelText(copy.password), "Password123");
 
+    expect(screen.getByRole("button", { name: copy.showPassword })).toHaveClass("right-2");
     expect(screen.getByRole("button", { name: copy.createAccount })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: copy.createAccount }));
