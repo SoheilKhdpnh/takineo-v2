@@ -72,6 +72,7 @@ export function SignUpForm() {
   const [email, setEmail] = useState(initialRemembered.email);
   const [phone, setPhone] = useState(initialRemembered.phone);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [rememberMe, setRememberMe] = useState(initialRemembered.rememberMe);
   const [availability, setAvailability] = useState<
@@ -348,19 +349,28 @@ export function SignUpForm() {
           <label htmlFor="password" className="text-sm font-medium text-zinc-900">
             {t("password")}
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            dir="ltr"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            maxLength={128}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
-          />
+          <div className="relative" dir="ltr">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              dir="ltr"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              maxLength={128}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 pr-24 text-left text-zinc-950 outline-none transition focus:border-zinc-950"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-xs font-medium text-[#9a3412]"
+            >
+              {showPassword ? t("hidePassword") : t("showPassword")}
+            </button>
+          </div>
           <p className="text-xs text-zinc-500">{t("passwordHint")}</p>
         </div>
 

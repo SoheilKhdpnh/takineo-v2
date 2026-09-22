@@ -74,17 +74,20 @@ export default async function TeacherVideoPage({
           applicationStatus={
             state.applicationStatus
           }
-          canUpload={state.canUpload}
+          canEdit={state.canEdit}
+          verificationCode={
+            state.verificationCode
+          }
           initialVideo={{
             status:
               state.introVideo?.status ??
               null,
-
-            durationSeconds:
-              state.introVideo
-                ?.durationSeconds ??
+            aparatUrl:
+              state.introVideo?.aparatUrl ??
               null,
-
+            embedUrl:
+              state.introVideo?.embedUrl ??
+              null,
             rejectionReason:
               state.introVideo
                 ?.rejectionReason ??

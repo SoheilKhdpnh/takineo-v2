@@ -9,7 +9,7 @@ export function TalkinuMark({
     <span
       aria-hidden="true"
       className={cn(
-        "grid size-9 place-items-center rounded-md bg-primary text-sm font-extrabold tracking-[-0.06em] text-white",
+        "grid size-9 place-items-center rounded-md bg-[#c2410c] text-sm font-extrabold tracking-[-0.06em] text-white",
         className,
       )}
     >

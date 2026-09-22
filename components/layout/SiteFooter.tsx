@@ -15,7 +15,7 @@ export async function SiteFooter({
   });
 
   return (
-    <footer className="mt-auto border-t border-line bg-surface">
+    <footer className="mt-auto border-t border-line bg-[#fffaf6]">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div>
           <p className="inline-flex items-center gap-2 font-semibold text-ink">
@@ -31,13 +31,13 @@ export async function SiteFooter({
           aria-label={t("footerNavigationLabel")}
           className="flex flex-col gap-2 text-sm font-medium text-ink"
         >
-          <Link href="/teachers" className="hover:text-primary">
+          <Link href="/teachers" className="hover:text-[#c2410c]">
             {t("teachers")}
           </Link>
-          <Link href="/sign-up" className="hover:text-primary">
+          <Link href="/sign-up" className="hover:text-[#c2410c]">
             {t("getStarted")}
           </Link>
-          <Link href="/sign-in" className="hover:text-primary">
+          <Link href="/sign-in" className="hover:text-[#c2410c]">
             {t("signIn")}
           </Link>
         </nav>

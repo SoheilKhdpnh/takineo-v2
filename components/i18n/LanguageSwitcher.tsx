@@ -28,7 +28,7 @@ export function LanguageSwitcher({
           : t("switchToEnglish")
       }
       className={cn(
-        "inline-flex min-h-10 items-center justify-center rounded-full border border-line bg-surface px-3.5 text-sm font-medium text-ink transition hover:bg-mint",
+        "inline-flex min-h-10 items-center justify-center rounded-full border border-[#edddd4] bg-[#fffaf6] px-3.5 text-sm font-medium text-ink transition hover:bg-[#fff4ed]",
         className,
       )}
     >

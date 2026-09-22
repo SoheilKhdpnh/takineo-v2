@@ -50,11 +50,27 @@ export default async function TeacherDashboardPage({
 
   setRequestLocale(locale);
 
-  const { session } =
+  const { session, access } =
     await requireRolePage(
       "TEACHER",
       locale,
     );
+
+  if (
+    access.teacherProfile?.applicationStatus === "PENDING_REVIEW"
+  ) {
+    redirect({
+      href: "/onboarding/teacher/pending",
+      locale,
+    });
+  }
+
+  if (access.teacherProfile?.applicationStatus === "DRAFT") {
+    redirect({
+      href: "/onboarding/teacher",
+      locale,
+    });
+  }
 
   const teacherProfile =
     await getTeacherProfileForUser(
