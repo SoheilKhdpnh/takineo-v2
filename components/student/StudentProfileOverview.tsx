@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -115,16 +114,13 @@ export function StudentProfileOverview({
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [editorOpen, setEditorOpen] = useState(false);
-  const [image, setImage] = useState<string | null>(userImage);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   const displayName =
     userName.trim().length > 0 ? userName.trim() : t("nameFallback");
-
-  useEffect(() => {
-    setImage(userImage);
-  }, [userImage]);
+  const image = uploadedImage ?? userImage;
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -140,7 +136,7 @@ export function StudentProfileOverview({
     try {
       const dataUrl = await fileToProfilePhotoDataUrl(file);
       const nextImage = await uploadProfilePhoto(dataUrl);
-      setImage(nextImage);
+      setUploadedImage(nextImage);
       router.refresh();
     } catch (error) {
       if (error instanceof Error && error.message === "TOO_LARGE") {
