@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import {
+  useEffect,
   useState,
   type ComponentType,
   type ReactNode,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/WorkspaceIcons";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
+import { authClient } from "@/lib/auth/auth-client";
 import { cn } from "@/lib/ui/cn";
 
 type NavKey =
@@ -108,10 +110,42 @@ export function StudentWorkspaceShell({
 }) {
   const t = useTranslations("StudentWorkspace");
   const pathname = usePathname();
+  const { data: liveSession } = authClient.useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [headerImage, setHeaderImage] = useState<string | null>(userImage);
+
+  useEffect(() => {
+    setHeaderImage(userImage);
+  }, [userImage]);
+
+  useEffect(() => {
+    const sessionImage = liveSession?.user.image;
+    if (typeof sessionImage === "string" && sessionImage.length > 0) {
+      setHeaderImage(sessionImage);
+    }
+  }, [liveSession?.user.image]);
+
+  useEffect(() => {
+    function onPhotoUpdated(event: Event) {
+      const detail = (event as CustomEvent<string>).detail;
+      if (typeof detail === "string" && detail.length > 0) {
+        setHeaderImage(detail);
+      }
+    }
+
+    window.addEventListener("takineo:profile-photo", onPhotoUpdated);
+    return () => {
+      window.removeEventListener("takineo:profile-photo", onPhotoUpdated);
+    };
+  }, []);
 
   const displayName =
     userName.trim().length > 0 ? userName.trim() : t("studentFallback");
+  const resolvedImage =
+    headerImage ??
+    (typeof liveSession?.user.image === "string"
+      ? liveSession.user.image
+      : null);
 
   return (
     <div className="min-h-screen bg-[#fffaf6] text-ink lg:flex">
@@ -251,11 +285,11 @@ export function StudentWorkspaceShell({
               <BellIcon className="size-[1.125rem]" />
             </button>
             <div className="hidden items-center gap-3 rounded-full border border-[#edddd4] bg-white py-1.5 pe-3 ps-1.5 sm:flex">
-              {userImage ? (
+              {resolvedImage ? (
                 // Better Auth profile images may come from arbitrary provider URLs.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={userImage}
+                  src={resolvedImage}
                   alt=""
                   width={32}
                   height={32}

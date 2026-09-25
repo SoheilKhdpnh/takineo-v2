@@ -477,7 +477,8 @@
     "photoErrors": {
       "tooLarge": "Please choose a smaller image (under about 12 MB).",
       "unauthorized": "Sign in again to upload a photo.",
-      "generic": "We could not upload that photo. Try another image."
+      "generic": "We could not upload that photo. Try another image.",
+      "invalidType": "Please choose a JPG, PNG, or WebP image."
     }
   },
   "TeacherProfile": {

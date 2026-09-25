@@ -4,7 +4,7 @@ import { z } from "zod";
 export const PROFILE_PHOTO_MAX_CHARS = 700_000;
 
 const dataUrlPattern =
-  /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+=*$/;
+  /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=\s]+$/;
 
 export const profilePhotoInputSchema = z.object({
   imageDataUrl: z

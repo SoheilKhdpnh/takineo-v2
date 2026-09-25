@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -121,6 +122,10 @@ export function StudentProfileOverview({
   const displayName =
     userName.trim().length > 0 ? userName.trim() : t("nameFallback");
 
+  useEffect(() => {
+    setImage(userImage);
+  }, [userImage]);
+
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -142,12 +147,23 @@ export function StudentProfileOverview({
         setPhotoError(t("photoErrors.tooLarge"));
       } else if (error instanceof Error && error.message === "UNAUTHORIZED") {
         setPhotoError(t("photoErrors.unauthorized"));
+      } else if (error instanceof Error && error.message === "INVALID_TYPE") {
+        setPhotoError(t("photoErrors.invalidType"));
+      } else if (
+        error instanceof Error &&
+        (error.message === "FORBIDDEN" || error.message === "INVALID_PHOTO")
+      ) {
+        setPhotoError(t("photoErrors.generic"));
       } else {
         setPhotoError(t("photoErrors.generic"));
       }
     } finally {
       setPhotoBusy(false);
     }
+  }
+
+  function openPhotoPicker() {
+    photoInputRef.current?.click();
   }
   const joinedLabel = useMemo(() => {
     const date =
@@ -194,14 +210,25 @@ export function StudentProfileOverview({
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1c1410]/40 via-transparent to-transparent" />
-          <button
-            type="button"
-            onClick={() => setEditorOpen(true)}
-            className="absolute end-4 top-4 inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/90 px-3 text-sm font-semibold text-zinc-800 shadow-sm backdrop-blur transition hover:bg-white"
-          >
-            <PencilIcon className="size-4" />
-            {t("editProfile")}
-          </button>
+          <div className="absolute end-4 top-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={photoBusy}
+              onClick={openPhotoPicker}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/90 px-3 text-sm font-semibold text-zinc-800 shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-60"
+            >
+              <CameraIcon className="size-4" />
+              {t("changePhoto")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditorOpen(true)}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/90 px-3 text-sm font-semibold text-zinc-800 shadow-sm backdrop-blur transition hover:bg-white"
+            >
+              <PencilIcon className="size-4" />
+              {t("editProfile")}
+            </button>
+          </div>
         </div>
 
         <div className="relative px-5 pb-6 sm:px-8">
@@ -227,15 +254,15 @@ export function StudentProfileOverview({
                   type="button"
                   aria-label={t("changePhoto")}
                   disabled={photoBusy}
-                  onClick={() => photoInputRef.current?.click()}
-                  className="absolute bottom-0.5 end-0.5 grid size-9 place-items-center rounded-full border-2 border-white bg-[#c2410c] text-white shadow transition hover:bg-[#9a3412] disabled:opacity-60"
+                  onClick={openPhotoPicker}
+                  className="absolute bottom-0.5 end-0.5 z-10 grid size-9 place-items-center rounded-full border-2 border-white bg-[#c2410c] text-white shadow transition hover:bg-[#9a3412] disabled:opacity-60"
                 >
                   <CameraIcon className="size-4" />
                 </button>
                 <input
                   ref={photoInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,image/jpg"
                   className="sr-only"
                   onChange={(event) => void handlePhotoChange(event)}
                 />

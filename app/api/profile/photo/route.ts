@@ -3,7 +3,7 @@ import {
   ProfileRoleMismatchError,
 } from "@/lib/errors/profile-errors";
 import { getApiSession } from "@/lib/auth/api-session";
-import { hasTrustedRequestOrigin } from "@/lib/security/same-origin";
+import { hasTrustedRequestOrigin } from "@/lib/security/request-origin";
 import { updateAuthenticatedUserPhoto } from "@/lib/services/profile-photo.service";
 import { profilePhotoInputSchema } from "@/lib/validations/profile-photo";
 

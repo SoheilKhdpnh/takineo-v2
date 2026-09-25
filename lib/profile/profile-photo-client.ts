@@ -1,5 +1,7 @@
 "use client";
 
+import { authClient } from "@/lib/auth/auth-client";
+
 const MAX_EDGE = 512;
 const MAX_BYTES = 450_000;
 
@@ -33,16 +35,13 @@ export async function fileToProfilePhotoDataUrl(
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
-  let quality = 0.86;
-  let dataUrl = canvas.toDataURL("image/webp", quality);
+  // Prefer JPEG for broad Better Auth / session compatibility.
+  let quality = 0.84;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
 
   while (dataUrl.length > MAX_BYTES && quality > 0.45) {
     quality -= 0.08;
-    dataUrl = canvas.toDataURL("image/webp", quality);
-  }
-
-  if (dataUrl.length > MAX_BYTES) {
-    dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
   }
 
   if (dataUrl.length > MAX_BYTES) {
@@ -57,6 +56,7 @@ export async function uploadProfilePhoto(
 ): Promise<string> {
   const response = await fetch("/api/profile/photo", {
     method: "PUT",
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
     },
@@ -67,6 +67,14 @@ export async function uploadProfilePhoto(
     throw new Error("UNAUTHORIZED");
   }
 
+  if (response.status === 403) {
+    throw new Error("FORBIDDEN");
+  }
+
+  if (response.status === 400) {
+    throw new Error("INVALID_PHOTO");
+  }
+
   if (!response.ok) {
     throw new Error("UPLOAD_FAILED");
   }
@@ -75,6 +83,24 @@ export async function uploadProfilePhoto(
 
   if (typeof payload.image !== "string" || payload.image.length === 0) {
     throw new Error("INVALID_RESPONSE");
+  }
+
+  // Keep Better Auth's client session in sync so shell/header avatars update.
+  const sessionUpdate = await authClient.updateUser({
+    image: payload.image,
+  });
+
+  if (sessionUpdate.error) {
+    // Database write already succeeded; force a session refetch as fallback.
+    await authClient.getSession();
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("takineo:profile-photo", {
+        detail: payload.image,
+      }),
+    );
   }
 
   return payload.image;
