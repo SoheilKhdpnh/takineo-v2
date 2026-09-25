@@ -31,6 +31,10 @@ import {
   WeeklyAvailabilityEditor,
   type WeeklyDraftRule,
 } from "@/components/availability/WeeklyAvailabilityEditor";
+import {
+  CalendarIcon,
+  ClockIcon,
+} from "@/components/ui/WorkspaceIcons";
 import type {
   BookingWeekday,
 } from "@/lib/domain/booking";
@@ -769,35 +773,45 @@ export function TeacherAvailabilityPanel() {
   }
 
   const panelHeader = (
-    <header className="border-b border-zinc-800 bg-[radial-gradient(circle_at_top_left,rgba(244,244,245,0.16),transparent_32%),linear-gradient(135deg,#09090b_0%,#18181b_58%,#27272a_100%)] px-5 py-7 text-white sm:px-8 sm:py-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <p
-            className={[
-              "text-xs font-bold text-zinc-400",
-              locale === "fa"
-                ? "tracking-normal"
-                : "uppercase tracking-[0.18em]",
-            ].join(" ")}
+    <header className="border-b border-[#edddd4] bg-[linear-gradient(135deg,#fff4ed_0%,#fffaf6_60%,#ffffff_100%)] px-5 py-6 sm:px-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex max-w-2xl items-start gap-4">
+          <span
+            aria-hidden="true"
+            className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#c2410c] text-white shadow-[0_12px_28px_-16px_rgba(194,65,12,0.9)]"
           >
-            {t("eyebrow")}
-          </p>
-          <h2
-            id="teacher-availability-heading"
-            className="mt-2 text-2xl font-semibold sm:text-3xl"
-          >
-            {t("title")}
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-300 sm:text-base">
-            {t("description")}
-          </p>
+            <CalendarIcon />
+          </span>
+          <div>
+            <p
+              className={[
+                "text-xs font-semibold text-[#c2410c]",
+                locale === "fa"
+                  ? "tracking-normal"
+                  : "uppercase tracking-[0.16em]",
+              ].join(" ")}
+            >
+              {t("eyebrow")}
+            </p>
+            <h2
+              id="teacher-availability-heading"
+              className="mt-1 text-xl font-semibold tracking-tight text-zinc-950 sm:text-2xl"
+            >
+              {t("title")}
+            </h2>
+            <p className="mt-1.5 max-w-xl text-sm leading-6 text-zinc-600">
+              {t("description")}
+            </p>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300 backdrop-blur">
-          <p className="font-semibold text-white">
+        <div className="flex items-start gap-2.5 rounded-2xl bg-white px-4 py-3 text-sm text-zinc-600 ring-1 ring-[#edddd4]">
+          <ClockIcon className="mt-0.5 size-4 text-[#c2410c]" />
+          <div>
+          <p className="font-semibold text-zinc-950">
             {t("tehranTime")}
           </p>
-          <p className="mt-1 leading-6">
+          <p className="mt-0.5 text-xs leading-5">
             {t("window", {
               from: formatDate(
                 readRange.fromDate,
@@ -807,17 +821,21 @@ export function TeacherAvailabilityPanel() {
               ),
             })}
           </p>
+          </div>
         </div>
       </div>
     </header>
   );
+
+  const panelClassName =
+    "overflow-hidden rounded-[1.75rem] border border-[#edddd4] bg-white shadow-[0_24px_60px_-42px_rgba(28,20,16,0.45)]";
 
   if (loadState === "loading") {
     return (
       <section
         aria-busy="true"
         aria-labelledby="teacher-availability-heading"
-        className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]"
+        className={panelClassName}
       >
         {panelHeader}
         <p
@@ -826,17 +844,17 @@ export function TeacherAvailabilityPanel() {
         >
           {t("loading")}
         </p>
-        <div className="grid gap-4 p-5 sm:p-8 lg:grid-cols-2">
-          {[0, 1].map((item) => (
-            <div
-              key={item}
-              className="animate-pulse rounded-3xl border border-zinc-100 bg-zinc-50 p-6"
-            >
-              <div className="h-5 w-40 rounded-full bg-zinc-200" />
-              <div className="mt-5 h-24 rounded-2xl bg-zinc-200/80" />
-              <div className="mt-3 h-24 rounded-2xl bg-zinc-200/70" />
+        <div className="grid gap-6 p-5 sm:p-8 xl:grid-cols-[minmax(0,1.55fr)_minmax(19rem,1fr)]">
+          <div className="animate-pulse space-y-3">
+            <div className="h-5 w-44 rounded-full bg-[#f3e7df]" />
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="h-14 rounded-xl bg-[#fff4ed]" />
+              ))}
             </div>
-          ))}
+            <div className="h-72 rounded-2xl bg-[#fffaf6] ring-1 ring-[#edddd4]" />
+          </div>
+          <div className="h-80 animate-pulse rounded-2xl bg-[#fffaf6] ring-1 ring-[#edddd4]" />
         </div>
       </section>
     );
@@ -846,18 +864,18 @@ export function TeacherAvailabilityPanel() {
     return (
       <section
         aria-labelledby="teacher-availability-heading"
-        className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]"
+        className={panelClassName}
       >
         {panelHeader}
         <div className="p-5 sm:p-8">
           <div
             role="status"
-            className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950"
+            className="rounded-2xl border border-[#f5c9ad] bg-[#fff4ed] p-6 text-[#7c2d12]"
           >
             <p className="text-lg font-semibold">
               {t("lockedTitle")}
             </p>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-amber-900">
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-[#9a3412]">
               {t("lockedDescription")}
             </p>
             <button
@@ -869,7 +887,7 @@ export function TeacherAvailabilityPanel() {
                   handleLoadFailure,
                 );
               }}
-              className="mt-5 rounded-full bg-amber-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-950"
+              className="mt-5 rounded-xl bg-[#c2410c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#9a3412] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c2410c]"
             >
               {t("checkAgain")}
             </button>
@@ -886,13 +904,13 @@ export function TeacherAvailabilityPanel() {
     return (
       <section
         aria-labelledby="teacher-availability-heading"
-        className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]"
+        className={panelClassName}
       >
         {panelHeader}
         <div className="p-5 sm:p-8">
           <div
             role="alert"
-            className="rounded-3xl border border-red-100 bg-red-50 p-6 text-red-950"
+            className="rounded-2xl border border-red-100 bg-red-50 p-6 text-red-950"
           >
             <p className="text-lg font-semibold">
               {t("loadErrorTitle")}
@@ -909,7 +927,7 @@ export function TeacherAvailabilityPanel() {
                   handleLoadFailure,
                 );
               }}
-              className="mt-5 rounded-full bg-red-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-950"
+              className="mt-5 rounded-xl bg-red-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-900"
             >
               {t("tryAgain")}
             </button>
@@ -922,7 +940,7 @@ export function TeacherAvailabilityPanel() {
   return (
     <section
       aria-labelledby="teacher-availability-heading"
-      className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]"
+      className={panelClassName}
     >
       {panelHeader}
 
@@ -936,7 +954,7 @@ export function TeacherAvailabilityPanel() {
         </div>
       ) : null}
 
-      <div className="grid gap-8 p-5 sm:p-8 xl:grid-cols-[1.3fr_0.9fr]">
+      <div className="grid items-start gap-6 p-5 sm:p-8 xl:grid-cols-[minmax(0,1.55fr)_minmax(19rem,1fr)]">
         <WeeklyAvailabilityEditor
           rules={draftRules}
           dirty={weeklyDirty}

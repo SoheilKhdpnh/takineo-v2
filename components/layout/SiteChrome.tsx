@@ -17,8 +17,11 @@ export function SiteChrome({
   const isAdmin =
     pathname === "/admin" ||
     pathname.startsWith("/admin/");
+  const isTeacherWorkspace =
+    pathname === "/teacher" ||
+    pathname.startsWith("/teacher/");
 
-  if (isAdmin) {
+  if (isAdmin || isTeacherWorkspace) {
     return children;
   }
 

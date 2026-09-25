@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { AnchorHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, ReactNode } from "react";
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -53,6 +53,16 @@ vi.mock("@/components/availability/TeacherAvailabilityPanel", () => ({
   TeacherAvailabilityPanel: () => (
     <div data-testid="teacher-availability" />
   ),
+}));
+
+vi.mock("@/components/teacher/TeacherProfileOverview", () => ({
+  TeacherProfileOverview: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="teacher-profile-overview">{children}</div>
+  ),
+}));
+
+vi.mock("@/components/profiles/TeacherProfileForm", () => ({
+  TeacherProfileForm: () => <div data-testid="teacher-profile-form" />,
 }));
 
 vi.mock("@/components/profiles/TeacherApplicationSubmit", () => ({
@@ -152,21 +162,20 @@ describe("teacher dashboard rejection feedback", () => {
     expect(screen.queryByTestId("teacher-availability")).toBeNull();
   });
 
-  it("still redirects an incomplete teacher profile before rendering applicant feedback", async () => {
+  it("shows the profile setup form instead of applicant feedback while the profile is incomplete", async () => {
     mocks.getTeacherProfileForUser.mockResolvedValue({
       ...profile,
       profileCompletedAt: null,
     });
 
-    await expect(
-      TeacherDashboardPage({
-        params: Promise.resolve({ locale: "fa" }),
-      }),
-    ).rejects.toThrow("REDIRECT");
-
-    expect(mocks.redirect).toHaveBeenCalledWith({
-      href: "/teacher/profile",
-      locale: "fa",
+    const page = await TeacherDashboardPage({
+      params: Promise.resolve({ locale: "fa" }),
     });
+
+    render(page);
+
+    expect(screen.getByTestId("teacher-profile-form")).toBeInTheDocument();
+    expect(screen.queryByTestId("application-submit")).toBeNull();
+    expect(screen.queryByTestId("teacher-availability")).toBeNull();
   });
 });

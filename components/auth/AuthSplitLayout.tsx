@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 
+import { TalkinuWordmark } from "@/components/ui/TalkinuMark";
+
 export type AuthSplitQuote = {
   text: string;
   attribution?: string;
@@ -41,15 +43,20 @@ export function AuthSplitLayout({
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#fffaf6] via-black/20 to-black/30" />
-        <p className="absolute bottom-4 start-5 text-sm font-semibold tracking-[0.18em] text-white uppercase">
-          {brand}
-        </p>
+        <TalkinuWordmark
+          brand={brand}
+          className="absolute bottom-4 start-5"
+          markClassName="size-8"
+          textClassName="text-sm font-semibold tracking-[0.12em] text-white uppercase"
+        />
       </div>
 
       <section className="relative z-10 flex min-h-0 flex-col justify-center bg-[#fffaf6] px-5 py-10 sm:px-10 lg:min-h-screen lg:py-16">
-        <p className="mb-8 hidden text-sm font-semibold tracking-[0.18em] text-[#c2410c] uppercase lg:block">
-          {brand}
-        </p>
+        <TalkinuWordmark
+          brand={brand}
+          className="mb-8 hidden lg:inline-flex"
+          textClassName="text-sm font-semibold tracking-[0.12em] text-[#c2410c] uppercase"
+        />
         {children}
       </section>
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { AnchorHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, ReactNode } from "react";
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,6 +62,12 @@ vi.mock("@/components/sessions/UpcomingSessionsPanel", () => ({
 vi.mock("@/components/availability/TeacherAvailabilityPanel", () => ({
   TeacherAvailabilityPanel: () => (
     <div data-testid="teacher-availability" />
+  ),
+}));
+
+vi.mock("@/components/teacher/TeacherProfileOverview", () => ({
+  TeacherProfileOverview: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="teacher-profile-overview">{children}</div>
   ),
 }));
 

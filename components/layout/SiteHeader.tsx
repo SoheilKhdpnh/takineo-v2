@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { buttonClassName } from "@/components/ui/Button";
-import { TalkinuMark } from "@/components/ui/TalkinuMark";
+import { TalkinuWordmark } from "@/components/ui/TalkinuMark";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { cn } from "@/lib/ui/cn";
@@ -27,10 +27,7 @@ export async function SiteHeader({
           href="/"
           className="inline-flex items-center gap-2.5 rounded-md"
         >
-          <TalkinuMark />
-          <span className="text-base font-semibold tracking-tight text-ink">
-            {t("brand")}
-          </span>
+          <TalkinuWordmark brand={t("brand")} />
         </Link>
 
         <nav

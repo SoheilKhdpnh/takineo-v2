@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  useLocale,
-  useTranslations,
-} from "next-intl";
+import { useTranslations } from "next-intl";
 
 import {
   BOOKING_WEEKDAYS,
@@ -15,6 +12,11 @@ import {
 import type {
   TeacherAvailabilityRuleInput,
 } from "@/components/availability/teacher-availability-api";
+import {
+  PlusIcon,
+  TrashIcon,
+} from "@/components/ui/WorkspaceIcons";
+import { cn } from "@/lib/ui/cn";
 
 export type WeeklyDraftRule =
   TeacherAvailabilityRuleInput & {
@@ -32,6 +34,43 @@ const TIME_OPTIONS = Array.from(
   (_, index) =>
     index * BOOKING_SLOT_MINUTES,
 );
+
+const timeSelectClassName =
+  "min-h-9 appearance-none rounded-lg border border-transparent bg-[#fffaf6] px-2 text-sm font-semibold text-zinc-900 tabular-nums outline-none transition hover:border-[#edddd4] focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/15 disabled:opacity-60";
+
+function TimeSelect({
+  label,
+  value,
+  disabled,
+  formatMinute,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  disabled: boolean;
+  formatMinute: (minute: number) => string;
+  onChange: (minute: number) => void;
+}) {
+  return (
+    <label>
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(Number(event.target.value))
+        }
+        disabled={disabled}
+        className={timeSelectClassName}
+      >
+        {TIME_OPTIONS.map((minute) => (
+          <option key={minute} value={minute}>
+            {formatMinute(minute)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 interface WeeklyAvailabilityEditorProps {
   rules: WeeklyDraftRule[];
@@ -63,37 +102,59 @@ export function WeeklyAvailabilityEditor({
   onReset,
   onSave,
 }: WeeklyAvailabilityEditorProps) {
-  const locale = useLocale();
   const t = useTranslations(
     "TeacherAvailability",
   );
+
+  const activeRules = rules.filter(
+    (rule) => rule.isActive,
+  );
+  const activeDays = new Set(
+    activeRules.map((rule) => rule.weekday),
+  ).size;
+  const weeklyMinutes = activeRules.reduce(
+    (total, rule) =>
+      total +
+      Math.max(
+        0,
+        rule.endMinute - rule.startMinute,
+      ),
+    0,
+  );
+
+  const summary = [
+    {
+      label: t("summaryDays"),
+      value: activeDays,
+    },
+    {
+      label: t("summaryHours"),
+      value:
+        Math.round((weeklyMinutes / 60) * 10) /
+        10,
+    },
+    {
+      label: t("summaryWindows"),
+      value: activeRules.length,
+    },
+  ];
 
   return (
     <section aria-labelledby="weekly-availability-heading">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p
-            className={[
-              "text-xs font-bold text-zinc-400",
-              locale === "fa"
-                ? "tracking-normal"
-                : "uppercase tracking-[0.16em]",
-            ].join(" ")}
-          >
-            {t("weeklyEyebrow")}
-          </p>
           <h3
             id="weekly-availability-heading"
-            className="mt-2 text-xl font-semibold text-zinc-950 sm:text-2xl"
+            className="text-lg font-semibold tracking-tight text-zinc-950 sm:text-xl"
           >
             {t("weeklyTitle")}
           </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-600">
+          <p className="mt-1.5 max-w-xl text-sm leading-6 text-zinc-600">
             {t("weeklyDescription")}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <button
             type="button"
             onClick={onReset}
@@ -101,7 +162,7 @@ export function WeeklyAvailabilityEditor({
               !dirty ||
               disabled
             }
-            className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-950 hover:text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-10 rounded-xl px-4 text-sm font-semibold text-zinc-600 transition hover:bg-[#fff4ed] hover:text-[#9a3412] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {t("resetWeekly")}
           </button>
@@ -112,7 +173,7 @@ export function WeeklyAvailabilityEditor({
               !dirty ||
               disabled
             }
-            className="rounded-full bg-zinc-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="min-h-10 rounded-xl bg-[#c2410c] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(194,65,12,0.9)] transition hover:bg-[#9a3412] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             {saving
               ? t("savingWeekly")
@@ -121,16 +182,41 @@ export function WeeklyAvailabilityEditor({
         </div>
       </div>
 
+      <dl className="mt-5 grid grid-cols-3 gap-2">
+        {summary.map((item) => (
+          <div
+            key={item.label}
+            className="rounded-xl border border-[#edddd4] bg-[#fffaf6] px-3 py-2.5"
+          >
+            <dt className="text-xs font-medium text-zinc-500">
+              {item.label}
+            </dt>
+            <dd className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-950">
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {dirty ? (
+        <p
+          role="status"
+          className="mt-4 rounded-xl bg-[#fff4ed] px-3 py-2 text-xs font-medium text-[#9a3412]"
+        >
+          {t("unsavedChanges")}
+        </p>
+      ) : null}
+
       {error ? (
         <div
           role="alert"
-          className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm leading-7 text-red-900"
+          className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm leading-6 text-red-900"
         >
           {error}
         </div>
       ) : null}
 
-      <div className="mt-6 space-y-3">
+      <ul className="mt-5 divide-y divide-[#f3e7df] overflow-hidden rounded-2xl border border-[#edddd4] bg-white">
         {BOOKING_WEEKDAYS.map(
           (weekday) => {
             const dayRules =
@@ -139,20 +225,32 @@ export function WeeklyAvailabilityEditor({
                   rule.weekday ===
                   weekday,
               );
+            const dayHasActive = dayRules.some(
+              (rule) => rule.isActive,
+            );
 
             return (
-              <article
+              <li
                 key={weekday}
-                className="rounded-3xl border border-zinc-200 bg-zinc-50/70 p-4 sm:p-5"
+                className="grid gap-3 px-4 py-3.5 sm:grid-cols-[8.5rem_minmax(0,1fr)_auto] sm:items-center"
               >
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "size-2 rounded-full",
+                      dayHasActive
+                        ? "bg-[#c2410c]"
+                        : "bg-zinc-300",
+                    )}
+                  />
                   <div>
-                    <h4 className="font-semibold text-zinc-950">
+                    <h4 className="text-sm font-semibold text-zinc-950">
                       {t(
                         `weekdays.${weekday}`,
                       )}
                     </h4>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-500">
                       {dayRules.length === 0
                         ? t("noWeeklyWindows")
                         : t("weeklyWindowCount", {
@@ -161,160 +259,134 @@ export function WeeklyAvailabilityEditor({
                           })}
                     </p>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onAdd(weekday)
-                    }
-                    disabled={disabled}
-                    className="rounded-full border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 transition hover:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t("addWindow")}
-                  </button>
                 </div>
 
-                {dayRules.length > 0 ? (
-                  <div className="mt-4 space-y-3">
-                    {dayRules.map(
-                      (rule, index) => (
-                        <fieldset
-                          key={rule.key}
-                          className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+                <div className="flex flex-wrap gap-2">
+                  {dayRules.map(
+                    (rule, index) => (
+                      <fieldset
+                        key={rule.key}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-xl border px-1.5 py-1 transition",
+                          rule.isActive
+                            ? "border-[#f5c9ad] bg-[#fff4ed]"
+                            : "border-zinc-200 bg-zinc-50 opacity-70",
+                        )}
+                      >
+                        <legend className="sr-only">
+                          {t("windowLegend", {
+                            day: t(
+                              `weekdays.${weekday}`,
+                            ),
+                            index:
+                              index + 1,
+                          })}
+                        </legend>
+
+                        <div
+                          className="inline-flex items-center gap-1"
+                          dir="ltr"
                         >
-                          <legend className="sr-only">
-                            {t("windowLegend", {
-                              day: t(
-                                `weekdays.${weekday}`,
-                              ),
-                              index:
-                                index + 1,
-                            })}
-                          </legend>
+                          <TimeSelect
+                            label={t("startTime")}
+                            value={rule.startMinute}
+                            disabled={disabled}
+                            formatMinute={formatMinute}
+                            onChange={(startMinute) =>
+                              onUpdate(rule.key, {
+                                startMinute,
+                              })
+                            }
+                          />
+                          <span
+                            aria-hidden="true"
+                            className="text-zinc-400"
+                          >
+                            –
+                          </span>
+                          <TimeSelect
+                            label={t("endTime")}
+                            value={rule.endMinute}
+                            disabled={disabled}
+                            formatMinute={formatMinute}
+                            onChange={(endMinute) =>
+                              onUpdate(rule.key, {
+                                endMinute,
+                              })
+                            }
+                          />
+                        </div>
 
-                          <label className="grid gap-2 text-sm font-medium text-zinc-700">
-                            {t("startTime")}
-                            <select
-                              value={
-                                rule.startMinute
-                              }
-                              onChange={(event) =>
-                                onUpdate(
-                                  rule.key,
-                                  {
-                                    startMinute:
-                                      Number(
-                                        event
-                                          .target
-                                          .value,
-                                      ),
-                                  },
-                                )
-                              }
-                              disabled={disabled}
-                              className="min-h-11 rounded-xl border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-zinc-950 focus:ring-2 focus:ring-zinc-950/10 disabled:opacity-60"
-                            >
-                              {TIME_OPTIONS.map(
-                                (minute) => (
-                                  <option
-                                    key={minute}
-                                    value={minute}
-                                  >
-                                    {formatMinute(
-                                      minute,
-                                    )}
-                                  </option>
-                                ),
-                              )}
-                            </select>
-                          </label>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={rule.isActive}
+                          aria-label={t("active")}
+                          onClick={() =>
+                            onUpdate(
+                              rule.key,
+                              {
+                                isActive:
+                                  !rule.isActive,
+                              },
+                            )
+                          }
+                          disabled={disabled}
+                          className={cn(
+                            "relative ms-1 h-5 w-9 shrink-0 rounded-full transition disabled:opacity-50",
+                            rule.isActive
+                              ? "bg-[#c2410c]"
+                              : "bg-zinc-300",
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "absolute top-0.5 size-4 rounded-full bg-white shadow transition-all",
+                              rule.isActive
+                                ? "start-[1.125rem]"
+                                : "start-0.5",
+                            )}
+                          />
+                        </button>
 
-                          <label className="grid gap-2 text-sm font-medium text-zinc-700">
-                            {t("endTime")}
-                            <select
-                              value={
-                                rule.endMinute
-                              }
-                              onChange={(event) =>
-                                onUpdate(
-                                  rule.key,
-                                  {
-                                    endMinute:
-                                      Number(
-                                        event
-                                          .target
-                                          .value,
-                                      ),
-                                  },
-                                )
-                              }
-                              disabled={disabled}
-                              className="min-h-11 rounded-xl border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-zinc-950 focus:ring-2 focus:ring-zinc-950/10 disabled:opacity-60"
-                            >
-                              {TIME_OPTIONS.map(
-                                (minute) => (
-                                  <option
-                                    key={minute}
-                                    value={minute}
-                                  >
-                                    {formatMinute(
-                                      minute,
-                                    )}
-                                  </option>
-                                ),
-                              )}
-                            </select>
-                          </label>
+                        <button
+                          type="button"
+                          aria-label={t("removeWindow")}
+                          title={t("removeWindow")}
+                          onClick={() =>
+                            onRemove(
+                              rule.key,
+                            )
+                          }
+                          disabled={disabled}
+                          className="grid size-8 place-items-center rounded-lg text-zinc-400 transition hover:bg-white hover:text-red-700 disabled:opacity-50"
+                        >
+                          <TrashIcon className="size-4" />
+                        </button>
+                      </fieldset>
+                    ),
+                  )}
+                </div>
 
-                          <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                            <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-zinc-200 px-3 text-sm font-medium text-zinc-700">
-                              <input
-                                type="checkbox"
-                                checked={
-                                  rule.isActive
-                                }
-                                onChange={(event) =>
-                                  onUpdate(
-                                    rule.key,
-                                    {
-                                      isActive:
-                                        event
-                                          .target
-                                          .checked,
-                                    },
-                                  )
-                                }
-                                disabled={disabled}
-                                className="size-4 accent-zinc-950"
-                              />
-                              {t("active")}
-                            </label>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onRemove(
-                                  rule.key,
-                                )
-                              }
-                              disabled={disabled}
-                              className="min-h-11 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-800 transition hover:bg-red-50 disabled:opacity-50"
-                            >
-                              {t("removeWindow")}
-                            </button>
-                          </div>
-                        </fieldset>
-                      ),
-                    )}
-                  </div>
-                ) : null}
-              </article>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onAdd(weekday)
+                  }
+                  disabled={disabled}
+                  className="inline-flex min-h-9 items-center justify-center gap-1.5 justify-self-start rounded-xl border border-dashed border-[#e7c9b6] px-3 text-xs font-semibold text-[#9a3412] transition hover:border-[#c2410c] hover:bg-[#fff4ed] disabled:cursor-not-allowed disabled:opacity-50 sm:justify-self-end"
+                >
+                  <PlusIcon className="size-4" />
+                  {t("addWindow")}
+                </button>
+              </li>
             );
           },
         )}
-      </div>
+      </ul>
 
-      <p className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 text-xs leading-6 text-zinc-600">
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
         {t("replacementNotice")}
       </p>
     </section>

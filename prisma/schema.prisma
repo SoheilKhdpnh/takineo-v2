@@ -247,16 +247,52 @@ model TeacherProfile {
   createdAt                    DateTime                  @default(now())
   updatedAt                    DateTime                  @updatedAt
 
-  user                   User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  introVideo             TeacherIntroVideo?
-  auditEvents            AdminAuditEvent[]
-  availabilityRules      TeacherAvailabilityRule[]
-  availabilityExceptions TeacherAvailabilityException[]
-  speakingSessions             SpeakingSession[]
-  publicDiscoveryEligibility   PublicTeacherDiscoveryEligibility?
+  user                       User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  introVideo                 TeacherIntroVideo?
+  auditEvents                AdminAuditEvent[]
+  availabilityRules          TeacherAvailabilityRule[]
+  availabilityExceptions     TeacherAvailabilityException[]
+  speakingSessions           SpeakingSession[]
+  publicDiscoveryEligibility PublicTeacherDiscoveryEligibility?
+  certifications             TeacherCertification[]
+  education                  TeacherEducation[]
 
   @@index([applicationStatus, applicationSubmittedAt, id])
   @@map("teacher_profile")
+}
+
+model TeacherCertification {
+  id               String   @id @default(cuid())
+  teacherProfileId String
+  position         Int
+  subject          String   @db.VarChar(120)
+  name             String   @db.VarChar(160)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherProfileId, position], map: "tcert_teacher_position_key")
+  @@map("teacher_certification")
+}
+
+model TeacherEducation {
+  id               String   @id @default(cuid())
+  teacherProfileId String
+  position         Int
+  university       String   @db.VarChar(160)
+  degree           String   @db.VarChar(160)
+  degreeType       String   @db.VarChar(60)
+  specialization   String   @db.VarChar(160)
+  startYear        Int
+  endYear          Int?
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+
+  teacherProfile TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherProfileId, position], map: "tedu_teacher_position_key")
+  @@map("teacher_education")
 }
 
 model PublicTeacherDiscoveryEligibility {
@@ -286,7 +322,7 @@ model TeacherIntroVideo {
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
 
-  teacherProfile TeacherProfile   @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  teacherProfile TeacherProfile    @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
   auditEvents    AdminAuditEvent[]
 
   @@map("teacher_intro_video")
