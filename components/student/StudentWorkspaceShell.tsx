@@ -112,24 +112,13 @@ export function StudentWorkspaceShell({
   const pathname = usePathname();
   const { data: liveSession } = authClient.useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [headerImage, setHeaderImage] = useState<string | null>(userImage);
-
-  useEffect(() => {
-    setHeaderImage(userImage);
-  }, [userImage]);
-
-  useEffect(() => {
-    const sessionImage = liveSession?.user.image;
-    if (typeof sessionImage === "string" && sessionImage.length > 0) {
-      setHeaderImage(sessionImage);
-    }
-  }, [liveSession?.user.image]);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   useEffect(() => {
     function onPhotoUpdated(event: Event) {
       const detail = (event as CustomEvent<string>).detail;
       if (typeof detail === "string" && detail.length > 0) {
-        setHeaderImage(detail);
+        setUploadedImage(detail);
       }
     }
 
@@ -141,11 +130,12 @@ export function StudentWorkspaceShell({
 
   const displayName =
     userName.trim().length > 0 ? userName.trim() : t("studentFallback");
-  const resolvedImage =
-    headerImage ??
-    (typeof liveSession?.user.image === "string"
+  const sessionImage =
+    typeof liveSession?.user.image === "string" &&
+    liveSession.user.image.length > 0
       ? liveSession.user.image
-      : null);
+      : null;
+  const resolvedImage = uploadedImage ?? sessionImage ?? userImage;
 
   return (
     <div className="min-h-screen bg-[#fffaf6] text-ink lg:flex">
