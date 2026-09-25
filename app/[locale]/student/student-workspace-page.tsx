@@ -6,6 +6,7 @@ import {
 import { UpcomingSessionsPanel } from "@/components/sessions/UpcomingSessionsPanel";
 import { TeacherDiscoveryPanel } from "@/components/teachers/TeacherDiscoveryPanel";
 import { StudentProfileForm } from "@/components/profiles/StudentProfileForm";
+import { StudentAiChatPanel } from "@/components/student/StudentAiChatPanel";
 import { StudentProfileOverview } from "@/components/student/StudentProfileOverview";
 import { requireAppLocale } from "@/i18n/locale";
 import { requireRolePage } from "@/lib/auth/page-guards";
@@ -84,6 +85,10 @@ export async function StudentWorkspacePage({
         >
           <UpcomingSessionsPanel viewerRole="STUDENT" />
         </section>
+
+        <div className="mt-6">
+          <StudentAiChatPanel />
+        </div>
 
         <section
           id="messages"

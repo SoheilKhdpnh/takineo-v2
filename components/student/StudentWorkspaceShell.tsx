@@ -17,6 +17,7 @@ import {
   BookIcon,
   CalendarIcon,
   ChartIcon,
+  ChatIcon,
   CloseIcon,
   MenuIcon,
   PathIcon,
@@ -34,6 +35,7 @@ type NavKey =
   | "path"
   | "progress"
   | "vocabulary"
+  | "aiChat"
   | "messages"
   | "settings";
 
@@ -72,6 +74,12 @@ const NAV_ITEMS: {
     href: "/student/profile#vocabulary",
     matches: [],
     Icon: BookIcon,
+  },
+  {
+    key: "aiChat",
+    href: "/student/profile#ai-chat",
+    matches: [],
+    Icon: ChatIcon,
   },
   {
     key: "messages",

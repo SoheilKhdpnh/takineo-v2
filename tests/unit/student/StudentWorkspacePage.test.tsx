@@ -58,6 +58,10 @@ vi.mock("@/components/teachers/TeacherDiscoveryPanel", () => ({
   TeacherDiscoveryPanel: () => <div data-testid="teacher-discovery" />,
 }));
 
+vi.mock("@/components/student/StudentAiChatPanel", () => ({
+  StudentAiChatPanel: () => <div data-testid="student-ai-chat" />,
+}));
+
 import StudentDashboardPage from "@/app/[locale]/student/dashboard/page";
 import StudentProfilePage from "@/app/[locale]/student/profile/page";
 
@@ -123,6 +127,7 @@ describe("student workspace profile", () => {
     );
     expect(screen.getByText("Travel and work abroad")).toBeInTheDocument();
     expect(screen.getByTestId("upcoming-sessions")).toBeInTheDocument();
+    expect(screen.getByTestId("student-ai-chat")).toBeInTheDocument();
     expect(screen.getByTestId("teacher-discovery")).toBeInTheDocument();
   });
 
@@ -151,6 +156,9 @@ describe("student workspace profile", () => {
     );
     expect(Object.keys(faMessages.StudentWorkspace.nav).sort()).toEqual(
       Object.keys(enMessages.StudentWorkspace.nav).sort(),
+    );
+    expect(Object.keys(faMessages.StudentAiChat).sort()).toEqual(
+      Object.keys(enMessages.StudentAiChat).sort(),
     );
   });
 });

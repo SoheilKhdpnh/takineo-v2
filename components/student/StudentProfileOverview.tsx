@@ -2,11 +2,18 @@
 
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 
 import { StudentProfileForm } from "@/components/profiles/StudentProfileForm";
 import {
   BookIcon,
+  CameraIcon,
   CloseIcon,
   EarIcon,
   MicIcon,
@@ -15,13 +22,17 @@ import {
   PenIcon,
   TrophyIcon,
 } from "@/components/ui/WorkspaceIcons";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import type {
   EnglishLevel,
   ProfileLanguageCode,
   ProfileTimezone,
 } from "@/lib/domain/profile";
 import { ENGLISH_LEVELS } from "@/lib/domain/profile";
+import {
+  fileToProfilePhotoDataUrl,
+  uploadProfilePhoto,
+} from "@/lib/profile/profile-photo-client";
 import { cn } from "@/lib/ui/cn";
 
 export const STUDENT_DEFAULT_COVER = "/images/teacher-cover-default.png";
@@ -99,12 +110,45 @@ export function StudentProfileOverview({
   const t = useTranslations("StudentProfile");
   const common = useTranslations("ProfileCommon");
   const locale = useLocale();
+  const router = useRouter();
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [editorOpen, setEditorOpen] = useState(false);
+  const [image, setImage] = useState<string | null>(userImage);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const displayName =
     userName.trim().length > 0 ? userName.trim() : t("nameFallback");
 
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setPhotoBusy(true);
+    setPhotoError(null);
+
+    try {
+      const dataUrl = await fileToProfilePhotoDataUrl(file);
+      const nextImage = await uploadProfilePhoto(dataUrl);
+      setImage(nextImage);
+      router.refresh();
+    } catch (error) {
+      if (error instanceof Error && error.message === "TOO_LARGE") {
+        setPhotoError(t("photoErrors.tooLarge"));
+      } else if (error instanceof Error && error.message === "UNAUTHORIZED") {
+        setPhotoError(t("photoErrors.unauthorized"));
+      } else {
+        setPhotoError(t("photoErrors.generic"));
+      }
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
   const joinedLabel = useMemo(() => {
     const date =
       typeof profile.createdAt === "string"
@@ -163,32 +207,61 @@ export function StudentProfileOverview({
         <div className="relative px-5 pb-6 sm:px-8">
           <div className="-mt-12 flex flex-col gap-5 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-              <span className="relative grid size-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-[#fff4ed] text-3xl font-semibold text-[#c2410c] shadow-sm sm:size-28">
-                {userImage ? (
-                  // Better Auth profile images may come from arbitrary provider URLs.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={userImage}
-                    alt=""
-                    width={112}
-                    height={112}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  displayName.slice(0, 1).toUpperCase()
-                )}
-              </span>
+              <div className="relative size-24 shrink-0 sm:size-28">
+                <span className="grid size-full place-items-center overflow-hidden rounded-full border-4 border-white bg-[#fff4ed] text-3xl font-semibold text-[#c2410c] shadow-sm">
+                  {image ? (
+                    // Profile photos are stored as data URLs or provider URLs.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={image}
+                      alt=""
+                      width={112}
+                      height={112}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    displayName.slice(0, 1).toUpperCase()
+                  )}
+                </span>
+                <button
+                  type="button"
+                  aria-label={t("changePhoto")}
+                  disabled={photoBusy}
+                  onClick={() => photoInputRef.current?.click()}
+                  className="absolute bottom-0.5 end-0.5 grid size-9 place-items-center rounded-full border-2 border-white bg-[#c2410c] text-white shadow transition hover:bg-[#9a3412] disabled:opacity-60"
+                >
+                  <CameraIcon className="size-4" />
+                </button>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => void handlePhotoChange(event)}
+                />
+              </div>
 
               <div className="min-w-0 pb-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-                    {displayName}
-                  </h1>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[0.7rem] font-semibold tracking-[0.22em] text-[#c2410c] uppercase">
+                      {t("nameEyebrow")}
+                    </p>
+                    <h1 className="font-display mt-1 text-3xl leading-none font-bold tracking-[-0.03em] text-[#1c1410] sm:text-4xl">
+                      <span className="bg-[linear-gradient(180deg,#1c1410_0%,#7c2d12_100%)] bg-clip-text text-transparent">
+                        {displayName}
+                      </span>
+                    </h1>
+                    <span
+                      aria-hidden="true"
+                      className="mt-2 block h-1 w-16 rounded-full bg-[linear-gradient(90deg,#c2410c,#fdba74)]"
+                    />
+                  </div>
                   <button
                     type="button"
                     aria-label={t("editProfile")}
                     onClick={() => setEditorOpen(true)}
-                    className="grid size-8 place-items-center rounded-lg text-[#c2410c] transition hover:bg-[#fff4ed]"
+                    className="grid size-9 place-items-center rounded-xl border border-[#edddd4] bg-white text-[#c2410c] shadow-sm transition hover:bg-[#fff4ed]"
                   >
                     <PencilIcon className="size-4" />
                   </button>
@@ -198,9 +271,19 @@ export function StudentProfileOverview({
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">
                   {profile.learningGoal?.trim() || t("bioFallback")}
                 </p>
+                {photoBusy ? (
+                  <p className="mt-2 text-xs font-medium text-[#c2410c]">
+                    {t("photoUploading")}
+                  </p>
+                ) : null}
+                {photoError ? (
+                  <p role="alert" className="mt-2 text-xs font-medium text-red-700">
+                    {photoError}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

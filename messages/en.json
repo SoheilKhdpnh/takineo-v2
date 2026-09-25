@@ -470,6 +470,14 @@
       "B2": "Upper intermediate",
       "C1": "Advanced",
       "C2": "Proficiency"
+    },
+    "nameEyebrow": "Learner",
+    "changePhoto": "Upload profile photo",
+    "photoUploading": "Uploading your photo…",
+    "photoErrors": {
+      "tooLarge": "Please choose a smaller image (under about 12 MB).",
+      "unauthorized": "Sign in again to upload a photo.",
+      "generic": "We could not upload that photo. Try another image."
     }
   },
   "TeacherProfile": {
@@ -1115,7 +1123,29 @@
       "progress": "Progress",
       "vocabulary": "Vocabulary",
       "messages": "Messages",
-      "settings": "Settings"
+      "settings": "Settings",
+      "aiChat": "Ask AI"
+    }
+  },
+  "StudentAiChat": {
+    "eyebrow": "Study assistant",
+    "title": "Ask Talkinu AI",
+    "description": "Ask extra questions about grammar, vocabulary, or how to prepare for your next 15-minute speaking session. A human teacher still leads your learning.",
+    "unavailable": "The student AI assistant is not connected yet. Talkinu uses a self-hosted model (Wave 4). Set STUDENT_AI_CHAT_URL to an OpenAI-compatible chat endpoint to enable this panel.",
+    "starterTitle": "Try asking",
+    "starterOne": "How can I practice past tense before my next session?",
+    "starterTwo": "Give me five useful travel phrases for beginners.",
+    "starterThree": "What should I review after making grammar mistakes?",
+    "thinking": "Thinking…",
+    "inputLabel": "Your question",
+    "placeholder": "Ask anything about learning English…",
+    "send": "Send",
+    "sending": "Sending…",
+    "footnote": "AI assists your study questions. Teachers teach. Session analysis comes from Talkinu’s self-hosted pipeline.",
+    "errors": {
+      "unavailable": "The AI assistant is not available right now.",
+      "generic": "The assistant could not answer. Try again in a moment.",
+      "network": "We could not reach Talkinu. Check your connection and try again."
     }
   }
 }
