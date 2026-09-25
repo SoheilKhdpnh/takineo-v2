@@ -20,8 +20,11 @@ export function SiteChrome({
   const isTeacherWorkspace =
     pathname === "/teacher" ||
     pathname.startsWith("/teacher/");
+  const isStudentWorkspace =
+    pathname === "/student" ||
+    pathname.startsWith("/student/");
 
-  if (isAdmin || isTeacherWorkspace) {
+  if (isAdmin || isTeacherWorkspace || isStudentWorkspace) {
     return children;
   }
 

@@ -122,3 +122,94 @@ export function TrashIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function PathIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M5 19c2-4 4-6 7-6s5 2 7 6" />
+      <circle cx="12" cy="8" r="3" />
+      <path d="M4 12h2M18 12h2M7 5l1.5 1.5M15.5 6.5 17 5" />
+    </BaseIcon>
+  );
+}
+
+export function ChartIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 19V5M4 19h16" />
+      <path d="M8 15v-4M12 15V8M16 15v-7" />
+    </BaseIcon>
+  );
+}
+
+export function BookIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v16H7.5A2.5 2.5 0 0 0 5 21.5V5.5Z" />
+      <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3" />
+    </BaseIcon>
+  );
+}
+
+export function SettingsIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3.5v2.2M12 18.3v2.2M4.9 6.5l1.6 1.6M17.5 15.9l1.6 1.6M3.5 12h2.2M18.3 12h2.2M4.9 17.5l1.6-1.6M17.5 8.1l1.6-1.6" />
+    </BaseIcon>
+  );
+}
+
+export function BellIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M7 10a5 5 0 0 1 10 0c0 4 1.5 5.5 1.5 5.5H5.5S7 14 7 10Z" />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </BaseIcon>
+  );
+}
+
+export function TrophyIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M8 5h8v4a4 4 0 0 1-8 0V5Z" />
+      <path d="M8 6H5.5A2.5 2.5 0 0 0 8 8.5M16 6h2.5A2.5 2.5 0 0 1 16 8.5M10 15h4v2H10zM9 19h6" />
+    </BaseIcon>
+  );
+}
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4 4" />
+    </BaseIcon>
+  );
+}
+
+export function MicIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="9" y="3.5" width="6" height="11" rx="3" />
+      <path d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5V20M9.5 20h5" />
+    </BaseIcon>
+  );
+}
+
+export function EarIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M8 12c0-3.3 2.2-5.5 4.5-5.5S17 8.7 17 11.5c0 2-1 3-2.2 3.6-.8.4-1.3 1-1.3 1.9V18" />
+      <path d="M10.5 13.5c0-1.4.9-2.3 1.9-2.3" />
+    </BaseIcon>
+  );
+}
+
+export function PenIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m5 19 1.2-4.2L15 6l3 3-8.8 8.8L5 19Z" />
+      <path d="m13.5 7.5 3 3" />
+    </BaseIcon>
+  );
+}

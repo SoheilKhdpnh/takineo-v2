@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { StudentWorkspaceShell } from "@/components/student/StudentWorkspaceShell";
 import { requireAppLocale } from "@/i18n/locale";
 import { requireRolePage } from "@/lib/auth/page-guards";
 
@@ -14,14 +15,17 @@ export default async function StudentLayout({
   children,
   params,
 }: StudentLayoutProps) {
-  const { locale: requestedLocale } =
-    await params;
+  const { locale: requestedLocale } = await params;
+  const locale = requireAppLocale(requestedLocale);
+  const { session } = await requireRolePage("STUDENT", locale);
 
-  const locale = requireAppLocale(
-    requestedLocale,
+  return (
+    <StudentWorkspaceShell
+      locale={locale}
+      userName={session.user.name ?? ""}
+      userImage={session.user.image ?? null}
+    >
+      {children}
+    </StudentWorkspaceShell>
   );
-
-  await requireRolePage("STUDENT", locale);
-
-  return children;
 }
