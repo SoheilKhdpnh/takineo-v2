@@ -481,7 +481,6 @@ export function TeacherBookingExperience({
       onSelectSlot={selectSlot}
       onConfirmBooking={() => void submitBooking()}
       onRetrySlots={() => void loadSlots()}
-      dateTimeFormatter={dateTimeFormatter}
       bookingNotice={
         <>
           {bookingNotice ? (

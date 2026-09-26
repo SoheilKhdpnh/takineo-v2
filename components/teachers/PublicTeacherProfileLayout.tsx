@@ -27,7 +27,6 @@ export function PublicTeacherProfileLayout({
   onSelectSlot,
   onConfirmBooking,
   onRetrySlots,
-  dateTimeFormatter,
   children,
 }: {
   teacher: PublicTeacherDetail;
@@ -42,7 +41,6 @@ export function PublicTeacherProfileLayout({
   onSelectSlot: (slot: BookableSlot) => void;
   onConfirmBooking: () => void;
   onRetrySlots: () => void;
-  dateTimeFormatter: Intl.DateTimeFormat;
   children: ReactNode;
 }) {
   const t = useTranslations("StudentBooking");
