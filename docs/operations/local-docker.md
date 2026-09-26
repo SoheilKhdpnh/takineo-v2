@@ -52,3 +52,18 @@ docker compose down
 # wipe DB volume:
 docker compose down -v
 ```
+
+## Evidence (local workstation)
+
+On 2026-09-26 this workstation ran `npm run docker:smoke` against
+`feat/local-core-integration` and recorded:
+
+- `PASS postgres-ready`
+- `PASS livekit-http` on `http://127.0.0.1:7880/`
+- `PASS compose-ps` for `takineo-local-postgres-1` and `takineo-local-livekit-1`
+- `SMOKE PASS postgres + livekit are up`
+
+Full book → join → complete still requires an operator-approved
+`prisma migrate deploy` against this local Docker Postgres (not Neon/production),
+then a two-role join during an open join window. Do not migrate until that
+exact command and target are approved.
