@@ -18,10 +18,11 @@ import {
   type PublicTeacherDiscoveryItem,
 } from "@/components/teachers/teacher-discovery-api";
 import { TeacherCard } from "@/components/teachers/TeacherCard";
+import { TeacherDiscoveryHero } from "@/components/teachers/TeacherDiscoveryHero";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { BOOKING_OPERATIONAL_TIMEZONE } from "@/lib/domain/booking-policy";
 import type { ProfileLanguageCode } from "@/lib/domain/profile";
+import { cn } from "@/lib/ui/cn";
 
 type LoadState =
   | "loading"
@@ -200,54 +201,47 @@ export function TeacherDiscoveryPanel({
       : null;
   }
 
-  if (loadState === "loading") {
-    return (
-      <section aria-labelledby="teacher-discovery-title">
-        {showHeader ? (
-          <DiscoveryHeader />
-        ) : (
-          <h2 id="teacher-discovery-title" className="sr-only">
-            {t("title")}
-          </h2>
-        )}
+  const listBody = (() => {
+    if (loadState === "loading") {
+      return (
         <div
           role="status"
           aria-live="polite"
-          className="grid gap-4 sm:grid-cols-2"
+          className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
         >
           <span className="sr-only">{t("loading")}</span>
-          {Array.from({ length: 4 }).map((_, index) => (
+          {Array.from({ length: 6 }).map((_, index) => (
             <div
               key={index}
               aria-hidden="true"
-              className="min-h-56 animate-pulse rounded-lg border border-line bg-surface p-5 motion-reduce:animate-none"
+              className="min-h-80 animate-pulse rounded-[1.35rem] border border-[#edddd4] bg-white p-5 motion-reduce:animate-none"
             >
-              <div className="size-14 rounded-md bg-mint" />
-              <div className="mt-5 h-5 w-2/5 rounded-full bg-mint" />
-              <div className="mt-3 h-4 w-4/5 rounded-full bg-mint" />
-              <div className="mt-8 h-12 rounded-md bg-mint" />
+              <div className="flex gap-3">
+                <div className="size-14 rounded-full bg-[#fff4ed]" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <div className="h-4 w-2/5 rounded-full bg-[#fff4ed]" />
+                  <div className="h-3 w-3/5 rounded-full bg-[#fff4ed]" />
+                </div>
+              </div>
+              <div className="mt-5 h-16 rounded-xl bg-[#fff4ed]" />
+              <div className="mt-4 aspect-[16/10] rounded-2xl bg-[#fff4ed]" />
+              <div className="mt-4 h-11 rounded-xl bg-[#fff4ed]" />
             </div>
           ))}
         </div>
-      </section>
-    );
-  }
+      );
+    }
 
-  if (loadState === "error") {
-    return (
-      <section aria-labelledby="teacher-discovery-title">
-        {showHeader ? (
-          <DiscoveryHeader />
-        ) : (
-          <h2 id="teacher-discovery-title" className="sr-only">
-            {t("title")}
-          </h2>
-        )}
-        <Card role="alert" className="border-danger/20 bg-red-50">
-          <h3 className="text-lg font-semibold text-danger">
+    if (loadState === "error") {
+      return (
+        <div
+          role="alert"
+          className="rounded-[1.35rem] border border-red-200 bg-red-50 px-5 py-8 sm:px-8"
+        >
+          <h3 className="text-lg font-semibold text-red-900">
             {t("loadErrorTitle")}
           </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-danger/80">
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-red-800/80">
             {t("loadErrorDescription")}
           </p>
           <Button
@@ -260,127 +254,152 @@ export function TeacherDiscoveryPanel({
           >
             {t("tryAgain")}
           </Button>
-        </Card>
-      </section>
+        </div>
+      );
+    }
+
+    if (teachers.length === 0) {
+      return (
+        <div className="rounded-[1.35rem] border border-dashed border-[#edddd4] bg-white px-6 py-12 text-center sm:px-10">
+          <h3 className="text-xl font-semibold text-[#1c1410]">
+            {t("emptyTitle")}
+          </h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-zinc-600">
+            {t("emptyDescription")}
+          </p>
+        </div>
+      );
+    }
+
+    if (visibleTeachers.length === 0) {
+      return (
+        <div className="rounded-[1.35rem] border border-dashed border-[#edddd4] bg-white px-6 py-12 text-center">
+          <h3 className="text-xl font-semibold text-[#1c1410]">
+            {t("filterEmptyTitle")}
+          </h3>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-zinc-600">
+            {t("filterEmptyDescription")}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {visibleTeachers.map((teacher) => (
+          <TeacherCard
+            key={teacher.teacherProfileId}
+            teacher={teacher}
+            nextAvailableLabel={nextAvailableLabel(teacher)}
+          />
+        ))}
+      </div>
     );
-  }
+  })();
 
   return (
-    <section aria-labelledby="teacher-discovery-title">
+    <section aria-labelledby="teacher-discovery-title" className="bg-[#f7f1ea]">
       {showHeader ? (
-        <DiscoveryHeader />
+        <TeacherDiscoveryHero
+          nativeFilter={nativeFilter}
+          nativeOptions={nativeOptions}
+          onSearch={({ nativeLanguage }) => {
+            setNativeFilter(nativeLanguage);
+            setAvailabilityFilter("all");
+          }}
+        />
       ) : (
         <h2 id="teacher-discovery-title" className="sr-only">
           {t("title")}
         </h2>
       )}
 
-      {teachers.length > 0 ? (
-        <div className="mb-5 flex flex-wrap gap-2">
-          <p className="sr-only">{t("filtersLabel")}</p>
-          <FilterChip
-            pressed={availabilityFilter === "all"}
-            onClick={() => setAvailabilityFilter("all")}
-          >
-            {t("filterAll")}
-          </FilterChip>
-          <FilterChip
-            pressed={availabilityFilter === "open"}
-            onClick={() => setAvailabilityFilter("open")}
-          >
-            {t("filterAvailable")}
-          </FilterChip>
-          {nativeOptions.map((code) => (
-            <FilterChip
-              key={code}
-              pressed={nativeFilter === code}
-              onClick={() =>
-                setNativeFilter((current) =>
-                  current === code ? "all" : code,
-                )
-              }
-            >
-              {t("filterNative", {
-                language: common(`languages.${code}`),
-              })}
-            </FilterChip>
-          ))}
-        </div>
+      {showHeader ? (
+        <h2 id="teacher-discovery-title" className="sr-only">
+          {t("title")}
+        </h2>
       ) : null}
 
-      {teachers.length === 0 ? (
-        <Card className="border-dashed px-6 py-12 text-center sm:px-10">
-          <h3 className="text-xl font-semibold text-ink">
-            {t("emptyTitle")}
-          </h3>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-muted">
-            {t("emptyDescription")}
-          </p>
-        </Card>
-      ) : visibleTeachers.length === 0 ? (
-        <Card className="border-dashed px-6 py-12 text-center">
-          <h3 className="text-xl font-semibold text-ink">
-            {t("filterEmptyTitle")}
-          </h3>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-muted">
-            {t("filterEmptyDescription")}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {visibleTeachers.map((teacher) => (
-            <TeacherCard
-              key={teacher.teacherProfileId}
-              teacher={teacher}
-              nextAvailableLabel={nextAvailableLabel(teacher)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        {teachers.length > 0 || loadState === "ready" ? (
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-2">
+              <p className="sr-only">{t("filtersLabel")}</p>
+              <FilterChip
+                pressed={availabilityFilter === "all" && nativeFilter === "all"}
+                onClick={() => {
+                  setAvailabilityFilter("all");
+                  setNativeFilter("all");
+                }}
+              >
+                {t("filterAllLanguages")}
+              </FilterChip>
+              <FilterChip
+                pressed={availabilityFilter === "open"}
+                onClick={() =>
+                  setAvailabilityFilter((current) =>
+                    current === "open" ? "all" : "open",
+                  )
+                }
+              >
+                {t("filterAvailable")}
+              </FilterChip>
+              {nativeOptions.map((code) => (
+                <FilterChip
+                  key={code}
+                  pressed={nativeFilter === code}
+                  onClick={() =>
+                    setNativeFilter((current) =>
+                      current === code ? "all" : code,
+                    )
+                  }
+                >
+                  {t("filterNative", {
+                    language: common(`languages.${code}`),
+                  })}
+                </FilterChip>
+              ))}
+            </div>
 
-      <div aria-live="polite" className="mt-5">
-        {notice ? (
-          <p
-            role="alert"
-            className="rounded-md border border-danger/20 bg-red-50 px-4 py-3 text-sm text-danger"
-          >
-            {notice}
+            <p className="inline-flex items-center gap-2 self-start rounded-full border border-[#edddd4] bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 lg:self-auto">
+              <SortIcon />
+              {t("sortByDefault")}
+            </p>
+          </div>
+        ) : null}
+
+        {listBody}
+
+        <div aria-live="polite" className="mt-5">
+          {notice ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+            >
+              {notice}
+            </p>
+          ) : null}
+        </div>
+
+        {nextCursor ? (
+          <div className="mt-8 flex justify-center">
+            <Button
+              variant="secondary"
+              disabled={isLoadingMore}
+              onClick={() => void handleLoadMore()}
+            >
+              {isLoadingMore ? t("loadingMore") : t("loadMore")}
+            </Button>
+          </div>
+        ) : null}
+
+        {showHeader ? (
+          <p className="mt-8 text-center text-xs leading-5 text-zinc-500">
+            {t("advisory")}
           </p>
         ) : null}
       </div>
-
-      {nextCursor ? (
-        <div className="mt-5 flex justify-center">
-          <Button
-            variant="secondary"
-            disabled={isLoadingMore}
-            onClick={() => void handleLoadMore()}
-          >
-            {isLoadingMore ? t("loadingMore") : t("loadMore")}
-          </Button>
-        </div>
-      ) : null}
     </section>
-  );
-}
-
-function DiscoveryHeader() {
-  const t = useTranslations("TeacherDiscovery");
-
-  return (
-    <div className="mb-6 max-w-2xl">
-      <p className="text-sm font-semibold text-primary">{t("eyebrow")}</p>
-      <h2
-        id="teacher-discovery-title"
-        className="mt-2 text-2xl font-semibold text-ink sm:text-3xl"
-      >
-        {t("title")}
-      </h2>
-      <p className="mt-3 text-sm leading-7 text-ink-muted sm:text-base">
-        {t("description")}
-      </p>
-      <p className="mt-4 text-xs leading-5 text-ink-muted">{t("advisory")}</p>
-    </div>
   );
 }
 
@@ -398,13 +417,46 @@ function FilterChip({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={
+      className={cn(
+        "inline-flex min-h-10 items-center rounded-full border px-3.5 text-sm font-semibold transition",
         pressed
-          ? "rounded-full bg-primary px-3 py-1.5 text-sm font-semibold text-white"
-          : "rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-ink hover:bg-mint"
-      }
+          ? "border-[#c2410c] bg-[#c2410c] text-white"
+          : "border-[#edddd4] bg-white text-[#1c1410] hover:bg-[#fff4ed]",
+      )}
     >
       {children}
+      <ChevronTiny className="ms-1.5" />
     </button>
+  );
+}
+
+function ChevronTiny({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className={cn("size-3.5 opacity-70", className)}
+      aria-hidden="true"
+    >
+      <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SortIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-4 text-zinc-400"
+      aria-hidden="true"
+    >
+      <path d="M4 7h12M4 12h8M4 17h5" strokeLinecap="round" />
+      <path d="m16 14 3 3 3-3M19 7v10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

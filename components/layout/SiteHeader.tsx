@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { TeachersNavLink } from "@/components/layout/TeachersNavLink";
 import { buttonClassName } from "@/components/ui/Button";
 import { TalkinuWordmark } from "@/components/ui/TalkinuMark";
 import { Link } from "@/i18n/navigation";
@@ -34,12 +35,7 @@ export async function SiteHeader({
           aria-label={t("navigationLabel")}
           className="flex items-center gap-2 sm:gap-3"
         >
-          <Link
-            href="/teachers"
-            className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-[#fff4ed] sm:inline-flex"
-          >
-            {t("teachers")}
-          </Link>
+          <TeachersNavLink />
 
           <LanguageSwitcher currentLocale={locale} />
 

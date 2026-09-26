@@ -879,13 +879,31 @@
     "viewProfileAndBook": "مشاهده پروفایل و رزرو",
     "pageEyebrow": "مدرس‌ها",
     "pageTitle": "پیدا کردن مدرس",
-    "pageDescription": "فهرست عمومی فعلی را فیلتر کنید. امتیاز و قیمت هنوز در این فهرست نیست، بنابراین نمایش داده نمی‌شود.",
+    "pageDescription": "فهرست زنده مدرسان تاکینو را ببینید. امتیاز و قیمت هنوز در این فهرست نیست، بنابراین نمایش داده نمی‌شود.",
     "filtersLabel": "فیلتر این فهرست",
     "filterAll": "همه",
     "filterAvailable": "زمان آزاد دارد",
     "filterNative": "زبان مادری {language}",
     "filterEmptyTitle": "مدرسی با این فیلترها نیست",
-    "filterEmptyDescription": "یک فیلتر را بردارید یا مدرس‌های بیشتری بارگذاری کنید. فیلتر فقط روی مدرس‌های همین صفحه اعمال می‌شود."
+    "filterEmptyDescription": "یک فیلتر را بردارید یا مدرس‌های بیشتری بارگذاری کنید. فیلتر فقط روی مدرس‌های همین صفحه اعمال می‌شود.",
+    "heroTitle": "مدرس مناسب خود را پیدا کنید",
+    "heroDescription": "معرفی مدرسان را ببینید، سبک تدریسشان را بشناسید و بهترین گزینه را برای جلسه ۱۵ دقیقه‌ای بعدی انتخاب کنید.",
+    "searchSubjectLabel": "می‌خواهید چه چیزی یاد بگیرید؟",
+    "searchLanguageLabel": "زبان مدرس",
+    "anyLanguage": "هر زبانی",
+    "search": "جستجو",
+    "subjects": {
+      "english": "انگلیسی"
+    },
+    "filterAllLanguages": "همه زبان‌ها",
+    "sortByDefault": "مرتب‌سازی: بهترین تطبیق",
+    "verifiedLabel": "مدرس تأییدشده تاکینو",
+    "tutorRole": "مدرس {language}",
+    "experienceLabel": "سابقه تدریس",
+    "noAvailabilityShort": "هنوز نوبتی نیست",
+    "introBadge": "معرفی",
+    "openIntroduction": "باز کردن معرفی مدرس",
+    "bookTrial": "رزرو جلسه آزمایشی"
   },
   "TeacherAvailability": {
     "eyebrow": "برنامهٔ مدرس",

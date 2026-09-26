@@ -102,7 +102,7 @@ export async function StudentWorkspacePage({
               {t("discoverBody")}
             </p>
             <div className="mt-5">
-              <TeacherDiscoveryPanel />
+              <TeacherDiscoveryPanel showHeader={false} />
             </div>
           </div>
         </section>

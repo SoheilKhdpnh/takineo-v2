@@ -879,13 +879,31 @@
     "viewProfileAndBook": "View profile & book",
     "pageEyebrow": "Teachers",
     "pageTitle": "Find a teacher",
-    "pageDescription": "Filter the live public list. Ratings and prices are not part of this catalog yet, so they are not shown.",
+    "pageDescription": "Browse live Talkinu teachers. Ratings and prices are not part of this catalog yet, so they are not shown.",
     "filtersLabel": "Filter this list",
     "filterAll": "All",
     "filterAvailable": "Has an opening",
     "filterNative": "Native {language}",
     "filterEmptyTitle": "No teachers match these filters",
-    "filterEmptyDescription": "Clear a filter or load more teachers. Filters apply to the teachers already loaded."
+    "filterEmptyDescription": "Clear a filter or load more teachers. Filters apply to the teachers already loaded.",
+    "heroTitle": "Find your perfect teacher",
+    "heroDescription": "Watch teacher introductions, get to know their teaching style, and choose the best fit for your next 15-minute speaking session.",
+    "searchSubjectLabel": "What do you want to learn?",
+    "searchLanguageLabel": "Teacher speaks",
+    "anyLanguage": "Any language",
+    "search": "Search",
+    "subjects": {
+      "english": "English"
+    },
+    "filterAllLanguages": "All languages",
+    "sortByDefault": "Sort by: Best match",
+    "verifiedLabel": "Approved Talkinu teacher",
+    "tutorRole": "{language} tutor",
+    "experienceLabel": "Teaching experience",
+    "noAvailabilityShort": "No opening yet",
+    "introBadge": "Introduction",
+    "openIntroduction": "Open teacher introduction",
+    "bookTrial": "Book trial lesson"
   },
   "TeacherAvailability": {
     "eyebrow": "Teacher schedule",

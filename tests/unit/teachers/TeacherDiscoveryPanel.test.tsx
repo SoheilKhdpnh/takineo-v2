@@ -181,12 +181,12 @@ describe("TeacherDiscoveryPanel", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "noAvailability",
+        "noAvailabilityShort",
       ),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole("link", {
-        name: "viewProfileAndBook",
+        name: "bookTrial",
       })[0],
     ).toHaveAttribute(
       "href",
