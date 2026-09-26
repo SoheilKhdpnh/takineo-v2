@@ -27,9 +27,8 @@ import {
   type CreatedBookingSession,
   type PublicTeacherDetail,
 } from "@/components/booking/student-booking-api";
+import { PublicTeacherProfileLayout } from "@/components/teachers/PublicTeacherProfileLayout";
 import { Link } from "@/i18n/navigation";
-import { Avatar } from "@/components/ui/Avatar";
-import { buttonClassName } from "@/components/ui/Button";
 import {
   BOOKING_OPERATIONAL_TIMEZONE,
 } from "@/lib/domain/booking-policy";
@@ -69,9 +68,6 @@ export function TeacherBookingExperience({
   const locale = useLocale();
   const t = useTranslations(
     "StudentBooking",
-  );
-  const common = useTranslations(
-    "ProfileCommon",
   );
 
   const [range] = useState(() =>
@@ -469,293 +465,107 @@ export function TeacherBookingExperience({
       "invalidRequest";
 
   return (
-    <main className="bg-transparent px-4 py-8 sm:py-12">
-      <section className="mx-auto max-w-5xl">
-        <div className="mb-5">
-          <Link
-            href="/teachers"
-            className="inline-flex items-center rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink transition hover:border-primary hover:text-primary"
-          >
-            {t("backToDiscovery")}
-          </Link>
-        </div>
-
-        <article className="overflow-hidden rounded-[2rem] border border-line bg-surface shadow-[0_28px_80px_-42px_rgba(24,24,27,0.35)]">
-          <header className="relative overflow-hidden bg-ink px-6 py-8 text-white sm:px-9 sm:py-10">
-            <div
-              aria-hidden="true"
-              className="absolute -end-20 -top-24 size-72 rounded-full border border-white/10"
+    <PublicTeacherProfileLayout
+      teacher={teacher}
+      slotResponse={slotResponse}
+      slotsState={slotsState}
+      selectedSlot={selectedSlot}
+      selectedSlotLabel={
+        selectedSlot
+          ? dateTimeFormatter.format(new Date(selectedSlot.startAt))
+          : null
+      }
+      isBooking={isBooking}
+      bookingBlocked={bookingBlocked}
+      confirmedSession={confirmedSession}
+      onSelectSlot={selectSlot}
+      onConfirmBooking={() => void submitBooking()}
+      onRetrySlots={() => void loadSlots()}
+      dateTimeFormatter={dateTimeFormatter}
+      bookingNotice={
+        <>
+          {bookingNotice ? (
+            <BookingNoticePanel
+              notice={bookingNotice}
+              onRetrySameAttempt={
+                attempt
+                  ? () => void submitBooking(attempt)
+                  : undefined
+              }
             />
-            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-              <Avatar
-                name={teacher.name}
-                image={teacher.image}
-                size="lg"
-                className="ring-1 ring-white/15"
-              />
-
-              <div className="max-w-2xl">
-                <p className={[
-                  "text-xs font-semibold text-white/70",
-                  locale === "fa"
-                    ? "tracking-normal"
-                    : "uppercase tracking-[0.16em]",
-                ].join(" ")}>
-                  {t("profileEyebrow")}
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-                  {teacher.name}
-                </h1>
-                <p className="mt-3 text-base leading-7 text-white/80">
-                  {teacher.headline ??
-                    t("headlineFallback")}
-                </p>
-              </div>
+          ) : null}
+          {confirmedSession ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950"
+            >
+              <p className="font-semibold">{t("confirmedTitle")}</p>
+              <p className="mt-1 text-sm leading-6 text-emerald-900/80">
+                {t("confirmedDescription", {
+                  time: dateTimeFormatter.format(
+                    new Date(confirmedSession.startAt),
+                  ),
+                })}
+              </p>
+              <Link
+                href="/student/dashboard"
+                className="mt-3 inline-flex rounded-full bg-emerald-950 px-4 py-2 text-sm font-semibold text-white"
+              >
+                {t("viewUpcoming")}
+              </Link>
             </div>
-          </header>
+          ) : null}
+        </>
+      }
+    >
+      {slotsState === "loading" ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+        >
+          <span className="sr-only">{t("loadingSlots")}</span>
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              aria-hidden="true"
+              className="h-12 animate-pulse rounded-md bg-[#fff4ed] motion-reduce:animate-none"
+            />
+          ))}
+        </div>
+      ) : null}
 
-          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.4fr]">
-            <aside className="space-y-5">
-              <section className="overflow-hidden rounded-lg border border-line bg-mint">
-                <div className="aspect-video bg-primary/15" />
-                <p className="px-5 py-4 text-sm leading-6 text-ink-muted">
-                  {t("videoPlaceholder")}
-                </p>
-              </section>
-              <section className="rounded-lg border border-line bg-canvas p-5">
-                <h2 className="text-lg font-semibold text-ink">
-                  {t("aboutTeacher")}
-                </h2>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-ink-muted">
-                  {teacher.bio ??
-                    t("bioFallback")}
-                </p>
+      {slotsState === "error" ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-100 bg-red-50 p-5 text-red-950"
+        >
+          <p className="font-semibold">{t("slotsLoadErrorTitle")}</p>
+          <p className="mt-1 text-sm leading-6 text-red-900/80">
+            {t("slotsLoadErrorDescription")}
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadSlots()}
+            className="mt-4 rounded-full bg-red-950 px-4 py-2 text-sm font-semibold text-white"
+          >
+            {t("tryAgain")}
+          </button>
+        </div>
+      ) : null}
 
-                <dl className="mt-5 space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
-                    <dt className="text-ink-muted">
-                      {t("nativeLanguage")}
-                    </dt>
-                    <dd className="font-semibold text-ink">
-                      {common(
-                        `languages.${teacher.nativeLanguage}`,
-                      )}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
-                    <dt className="text-ink-muted">
-                      {t("teachingLanguage")}
-                    </dt>
-                    <dd className="font-semibold text-ink">
-                      {common(
-                        `languages.${teacher.teachingLanguage}`,
-                      )}
-                    </dd>
-                  </div>
-                  {teacher.experienceYears !== null ? (
-                    <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
-                      <dt className="text-ink-muted">
-                        {t("experience")}
-                      </dt>
-                      <dd className="font-semibold text-ink">
-                        {t("experienceYears", {
-                          years:
-                            teacher.experienceYears,
-                        })}
-                      </dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </section>
-
-              <div className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">
-                <p className="font-semibold">
-                  {t("authorityTitle")}
-                </p>
-                <p className="mt-1 text-amber-900/80">
-                  {t("authorityDescription")}
-                </p>
-              </div>
-            </aside>
-
-            <section
-              aria-labelledby="booking-slots-heading"
-              className="rounded-[1.75rem] border border-line bg-surface p-5 sm:p-6"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                    {t("slotsEyebrow")}
-                  </p>
-                  <h2
-                    id="booking-slots-heading"
-                    className="mt-1 text-2xl font-semibold text-ink"
-                  >
-                    {t("slotsTitle")}
-                  </h2>
-                  <p className="mt-2 max-w-xl text-sm leading-7 text-ink-muted">
-                    {t("slotsDescription")}
-                  </p>
-                </div>
-                <span className="text-xs font-semibold text-ink-muted">
-                  {t("tehranTime")}
-                </span>
-              </div>
-
-              <div className="mt-6">
-                {slotsState === "loading" ? (
-                  <div
-                    role="status"
-                    aria-live="polite"
-                    className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-                  >
-                    <span className="sr-only">
-                      {t("loadingSlots")}
-                    </span>
-                    {Array.from({
-                      length: 8,
-                    }).map((_, index) => (
-                      <div
-                        key={index}
-                        aria-hidden="true"
-                        className="h-12 animate-pulse rounded-md bg-mint motion-reduce:animate-none"
-                      />
-                    ))}
-                  </div>
-                ) : null}
-
-                {slotsState === "error" ? (
-                  <div
-                    role="alert"
-                    className="rounded-2xl border border-red-100 bg-red-50 p-5 text-red-950"
-                  >
-                    <p className="font-semibold">
-                      {t("slotsLoadErrorTitle")}
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-red-900/80">
-                      {t("slotsLoadErrorDescription")}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void loadSlots()
-                      }
-                      className="mt-4 rounded-full bg-red-950 px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      {t("tryAgain")}
-                    </button>
-                  </div>
-                ) : null}
-
-                {slotsState === "ready" &&
-                slotResponse ? (
-                  <AuthoritativeSlotPicker
-                    slots={slotResponse.slots}
-                    selectedStartAt={
-                      selectedSlot?.startAt ??
-                      null
-                    }
-                    onSelect={selectSlot}
-                    disabled={
-                      isBooking ||
-                      bookingBlocked ||
-                      confirmedSession !== null
-                    }
-                  />
-                ) : null}
-              </div>
-
-              {selectedSlot &&
-              confirmedSession === null ? (
-                <div className="sticky bottom-3 z-20 mt-6 rounded-lg border border-line bg-surface p-4 shadow-[0_12px_40px_-24px_rgba(20,34,31,0.45)] sm:p-5">
-                  <p className="text-sm font-semibold text-ink">
-                    {t("selectedSlot")}
-                  </p>
-                  <p className="mt-1 text-sm text-ink-muted">
-                    {dateTimeFormatter.format(
-                      new Date(
-                        selectedSlot.startAt,
-                      ),
-                    )}
-                  </p>
-                  <button
-                    type="button"
-                    disabled={
-                      isBooking ||
-                      bookingBlocked
-                    }
-                    onClick={() =>
-                      void submitBooking()
-                    }
-                    className="mt-4 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isBooking
-                      ? t("booking")
-                      : t("confirmBooking")}
-                  </button>
-                </div>
-              ) : null}
-
-              {bookingNotice ? (
-                <BookingNoticePanel
-                  notice={bookingNotice}
-                  onRetrySameAttempt={
-                    attempt
-                      ? () =>
-                          void submitBooking(
-                            attempt,
-                          )
-                      : undefined
-                  }
-                />
-              ) : null}
-
-              {confirmedSession ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="mt-6 rounded-[1.75rem] border border-emerald-200 bg-emerald-50 p-5 text-emerald-950"
-                >
-                  <p className="text-lg font-semibold">
-                    {t("confirmedTitle")}
-                  </p>
-                  <p className="mt-2 text-sm leading-7 text-emerald-900/80">
-                    {t("confirmedDescription", {
-                      time:
-                        dateTimeFormatter.format(
-                          new Date(
-                            confirmedSession.startAt,
-                          ),
-                        ),
-                    })}
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <Link
-                      href="/student/dashboard"
-                      className="rounded-full bg-emerald-950 px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      {t("viewUpcoming")}
-                    </Link>
-                  </div>
-                </div>
-              ) : null}
-            </section>
-          </div>
-        </article>
-        {!selectedSlot && confirmedSession === null ? (
-          <div className="sticky bottom-3 z-20 mt-6 lg:hidden">
-            <a
-              href="#booking-slots-heading"
-              className={buttonClassName({
-                className: "w-full",
-              })}
-            >
-              {t("chooseTime")}
-            </a>
-          </div>
-        ) : null}
-      </section>
-    </main>
+      {slotsState === "ready" && slotResponse ? (
+        <AuthoritativeSlotPicker
+          slots={slotResponse.slots}
+          selectedStartAt={selectedSlot?.startAt ?? null}
+          onSelect={selectSlot}
+          disabled={
+            isBooking || bookingBlocked || confirmedSession !== null
+          }
+        />
+      ) : null}
+    </PublicTeacherProfileLayout>
   );
 }
 

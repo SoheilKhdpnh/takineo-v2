@@ -1118,7 +1118,52 @@
     "checkUpcoming": "Check upcoming sessions",
     "selectSlot": "Select {time}",
     "videoPlaceholder": "A public introduction video will appear here when playback is available for this teacher.",
-    "chooseTime": "Choose a time"
+    "chooseTime": "Choose a time",
+    "verifiedLabel": "Approved Talkinu teacher",
+    "statusHasOpening": "Has an opening",
+    "nativeBadge": "Native",
+    "teachingBadge": "Teaches",
+    "teachesOnline": "Teaches online on Talkinu",
+    "tagProfessional": "Professional teacher",
+    "tagOnlineSpeaking": "15-minute speaking",
+    "tagExperienced": "{years}+ years experience",
+    "profileTabsLabel": "Teacher profile sections",
+    "tabAbout": "About",
+    "tabSchedule": "Schedule",
+    "tabReviews": "Reviews",
+    "tabBackground": "Background",
+    "aboutMeTitle": "About me",
+    "teachingStyleTitle": "Teaching style",
+    "teachingStyleSubtitle": "Talkinu speaking sessions are short, focused, and teacher-led.",
+    "teachingStyles": {
+      "studentCentered": {
+        "title": "Student-centered",
+        "body": "Sessions follow what you need to practice in that moment."
+      },
+      "practical": {
+        "title": "Practical & communicative",
+        "body": "You speak with a human teacher for a focused 15 minutes."
+      },
+      "goalOriented": {
+        "title": "Goal-oriented",
+        "body": "Each booking is a concrete speaking opportunity, not a long lecture."
+      }
+    },
+    "backgroundTitle": "My background",
+    "backgroundTeaching": "Teaching language",
+    "backgroundExperience": "Experience",
+    "backgroundFormat": "Teaching format",
+    "notProvided": "Not provided yet",
+    "reviewsEmptyTitle": "Reviews are not listed yet",
+    "reviewsEmptyDescription": "Talkinu does not invent ratings or reviews. When a verified review system ships, it will appear here.",
+    "sessionLengthValue": "15 min",
+    "sessionLengthHint": "Focused speaking session · Tehran time",
+    "bookTrial": "Book a trial lesson",
+    "trialTitle": "Trial speaking session",
+    "trialDescription": "Book one authoritative 15-minute opening. Availability is rechecked when you confirm.",
+    "availabilityTitle": "Availability",
+    "viewFullSchedule": "View full schedule",
+    "languagesISpeak": "Languages I speak"
   },
   "Site": {
     "brand": "Talkinu",

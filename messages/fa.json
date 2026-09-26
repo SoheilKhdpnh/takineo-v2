@@ -1118,7 +1118,52 @@
     "checkUpcoming": "بررسی جلسات آینده",
     "selectSlot": "انتخاب {time}",
     "videoPlaceholder": "وقتی پخش عمومی ویدیوی معرفی این مدرس آماده شود، اینجا نمایش داده می‌شود.",
-    "chooseTime": "انتخاب زمان"
+    "chooseTime": "انتخاب زمان",
+    "verifiedLabel": "مدرس تأییدشده تاکینو",
+    "statusHasOpening": "نوبت آزاد دارد",
+    "nativeBadge": "زبان مادری",
+    "teachingBadge": "تدریس",
+    "teachesOnline": "آنلاین در تاکینو تدریس می‌کند",
+    "tagProfessional": "مدرس حرفه‌ای",
+    "tagOnlineSpeaking": "صحبت ۱۵ دقیقه‌ای",
+    "tagExperienced": "بیش از {years} سال سابقه",
+    "profileTabsLabel": "بخش‌های پروفایل مدرس",
+    "tabAbout": "درباره",
+    "tabSchedule": "زمان‌بندی",
+    "tabReviews": "نظرات",
+    "tabBackground": "سوابق",
+    "aboutMeTitle": "درباره من",
+    "teachingStyleTitle": "سبک تدریس",
+    "teachingStyleSubtitle": "جلسات صحبت تاکینو کوتاه، متمرکز و با هدایت مدرس انسانی است.",
+    "teachingStyles": {
+      "studentCentered": {
+        "title": "زبان‌آموزمحور",
+        "body": "جلسه بر اساس نیاز تمرین همان لحظه پیش می‌رود."
+      },
+      "practical": {
+        "title": "عملی و ارتباطی",
+        "body": "۱۵ دقیقه متمرکز با مدرس انسانی صحبت می‌کنید."
+      },
+      "goalOriented": {
+        "title": "هدف‌محور",
+        "body": "هر رزرو یک فرصت مشخص صحبت است، نه کلاس طولانی."
+      }
+    },
+    "backgroundTitle": "سوابق من",
+    "backgroundTeaching": "زبان تدریس",
+    "backgroundExperience": "سابقه",
+    "backgroundFormat": "قالب تدریس",
+    "notProvided": "هنوز ثبت نشده",
+    "reviewsEmptyTitle": "هنوز نظری نمایش داده نمی‌شود",
+    "reviewsEmptyDescription": "تاکینو امتیاز یا نظر ساختگی نشان نمی‌دهد. وقتی سیستم بازبینی تأییدشده آماده شود، اینجا می‌آید.",
+    "sessionLengthValue": "۱۵ دقیقه",
+    "sessionLengthHint": "جلسه صحبت متمرکز · وقت تهران",
+    "bookTrial": "رزرو جلسه آزمایشی",
+    "trialTitle": "جلسه آزمایشی صحبت",
+    "trialDescription": "یک نوبت معتبر ۱۵ دقیقه‌ای رزرو کنید. هنگام تأیید، موجودی دوباره بررسی می‌شود.",
+    "availabilityTitle": "زمان‌های آزاد",
+    "viewFullSchedule": "مشاهده برنامه کامل",
+    "languagesISpeak": "زبان‌هایی که صحبت می‌کنم"
   },
   "Site": {
     "brand": "Talkinu",

@@ -218,8 +218,19 @@ function renderBooking() {
   );
 }
 
+async function openScheduleTab(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  await user.click(
+    screen.getByRole("tab", {
+      name: "tabSchedule",
+    }),
+  );
+}
+
 describe("TeacherBookingExperience", () => {
   it("loads one public profile and one authoritative slot projection", async () => {
+    const user = userEvent.setup();
     renderBooking();
 
     expect(
@@ -247,6 +258,8 @@ describe("TeacherBookingExperience", () => {
       expect.any(AbortSignal),
     );
 
+    await openScheduleTab(user);
+
     expect(
       screen.getAllByRole("button", { name: "selectSlot" }),
     ).toHaveLength(2);
@@ -266,6 +279,8 @@ describe("TeacherBookingExperience", () => {
     await screen.findByText(
       "Teacher One",
     );
+
+    await openScheduleTab(user);
 
     await user.click(
       screen.getAllByRole("button", { name: "selectSlot" })[0],
@@ -315,6 +330,8 @@ describe("TeacherBookingExperience", () => {
     await screen.findByText(
       "Teacher One",
     );
+
+    await openScheduleTab(user);
 
     await user.click(
       screen.getAllByRole("button", { name: "selectSlot" })[0],
@@ -378,6 +395,8 @@ describe("TeacherBookingExperience", () => {
       "Teacher One",
     );
 
+    await openScheduleTab(user);
+
     await user.click(
       screen.getAllByRole("button", { name: "selectSlot" })[0],
     );
@@ -426,6 +445,8 @@ describe("TeacherBookingExperience", () => {
     await screen.findByText(
       "Teacher One",
     );
+
+    await openScheduleTab(user);
 
     await user.click(
       screen.getAllByRole("button", { name: "selectSlot" })[0],
