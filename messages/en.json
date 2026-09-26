@@ -1045,8 +1045,8 @@
     "authorityTitle": "Availability is rechecked when you book",
     "authorityDescription": "These times come directly from Talkinu’s booking service, but another booking or schedule change can make a displayed slot unavailable before confirmation.",
     "slotsEyebrow": "Authoritative availability",
-    "slotsTitle": "Choose a 15-minute speaking time",
-    "slotsDescription": "Select one of the currently projected Tehran-time slots. Your booking exists only after Talkinu confirms a persisted scheduled session.",
+    "slotsTitle": "Pick a time",
+    "slotsDescription": "Tap a day, then choose one 15-minute opening.",
     "tehranTime": "Asia/Tehran",
     "loadingSlots": "Loading current bookable slots…",
     "slotsLoadErrorTitle": "Current slots could not be verified",
@@ -1163,7 +1163,8 @@
     "trialDescription": "Book one authoritative 15-minute opening. Availability is rechecked when you confirm.",
     "availabilityTitle": "Availability",
     "viewFullSchedule": "View full schedule",
-    "languagesISpeak": "Languages I speak"
+    "languagesISpeak": "Languages I speak",
+    "slotDaysLabel": "Available days"
   },
   "Site": {
     "brand": "Talkinu",

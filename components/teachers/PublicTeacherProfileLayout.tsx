@@ -315,10 +315,10 @@ export function PublicTeacherProfileLayout({
                     <h2 className="text-lg font-semibold text-[#1c1410]">
                       {t("slotsTitle")}
                     </h2>
-                    <p className="mt-2 text-sm leading-6 text-zinc-600">
+                    <p className="mt-1 text-sm text-zinc-500">
                       {t("slotsDescription")}
                     </p>
-                    <div className="mt-5">{children}</div>
+                    <div className="mt-4">{children}</div>
                   </div>
                 ) : null}
 
