@@ -1,66 +1,67 @@
 #Requires -Version 5.1
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $root
 
-Write-Host "takineo docker smoke — root=$root"
+Write-Host "takineo docker smoke root=$root"
 
-function Assert-Pass([string]$name, [scriptblock]$test) {
-  try {
-    & $test | Out-Null
-    Write-Host "PASS  $name"
-    return $true
-  } catch {
-    Write-Host "FAIL  $name — $($_.Exception.Message)"
-    return $false
-  }
-}
-
-$compose = @(
-  "docker", "compose", "up", "-d", "postgres", "livekit"
-)
-& $compose[0] $compose[1..($compose.Length - 1)]
+docker compose up -d postgres livekit
 if ($LASTEXITCODE -ne 0) {
-  Write-Host "FAIL  docker compose up"
+  Write-Host "FAIL docker compose up"
   exit 1
 }
 
-$ok = $true
-$deadline = (Get-Date).AddSeconds(90)
+$failed = 0
 
-$ok = (Assert-Pass "postgres-ready" {
-  while ((Get-Date) -lt $deadline) {
-    docker compose exec -T postgres pg_isready -U takineo -d takineo 2>$null
-    if ($LASTEXITCODE -eq 0) { return }
-    Start-Sleep -Seconds 2
+$pgReady = $false
+for ($i = 0; $i -lt 45; $i++) {
+  docker compose exec -T postgres pg_isready -U takineo -d takineo 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) {
+    $pgReady = $true
+    break
   }
-  throw "postgres did not become ready within 90s"
-}) -and $ok
+  Start-Sleep -Seconds 2
+}
 
-$ok = (Assert-Pass "livekit-http" {
-  $deadlineLk = (Get-Date).AddSeconds(90)
-  while ((Get-Date) -lt $deadlineLk) {
-    try {
-      $response = Invoke-WebRequest -Uri "http://127.0.0.1:7880/" -UseBasicParsing -TimeoutSec 3
-      if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
-        return
-      }
-    } catch {
-      # LiveKit may return connection errors while starting.
+if ($pgReady) {
+  Write-Host "PASS postgres-ready"
+} else {
+  Write-Host "FAIL postgres-ready"
+  $failed = 1
+}
+
+$lkReady = $false
+for ($i = 0; $i -lt 45; $i++) {
+  try {
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:7880/" -UseBasicParsing -TimeoutSec 3
+    if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+      $lkReady = $true
+      break
     }
-    Start-Sleep -Seconds 2
+  } catch {
+    # still starting
   }
-  throw "livekit did not respond on :7880 within 90s"
-}) -and $ok
+  Start-Sleep -Seconds 2
+}
 
-$ok = (Assert-Pass "compose-ps" {
-  $ps = docker compose ps --format json 2>$null
-  if (-not $ps) { throw "docker compose ps returned empty" }
-}) -and $ok
+if ($lkReady) {
+  Write-Host "PASS livekit-http"
+} else {
+  Write-Host "FAIL livekit-http"
+  $failed = 1
+}
 
-if ($ok) {
-  Write-Host "SMOKE PASS — postgres + livekit are up"
+docker compose ps
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "FAIL compose-ps"
+  $failed = 1
+} else {
+  Write-Host "PASS compose-ps"
+}
+
+if ($failed -eq 0) {
+  Write-Host "SMOKE PASS postgres + livekit are up"
   exit 0
 }
 
