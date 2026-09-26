@@ -72,7 +72,7 @@ Never commit or inject production values into this workflow for:
 
 - Neon/application database credentials
 - Better Auth production secret
-- Mux API, webhook, or signing credentials
+- retired Mux API, webhook, or signing credentials
 - `INTERNAL_JOB_SECRET`
 - Healthchecks ping URLs
 

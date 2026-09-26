@@ -1,5 +1,14 @@
 import { cn } from "@/lib/ui/cn";
 
+/**
+ * Talkinu icon mark: two overlapping geometric speech bubbles.
+ *
+ * Concepts considered:
+ * 1. Stylized "T" in a squircle — too Latin-centric beside تاکینو.
+ * 2. Linked nodes / abstract connection — too generic for a speaking product.
+ * 3. Facing speech bubbles (chosen) — language-agnostic, readable at 16px,
+ *    and reads as conversation in both LTR and RTL headers.
+ */
 export function TalkinuMark({
   className,
   title,

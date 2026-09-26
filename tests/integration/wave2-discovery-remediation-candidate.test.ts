@@ -488,7 +488,7 @@ async function seedSyntheticDataset():
               '0'
             ),
 
-          'mux',
+          'aparat',
 
           'APPROVED'::"TeacherIntroVideoStatus",
 

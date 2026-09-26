@@ -26,7 +26,7 @@ export async function SiteHeader({
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-2.5 rounded-md"
+          className="rounded-md"
         >
           <TalkinuWordmark brand={t("brand")} />
         </Link>
@@ -36,6 +36,12 @@ export async function SiteHeader({
           className="flex items-center gap-2 sm:gap-3"
         >
           <TeachersNavLink />
+          <Link
+            href="/blog"
+            className="hidden min-h-10 items-center rounded-md px-3 text-sm font-semibold text-ink hover:bg-[#fed7aa]/60 sm:inline-flex"
+          >
+            {t("blog")}
+          </Link>
 
           <LanguageSwitcher currentLocale={locale} />
 

@@ -384,9 +384,6 @@ async function seedTeacher(
           "id",
           "teacherProfileId",
           "provider",
-          "uploadId",
-          "assetId",
-          "reviewPlaybackId",
           "status",
           "createdAt",
           "updatedAt"
@@ -394,11 +391,8 @@ async function seedTeacher(
       VALUES (
         $1,
         $2,
-        'mux',
-        $3,
-        $4,
-        $5,
-        $6::"TeacherIntroVideoStatus",
+        'aparat',
+        $3::"TeacherIntroVideoStatus",
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
       )
@@ -406,9 +400,6 @@ async function seedTeacher(
     [
       `${PREFIX}video_${suffix}`,
       seed.profileId,
-      `${PREFIX}upload_${suffix}`,
-      `${PREFIX}asset_${suffix}`,
-      `${PREFIX}review_playback_${suffix}`,
       seed.videoStatus ??
         "APPROVED",
     ],

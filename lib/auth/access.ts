@@ -21,6 +21,13 @@ export const userAccessSelect = {
       id: true,
       applicationStatus: true,
       profileCompletedAt: true,
+
+      introVideo: {
+        select: {
+          id: true,
+          status: true,
+        },
+      },
     },
   },
 } satisfies Prisma.UserSelect;

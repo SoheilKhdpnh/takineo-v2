@@ -23,8 +23,11 @@ export function SiteChrome({
   const isStudentWorkspace =
     pathname === "/student" ||
     pathname.startsWith("/student/");
+  const isLiveSessionJoin = /^\/sessions\/[^/]+\/join$/.test(
+    pathname,
+  );
 
-  if (isAdmin || isTeacherWorkspace || isStudentWorkspace) {
+  if (isAdmin || isTeacherWorkspace || isStudentWorkspace || isLiveSessionJoin) {
     return children;
   }
 

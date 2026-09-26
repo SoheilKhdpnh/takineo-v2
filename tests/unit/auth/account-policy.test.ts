@@ -13,8 +13,10 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 import {
+  canCreateAuthSession,
   getAccountStatusForAuth,
   isActiveAccount,
+  isEmailSignupPath,
   isInactiveAccountSelfServicePath,
 } from "@/lib/auth/account-policy";
 
@@ -94,4 +96,62 @@ describe("account status policy", () => {
 
     await expect(isActiveAccount("missing-user")).resolves.toBe(false);
   });
+});
+
+describe("auth session creation policy", () => {
+  it("allows session creation for ACTIVE accounts on any path", () => {
+    expect(
+      canCreateAuthSession({
+        accountStatus: "ACTIVE",
+        path: "/sign-in/email",
+      }),
+    ).toBe(true);
+  });
+
+  it.each(["SUSPENDED", "DISABLED"] as const)(
+    "refuses session creation for a visible %s account, including on signup",
+    (accountStatus) => {
+      expect(
+        canCreateAuthSession({
+          accountStatus,
+          path: "/sign-up/email",
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it("allows a missing row only on the email signup path", () => {
+    expect(isEmailSignupPath("/sign-up/email")).toBe(true);
+    expect(isEmailSignupPath("/api/auth/sign-up/email")).toBe(true);
+    expect(
+      canCreateAuthSession({
+        accountStatus: null,
+        path: "/sign-up/email",
+      }),
+    ).toBe(true);
+    expect(
+      canCreateAuthSession({
+        accountStatus: null,
+        path: "/api/auth/sign-up/email",
+      }),
+    ).toBe(true);
+  });
+
+  it.each([
+    "/sign-in/email",
+    "/api/auth/sign-in/email",
+    "/get-session",
+    undefined,
+    null,
+  ])(
+    "does not treat a lag-hidden inactive account as a new ACTIVE user on %s",
+    (path) => {
+      expect(
+        canCreateAuthSession({
+          accountStatus: null,
+          path,
+        }),
+      ).toBe(false);
+    },
+  );
 });

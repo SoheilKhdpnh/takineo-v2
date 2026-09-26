@@ -31,7 +31,7 @@ The CLI:
 - rejects unknown options
 - requires a reason for admin-access and account-status changes
 - never asks for or prints passwords, Better Auth secrets, database passwords,
-  Mux credentials, or session cookies
+  provider credentials, or session cookies
 
 The underlying service layer independently enforces authorization and
 transactional state invariants.
@@ -190,8 +190,8 @@ The service:
 - refuses no-op state changes
 - prevents suspension/disablement of the last active `SUPER_ADMIN`
 - writes `ACCOUNT_STATUS_CHANGED` with the reason and previous/new status
-- queues public Mux playback revocation or restoration when the target is an
-  approved teacher whose eligibility changes
+- updates Talkinu public-teacher eligibility when the target is an
+  approved teacher whose eligibility changes; it cannot revoke the Aparat video
 
 Account moderation and teacher-application suspension remain separate state
 machines.

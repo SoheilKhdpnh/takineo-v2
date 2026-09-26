@@ -40,16 +40,15 @@ describe("browser security headers", () => {
     ).toBeUndefined();
   });
 
-  it("publishes a Mux-aware report-only CSP in production", () => {
+  it("publishes an Aparat-aware report-only CSP in production", () => {
     const csp = headerValue(
       getBrowserSecurityHeaders(true),
       "Content-Security-Policy-Report-Only",
     );
 
-    expect(csp).toContain("frame-src 'self' https://player.mux.com");
-    expect(csp).toContain("media-src 'self' blob: https://*.mux.com");
-    expect(csp).toContain("https://storage.googleapis.com");
-    expect(csp).toContain("https://*.litix.io");
+    expect(csp).toContain("frame-src 'self' https://www.aparat.com");
+    expect(csp).not.toContain("player.mux.com");
+    expect(csp).not.toContain("*.mux.com");
   });
 
   it("does not bless eval while CSP is being observed", () => {

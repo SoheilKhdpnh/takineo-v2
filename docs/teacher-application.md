@@ -13,7 +13,7 @@ is never selectable during onboarding.
 The applicant may:
 
 - complete or edit the professional profile
-- upload or replace the introduction video after completing the profile
+- submit or replace the Aparat introduction-video link after completing the profile
 - submit the completed application
 
 The applicant may not:
@@ -75,25 +75,32 @@ effects on future booking records will be defined with the booking system.
 The current foundation permits submission from `DRAFT` or `REJECTED` only when:
 
 - the professional profile is complete
-- a current video exists
-- the current video has completed processing and is acceptable for review
+- a current Aparat introduction-video link exists
+- the current video is `READY_FOR_REVIEW` or `APPROVED` with a validated
+  `aparat.com` URL and hash
 
 Submission changes the application to `PENDING_REVIEW` through a server-side
 compare-and-set workflow. The browser is never authoritative for application
 state. Submission snapshots the monotonic profile revision and current video
-row, revision, upload ID, and asset ID. Profile edits and video replacements use
+row, revision, and Aparat hash. Profile edits and video replacements use
 conditional writes, so an edit/replacement racing submission cannot mutate the
 submitted review target.
 
 ## Legacy migration
 
+The Wave 1 migration originally preserved Mux-backed intro videos. Mux was later
+retired for OFAC eligibility; see `docs/engineering/vendor-eligibility.md`.
+Existing Mux rows are rejected by the Aparat replacement migration and must be
+resubmitted as Aparat links.
+
 The Wave 1 migration does not infer current trust from the historical
-`isVerified` flag alone. A legacy `APPROVED` or `SUSPENDED` application is
-preserved only when the current profile is complete and the current Mux video
-has nonblank, coherent upload/asset identifiers, a processed duration within
-60-120 seconds, and a video state compatible with approved media. The migration
-records the submitted profile/video snapshots required by the new review
-invariant.
+`isVerified` flag alone. A legacy `APPROVED` or `SUSPENDED` application was
+preserved only when the current profile was complete and the then-current Mux
+video had nonblank, coherent upload/asset identifiers, a processed duration
+within 60-120 seconds, and a video state compatible with approved media. The
+migration recorded the submitted profile/video snapshots required by the new
+review invariant. Those Mux-era rows are not eligible after the Aparat
+replacement.
 
 If that evidence is insufficient, the application becomes editable
 `REJECTED` and must be explicitly resubmitted. Malformed legacy pending rows
@@ -107,19 +114,19 @@ not invent a new administrative review timestamp.
 
 Malformed terminal-looking media on editable `DRAFT`/`REJECTED` applications
 is normalized to replaceable `REJECTED` media. Submission independently
-requires exact Mux provider identity, canonical nonblank and distinct upload/
-asset IDs, processed duration from 60 through 120 seconds, and a current
-`READY_FOR_REVIEW` or `APPROVED` status. A legacy status label alone is never
-sufficient.
+requires a current `aparat` provider identity, a validated `aparat.com` URL
+and hash, a stored verification code, and a current `READY_FOR_REVIEW` or
+`APPROVED` status. A legacy status label alone is never sufficient.
 
 The migration is enclosed in an explicit PostgreSQL transaction. Its deliberate
 legacy-playback consistency guard raises before `COMMIT`, so any failure rolls
 back all statements in the migration. Legacy public playback with unsupported
 provider identity, blank/whitespace/noncanonical identifiers, or incoherent
-Mux identifiers triggers this guard. The original source row remains intact so
-an operator can verify/revoke provider state or repair the identity before
-retrying. The migration must be exercised against a disposable PostgreSQL
-upgrade database before deployment.
+Mux identifiers triggered this guard. The original source row remained intact so
+an operator could verify/revoke provider state or repair the identity before
+retrying. The Wave 1 migration must be exercised against a disposable
+PostgreSQL upgrade database before deployment. The later Aparat replacement
+rejects remaining Mux rows rather than preserving them.
 
 ## Administrative review
 

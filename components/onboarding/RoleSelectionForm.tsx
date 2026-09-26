@@ -4,7 +4,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
-import type { UserRole } from "@/lib/domain/user-role";
+import {
+  getPostOnboardingHref,
+  type UserRole,
+} from "@/lib/domain/user-role";
 import {
   authPrimaryButtonClassName,
 } from "@/lib/ui/auth-styles";
@@ -65,12 +68,8 @@ export function RoleSelectionForm() {
         return;
       }
 
-      router.push(
-        selectedRole === "STUDENT"
-          ? "/onboarding/student"
-          : "/onboarding/teacher",
-      );
-      router.refresh();
+      router.replace(getPostOnboardingHref(selectedRole));
+      await router.refresh();
     } catch {
       setError(t("networkError"));
       setIsSubmitting(false);

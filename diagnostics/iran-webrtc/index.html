@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Takineo Iran WebRTC reachability diagnostic</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Iran WebRTC reachability diagnostic</h1>
+        <p class="lede">
+          Standalone operator tool. It is not the product join UI and is not
+          served through Next.js or Netlify. Run it from a browser on the
+          Iranian network under test, pointing at one candidate LiveKit/TURN
+          host, one transport at a time.
+        </p>
+        <p class="banner">
+          The 15-minute hold never starts on page load. Use <strong>Run probes</strong>
+          first, then explicitly <strong>Start 15-minute hold</strong>. Do not
+          put production secrets in <code>config.json</code>; use query params
+          or gitignored <code>config.local.json</code>.
+        </p>
+      </header>
+
+      <div class="grid">
+        <form id="config-form" class="panel" autocomplete="off">
+          <h2>Target</h2>
+          <label class="field">
+            Signalling WebSocket URL
+            <input
+              type="text"
+              name="signallingUrl"
+              placeholder="wss://livekit.example.invalid"
+              spellcheck="false"
+            />
+          </label>
+          <label class="field">
+            TURN host
+            <input type="text" name="turnHost" placeholder="turn.example.invalid" spellcheck="false" />
+          </label>
+          <label class="field">
+            TURN username
+            <input type="text" name="turnUsername" spellcheck="false" />
+          </label>
+          <label class="field">
+            TURN credential
+            <input type="password" name="turnCredential" />
+          </label>
+          <label class="field">
+            STUN URLs (optional, ICE policy=all only)
+            <textarea name="stunUrls" placeholder="stun:turn.example.invalid:3478"></textarea>
+          </label>
+          <label class="field">
+            Media ICE policy
+            <select name="iceTransportPolicy">
+              <option value="relay">relay (required for path isolation)</option>
+              <option value="all">all (lets ICE pick; not a per-transport proof)</option>
+            </select>
+          </label>
+
+          <h2>One transport</h2>
+          <p class="muted">ICE servers are limited to the selected TURN URL. Other paths are not offered.</p>
+          <div id="transports" class="transports"></div>
+
+          <label class="field">
+            Hold duration (ms)
+            <input type="number" name="holdMs" min="1000" step="1000" />
+          </label>
+          <label class="field">
+            getStats interval (ms)
+            <input type="number" name="statsIntervalMs" min="1000" step="1000" />
+          </label>
+          <label class="field" style="flex-direction: row; align-items: center; gap: 8px">
+            <input type="checkbox" name="signallingKeepalive" />
+            Send application pings on the signalling socket during hold (off by default so idle drops are visible)
+          </label>
+
+          <div class="row">
+            <button type="button" id="run-probes">Run probes</button>
+            <button type="button" id="start-hold">Start 15-minute hold</button>
+            <button type="button" id="stop-hold" class="secondary" disabled>Stop hold</button>
+          </div>
+          <p id="run-status" class="status"></p>
+        </form>
+
+        <section class="panel">
+          <h2>Results</h2>
+          <div class="cards">
+            <article class="card">
+              <h3>Signalling time-to-connect</h3>
+              <p id="signalling-result">Not run</p>
+            </article>
+            <article class="card">
+              <h3>ICE candidates (policy=all)</h3>
+              <p id="ice-all-result">Not run</p>
+            </article>
+            <article class="card">
+              <h3>ICE candidates (policy=relay)</h3>
+              <p id="ice-relay-result">Not run</p>
+            </article>
+            <article class="card">
+              <h3>Time-to-first-audio</h3>
+              <p id="media-result">Not run</p>
+            </article>
+            <article class="card">
+              <h3>15-minute hold</h3>
+              <p id="hold-result">Not started</p>
+              <meter id="hold-meter" min="0" value="0"></meter>
+            </article>
+          </div>
+          <div class="row">
+            <button type="button" id="download-log" class="secondary">Download log JSON</button>
+            <button type="button" id="clear-log" class="secondary">Clear log</button>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top: 18px">
+        <h2>Event log</h2>
+        <div id="log" class="log" role="log" aria-live="polite"></div>
+      </section>
+
+      <footer class="note">
+        Loopback media uses a local oscillator through the selected TURN path
+        (two peer connections in this browser). That isolates Iran→TURN media
+        from Netlify hosting and from a second participant. Signalling reconnect
+        events are logged as Reconnecting / Reconnected.
+      </footer>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

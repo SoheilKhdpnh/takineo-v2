@@ -260,9 +260,7 @@ describe.sequential(
 
                 status:
                   "APPROVED" as const,
-
-                durationSeconds:
-                  90,
+                provider: "aparat",
               }),
             ),
         });

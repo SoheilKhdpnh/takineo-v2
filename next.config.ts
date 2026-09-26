@@ -5,6 +5,13 @@ import { getBrowserSecurityHeaders } from "./lib/security/browser-security-heade
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    qualities: [70, 75],
+  },
+  transpilePackages: [
+    "livekit-client",
+    "livekit-server-sdk",
+  ],
   async headers() {
     return [
       {

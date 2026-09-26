@@ -54,7 +54,7 @@ A reviewer may:
 
 - view the pending teacher-application queue
 - view the review detail needed to evaluate an application
-- request short-lived signed playback for a pending introduction video
+- watch the submitted Aparat embed and confirm the spoken verification code
 - approve or reject profile and video review decisions according to this
   contract
 
@@ -216,8 +216,8 @@ When the video is rejected:
 - the video rejection reason is retained
 - the teacher may replace the video after the application becomes editable
 - a replacement is a new review subject and must pass review
-- any public playback associated with the rejected/replaced video is revoked as
-  required by the playback lifecycle
+- Talkinu hides the rejected link from Talkinu surfaces; it cannot delete the
+  Aparat video
 
 ### Rejection of both
 
@@ -271,54 +271,40 @@ Required auditable actions include:
 
 Audit history must not be represented only by overwriting the latest review
 note. Audit records must not contain passwords, auth cookies, access tokens,
-Mux signing keys, private upload URLs, or unnecessary personal/media data.
+private upload URLs, or unnecessary personal/media data.
 
-## 8. Mux signed administrative review playback
+## 8. Aparat administrative review playback
 
-Pending teacher videos must not be publicly playable.
+Talkinu does not host introduction videos. Review playback is Aparat’s public
+embed of the submitted `aparat.com` URL.
 
 For administrative review:
 
-1. An authenticated admin requests playback for a specific reviewable video.
+1. An authenticated admin opens a reviewable application.
 2. The server verifies account activity, admin permission, application/video
    relationship, and review eligibility.
-3. The server creates or uses the video's signed/private review playback
-   identifier according to the provider lifecycle.
-4. The server produces a short-lived playback token.
-5. The client receives only the data required for authorized playback.
+3. The server returns the validated Aparat URL, canonical hash, and the
+   expected spoken verification code.
+4. The client embeds Aparat’s public player and shows the expected code beside
+   it.
 
-Mux signing secrets and private keys remain server-only. The client never
-receives signing credentials. Review playback responses must not be publicly
-cacheable and must not turn a pending video into a public asset.
+Approval requires an explicit `spokenCodeConfirmed: true` checkbox. Informal
+reviewer memory is not sufficient.
 
-Provider identifiers from a request or webhook must be matched to Takineo-owned
-records. Signed webhook delivery does not remove the need to verify internal
-asset/application relationships.
+Aparat links are public as soon as the applicant publishes and submits them.
+Talkinu approval does not make the video private, and it cannot delete the
+video from Aparat. That is a deliberate tradeoff after Mux was retired for
+OFAC eligibility. See `docs/teacher-intro-video.md`.
 
-## 9. Public playback lifecycle
+## 9. Talkinu visibility, not host revocation
 
-Signed administrative-review playback and public teacher-profile playback are
-separate capabilities and identifiers, even when they refer to the same Mux
-asset.
+There is no separate public-playback identifier and no provider reconciliation
+job.
 
-After final teacher approval, Takineo may create a separate `PUBLIC` playback ID
-for the approved public teacher profile. Public playback creation must occur
-only through a server-side workflow that confirms the full approval invariant.
-
-The public playback identifier must be stored separately from signed-review
-playback state.
-
-Public playback must be revoked or removed when appropriate, including:
-
-- the approved video is replaced
-- the video is rejected
-- teacher approval is suspended
-- account moderation makes the teacher ineligible
-- the asset is otherwise withdrawn
-
-State transitions and provider cleanup must be retry-safe. A provider cleanup
-failure must be observable and recoverable; stale public playback must not be
-treated as acceptable indefinite access.
+After final teacher approval, Talkinu may show the same submitted Aparat embed
+on eligible public teacher surfaces. Rejection, suspension, and account
+moderation remove Talkinu visibility only. They do not revoke or delete the
+underlying Aparat video.
 
 ## 10. Conceptual backend contracts
 
@@ -326,8 +312,8 @@ Wave 1 backend interfaces must provide stable conceptual operations for:
 
 - retrieving a paginated/filterable pending application queue
 - retrieving one reviewable application detail
-- requesting authorized short-lived review playback
-- submitting a profile/video approval decision
+- presenting the submitted Aparat embed and expected spoken verification code
+- submitting a profile/video approval decision with spoken-code confirmation
 - rejecting `PROFILE`, `VIDEO`, or `BOTH` with validated reasons
 - completing final application approval
 - establishing teacher suspension/reinstatement foundations
@@ -343,7 +329,7 @@ Route Handler
 → origin/security validation
 → input validation
 → service transaction/state transition
-→ Prisma and/or Mux
+→ Prisma
 → stable HTTP/error mapping
 ```
 
@@ -366,7 +352,7 @@ Route Handlers remain transport adapters and must not query Prisma directly.
 operations still require an authenticated, active account and valid current
 state.
 
-| Actor | Admin queue/detail | Signed review playback | Approve/reject review | Teacher suspension | Account moderation | Admin access changes |
+| Actor | Admin queue/detail | Aparat review playback | Approve/reject review | Teacher suspension | Account moderation | Admin access changes |
 | --- | --- | --- | --- | --- | --- | --- |
 | Unauthenticated | Deny | Deny | Deny | Deny | Deny | Deny |
 | Student without admin access | Deny | Deny | Deny | Deny | Deny | Deny |
@@ -397,9 +383,7 @@ Required properties:
 - A stale browser cannot approve a replaced video or superseded application
   submission.
 - Audit records are committed with the state transition they describe.
-- Mux playback creation/removal is idempotent or safely retryable.
-- Provider calls are not allowed to leave database state falsely claiming that
-  required provider cleanup succeeded.
+- Talkinu cannot create, hide, or delete the underlying Aparat video.
 - Stable state-conflict errors are returned for stale or duplicate decisions.
 
 The implementation may use transactions, compare-and-set conditions, versioned
@@ -428,8 +412,8 @@ Authorization tests must cover at least:
 - `REVIEWER`
 - `SUPER_ADMIN`
 
-State, transaction, duplicate-action, audit, video-ownership, and playback
-revocation behavior require focused tests.
+State, transaction, duplicate-action, audit, video-ownership, and spoken-code
+confirmation behavior require focused tests.
 
 ## 14. Wave 1 ownership boundaries
 
@@ -451,7 +435,7 @@ directly.
 
 Reviews the shared backend/frontend implementation for privilege escalation,
 object substitution, origin protection, account-state bypass, concurrent review
-actions, Mux playback leakage, secret handling, and audit integrity. It does not
+actions, public Aparat-link handling, secret handling, and audit integrity. It does not
 independently redesign shared schema/contracts while implementation is active.
 
 ### QA / Testing-foundation agent
@@ -466,5 +450,5 @@ Owns shared contract changes, schema/interface conflict resolution, migration
 ordering, cross-agent acceptance, and integration into `codex/integration`.
 
 Any material change to these invariants, permissions, state transitions,
-playback lifecycle, or agent boundaries requires integration-lead approval and a
+intro-video review lifecycle, or agent boundaries requires integration-lead approval and a
 contract update before implementation diverges.

@@ -14,8 +14,7 @@ The project is under active development. The current foundation includes:
 - student/teacher role onboarding
 - student and teacher profile completion
 - teacher application states and secure submission
-- direct-to-Mux teacher introduction-video upload
-- signed Mux webhook handling and provider-sync fallback
+- Aparat-link teacher introduction-video submission with a spoken verification code
 
 Administrative teacher review, availability, discovery, booking, speaking
 sessions, AI analysis, learning reports, notifications, and production
@@ -34,7 +33,7 @@ make the user an approved or public teacher.
 - Better Auth
 - Prisma 7
 - PostgreSQL / Neon
-- Mux
+- Aparat link submission for teacher introduction video
 
 ## Requirements
 
@@ -42,7 +41,6 @@ make the user an approved or public teacher.
 - npm
 - PostgreSQL/Neon development credentials
 - Better Auth configuration
-- Mux credentials for introduction-video development
 
 Never commit environment files or secrets.
 

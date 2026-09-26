@@ -3,6 +3,11 @@
 Date: 2026-08-15
 Scope baseline: `cc4a2c3` (`codex/wave1-admin-review-ui` after Milestone 16)
 
+> Later note (2026-09-18): Mux signed review playback and reconciliation were
+> retired for OFAC eligibility. Current review playback is a public Aparat
+> embed plus spoken-code confirmation. This document remains a historical
+> Wave 1 adversarial snapshot.
+
 ## Purpose
 
 This review is an independent adversarial pass over the Wave 1 administrative

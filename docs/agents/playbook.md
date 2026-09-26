@@ -16,7 +16,7 @@ Responsibilities:
 - control shared interfaces and binding engineering contracts
 - resolve schema and migration conflicts
 - review cross-cutting changes
-- merge accepted work into `codex/integration`
+- merge accepted work into the current integration branch
 - keep the roadmap accurate
 
 The integration lead should avoid implementing every task itself.
@@ -73,7 +73,7 @@ Owns:
 
 Owns assigned work involving:
 
-- Mux and future speaking-media integration
+- Aparat intro-video link submission and future speaking-media integration
 - transcription and AI analysis
 - provider abstraction
 - cost controls, retry/idempotency, and structured AI outputs
@@ -140,9 +140,98 @@ A coherent commit or review-ready isolated-worktree diff.
 
 ## Isolation and integration
 
-Task agents work in isolated branches/worktrees. The integration target is
-`codex/integration`; `main` is reserved for intentionally integrated stable
-releases.
+Task agents work in isolated branches/worktrees. `main` is reserved for
+intentionally integrated stable releases.
+
+### Current integration target
+
+```text
+integration/wave2-final
+```
+
+### Integration target change, 2026-08-23
+
+This document previously named `codex/integration` as the standing integration
+target. Practice diverged from that instruction and the document was never
+updated, so the recorded target became misleading.
+
+Observed state at the time of this change:
+
+- `codex/integration` pointed at `a5f0b61`, an intermediate Wave 1 commit.
+- It did not contain the Wave 1 closure commit `28eef17`.
+- It contained **zero** commits absent from `integration/wave2-final`, and was a
+  direct ancestor of it, so it held no unique work.
+- All Wave 1 closure and all Wave 2 work had been integrated on
+  `integration/wave2-final` (`12ebf3a`) instead.
+
+Resolution:
+
+- `integration/wave2-final` is the real integration target as of 2026-08-23.
+- `codex/integration` is fully absorbed and retains no unique work. It is
+  **flagged for deletion** rather than left labeled as live. Deletion is an
+  integration-lead decision and has not been performed.
+- `docs/engineering/admin-review-contract.md` still refers to integration into
+  `codex/integration`. That reference is retained as a Wave 1 historical record
+  of intent and is not a current instruction.
+
+Going forward, the integration target is per-wave rather than a single permanent
+branch. When a wave opens, the integration lead records its integration branch
+in this section rather than assuming a global default.
+
+### Configuration sweep, 2026-08-23
+
+Every tracked location that can carry a base branch was checked for a stale
+`codex/integration` reference.
+
+| Location | Base branch | Stale reference |
+|---|---|---|
+| `.github/workflows/ci.yml` | `main` only, on `push` and `pull_request` | none |
+| `.github/dependabot.yml` | no `target-branch`, so it inherits the repository default | none |
+| `netlify.toml` | no branch-specific contexts | none |
+| `origin/HEAD` | `origin/main` | none |
+
+No tracked configuration was left pointing at the stale branch.
+
+The remaining `codex/integration` mention in
+`docs/engineering/admin-review-contract.md` is a Wave 1 historical record of
+intent, not a current instruction, and is deliberately retained.
+
+### Known drift outside tracked configuration
+
+Two items are outside version control and cannot be fixed by editing this
+repository. They are recorded so an integration lead can act on them.
+
+**Local Git configuration.** Developer clones may retain
+`branch.*.vscode-merge-base` entries pointing at `origin/codex/integration`,
+including for `feat/wave2-booking-foundation`. An editor configured that way
+computes its diff against the stale branch and will present a misleading view of
+what a branch changed. Agents must not edit Git configuration; report it instead.
+
+**Remote branch.** `origin/codex/integration` still exists at `a5f0b61`.
+Retiring the branch requires deleting the remote ref as well as the local one,
+which is an integration-lead decision.
+
+### CI coverage caveat
+
+CI triggers only against `main`, so neither Wave 1 nor Wave 2 work was CI-gated
+on its own branch; quality gates were run locally by each track. An integration
+lead should decide whether CI should also trigger on the active integration
+branch before the next wave integrates.
+
+### Deployment caveat
+
+`netlify.toml` defines:
+
+```toml
+[context.production]
+  command = "npm run db:migrate:deploy && npm run build"
+```
+
+The production context therefore applies migrations automatically, and the branch
+Netlify treats as production is a provider dashboard setting rather than a value
+in this repository. Whichever branch is wired to the production context is an
+effective migration-deployment target, so it must be confirmed in the provider
+before any wave merges a schema change.
 
 Agents must not force-push shared branches, rewrite unrelated history, or edit
 unrelated files. Shared schema, migrations, package configuration, localization

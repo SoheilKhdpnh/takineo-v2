@@ -3,12 +3,18 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { phoneNumber, username } from "better-auth/plugins";
 
-import { isActiveAccount, isInactiveAccountSelfServicePath } from "@/lib/auth/account-policy";
+import {
+  canCreateAuthSession,
+  getAccountStatusForAuth,
+  isActiveAccount,
+  isInactiveAccountSelfServicePath,
+} from "@/lib/auth/account-policy";
 import { signupAuthHooks } from "@/lib/auth/signup-hooks";
 import { prisma } from "@/lib/db/prisma";
 import { iranPhoneToInternalEmail } from "@/lib/domain/iran-phone";
 import { isAllowedUsername } from "@/lib/domain/username";
 import { serverEnv } from "@/lib/env/server";
+import { getTrustedApplicationOrigins } from "@/lib/security/trusted-origins";
 import { isIranOtpPhoneNumber, deliverSignupOtp } from "@/lib/services/sms-otp.service";
 
 export const auth = betterAuth({
@@ -24,8 +30,12 @@ export const auth = betterAuth({
   databaseHooks: {
     session: {
       create: {
-        before: async (session) => {
-          return isActiveAccount(session.userId);
+        before: async (session, context) => {
+          const accountStatus = await getAccountStatusForAuth(session.userId);
+          return canCreateAuthSession({
+            accountStatus,
+            path: context?.path,
+          });
         },
       },
       update: {
@@ -92,7 +102,7 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
   },
 
-  trustedOrigins: [serverEnv.BETTER_AUTH_URL],
+  trustedOrigins: getTrustedApplicationOrigins(),
 
   plugins: [
     username({

@@ -1,10 +1,6 @@
 import "server-only";
 
-import { serverEnv } from "@/lib/env/server";
-
-const trustedOrigin = new URL(
-  serverEnv.BETTER_AUTH_URL,
-).origin;
+import { isTrustedApplicationOrigin } from "@/lib/security/trusted-origins";
 
 export function hasTrustedRequestOrigin(
   request: Request,
@@ -15,9 +11,5 @@ export function hasTrustedRequestOrigin(
     return process.env.NODE_ENV !== "production";
   }
 
-  try {
-    return new URL(origin).origin === trustedOrigin;
-  } catch {
-    return false;
-  }
+  return isTrustedApplicationOrigin(origin);
 }
