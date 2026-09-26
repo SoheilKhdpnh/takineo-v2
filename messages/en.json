@@ -903,7 +903,15 @@
     "noAvailabilityShort": "No opening yet",
     "introBadge": "Introduction",
     "openIntroduction": "Open teacher introduction",
-    "bookTrial": "Book trial lesson"
+    "bookTrial": "Book trial lesson",
+    "sortByLabel": "Sort by",
+    "sortOptions": {
+      "bestMatch": "Best match",
+      "online": "Online / soonest opening",
+      "experience": "Most experience",
+      "name": "Name A–Z",
+      "priceUnavailable": "Price (not listed yet)"
+    }
   },
   "TeacherAvailability": {
     "eyebrow": "Teacher schedule",

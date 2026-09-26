@@ -882,7 +882,7 @@
     "pageDescription": "فهرست زنده مدرسان تاکینو را ببینید. امتیاز و قیمت هنوز در این فهرست نیست، بنابراین نمایش داده نمی‌شود.",
     "filtersLabel": "فیلتر این فهرست",
     "filterAll": "همه",
-    "filterAvailable": "زمان آزاد دارد",
+    "filterAvailable": "نوبت آزاد دارد",
     "filterNative": "زبان مادری {language}",
     "filterEmptyTitle": "مدرسی با این فیلترها نیست",
     "filterEmptyDescription": "یک فیلتر را بردارید یا مدرس‌های بیشتری بارگذاری کنید. فیلتر فقط روی مدرس‌های همین صفحه اعمال می‌شود.",
@@ -903,7 +903,15 @@
     "noAvailabilityShort": "هنوز نوبتی نیست",
     "introBadge": "معرفی",
     "openIntroduction": "باز کردن معرفی مدرس",
-    "bookTrial": "رزرو جلسه آزمایشی"
+    "bookTrial": "رزرو جلسه آزمایشی",
+    "sortByLabel": "مرتب‌سازی",
+    "sortOptions": {
+      "bestMatch": "بهترین تطبیق",
+      "online": "آنلاین / نزدیک‌ترین نوبت",
+      "experience": "بیشترین سابقه",
+      "name": "نام الفبا",
+      "priceUnavailable": "قیمت (هنوز در فهرست نیست)"
+    }
   },
   "TeacherAvailability": {
     "eyebrow": "برنامهٔ مدرس",

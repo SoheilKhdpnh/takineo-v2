@@ -33,6 +33,56 @@ type AvailabilityFilter =
   | "all"
   | "open";
 
+type SortOption =
+  | "bestMatch"
+  | "online"
+  | "experience"
+  | "name";
+
+const SORT_OPTIONS: SortOption[] = [
+  "bestMatch",
+  "online",
+  "experience",
+  "name",
+];
+
+function compareTeachers(
+  left: PublicTeacherDiscoveryItem,
+  right: PublicTeacherDiscoveryItem,
+  sortBy: SortOption,
+): number {
+  if (sortBy === "online") {
+    if (left.nextAvailableAt && right.nextAvailableAt) {
+      return (
+        new Date(left.nextAvailableAt).getTime() -
+        new Date(right.nextAvailableAt).getTime()
+      );
+    }
+
+    if (left.nextAvailableAt) {
+      return -1;
+    }
+
+    if (right.nextAvailableAt) {
+      return 1;
+    }
+
+    return 0;
+  }
+
+  if (sortBy === "experience") {
+    return (right.experienceYears ?? -1) - (left.experienceYears ?? -1);
+  }
+
+  if (sortBy === "name") {
+    return left.name.localeCompare(right.name, undefined, {
+      sensitivity: "base",
+    });
+  }
+
+  return 0;
+}
+
 export function TeacherDiscoveryPanel({
   showHeader = true,
 }: {
@@ -56,6 +106,7 @@ export function TeacherDiscoveryPanel({
     useState<AvailabilityFilter>("all");
   const [nativeFilter, setNativeFilter] =
     useState<ProfileLanguageCode | "all">("all");
+  const [sortBy, setSortBy] = useState<SortOption>("bestMatch");
 
   const dateTimeFormatter = useMemo(
     () =>
@@ -174,7 +225,7 @@ export function TeacherDiscoveryPanel({
   }, [teachers]);
 
   const visibleTeachers = useMemo(() => {
-    return teachers.filter((teacher) => {
+    const filtered = teachers.filter((teacher) => {
       if (
         availabilityFilter === "open" &&
         teacher.nextAvailableAt === null
@@ -191,7 +242,15 @@ export function TeacherDiscoveryPanel({
 
       return true;
     });
-  }, [teachers, availabilityFilter, nativeFilter]);
+
+    if (sortBy === "bestMatch") {
+      return filtered;
+    }
+
+    return [...filtered].sort((left, right) =>
+      compareTeachers(left, right, sortBy),
+    );
+  }, [teachers, availabilityFilter, nativeFilter, sortBy]);
 
   function nextAvailableLabel(
     teacher: PublicTeacherDiscoveryItem,
@@ -322,10 +381,10 @@ export function TeacherDiscoveryPanel({
 
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         {teachers.length > 0 || loadState === "ready" ? (
-          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
               <p className="sr-only">{t("filtersLabel")}</p>
-              <FilterChip
+              <FilterTag
                 pressed={availabilityFilter === "all" && nativeFilter === "all"}
                 onClick={() => {
                   setAvailabilityFilter("all");
@@ -333,8 +392,8 @@ export function TeacherDiscoveryPanel({
                 }}
               >
                 {t("filterAllLanguages")}
-              </FilterChip>
-              <FilterChip
+              </FilterTag>
+              <FilterTag
                 pressed={availabilityFilter === "open"}
                 onClick={() =>
                   setAvailabilityFilter((current) =>
@@ -343,9 +402,9 @@ export function TeacherDiscoveryPanel({
                 }
               >
                 {t("filterAvailable")}
-              </FilterChip>
+              </FilterTag>
               {nativeOptions.map((code) => (
-                <FilterChip
+                <FilterTag
                   key={code}
                   pressed={nativeFilter === code}
                   onClick={() =>
@@ -357,14 +416,37 @@ export function TeacherDiscoveryPanel({
                   {t("filterNative", {
                     language: common(`languages.${code}`),
                   })}
-                </FilterChip>
+                </FilterTag>
               ))}
             </div>
 
-            <p className="inline-flex items-center gap-2 self-start rounded-full border border-[#edddd4] bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 lg:self-auto">
+            <label className="inline-flex min-h-10 items-center gap-2 self-start rounded-full border border-[#edddd4] bg-white pe-3 ps-3 text-sm font-medium text-zinc-700 lg:self-auto">
               <SortIcon />
-              {t("sortByDefault")}
-            </p>
+              <span className="text-zinc-500">{t("sortByLabel")}</span>
+              <select
+                value={sortBy}
+                aria-label={t("sortByLabel")}
+                onChange={(event) =>
+                  setSortBy(event.target.value as SortOption)
+                }
+                className="max-w-[11rem] appearance-none border-0 bg-transparent py-2 pe-5 text-sm font-semibold text-[#1c1410] outline-none"
+                style={{
+                  backgroundImage:
+                    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2371717a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 20 20'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 0.15rem center",
+                }}
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {t(`sortOptions.${option}`)}
+                  </option>
+                ))}
+                <option value="price" disabled>
+                  {t("sortOptions.priceUnavailable")}
+                </option>
+              </select>
+            </label>
           </div>
         ) : null}
 
@@ -403,7 +485,7 @@ export function TeacherDiscoveryPanel({
   );
 }
 
-function FilterChip({
+function FilterTag({
   pressed,
   onClick,
   children,
@@ -420,28 +502,15 @@ function FilterChip({
       className={cn(
         "inline-flex min-h-10 items-center rounded-full border px-3.5 text-sm font-semibold transition",
         pressed
-          ? "border-[#c2410c] bg-[#c2410c] text-white"
-          : "border-[#edddd4] bg-white text-[#1c1410] hover:bg-[#fff4ed]",
+          ? "border-[#c2410c] bg-[#c2410c] text-white shadow-[0_10px_24px_-16px_rgba(194,65,12,0.9)]"
+          : "border-[#edddd4] bg-white text-[#1c1410] hover:border-[#fdba74] hover:bg-[#fff4ed]",
       )}
     >
+      <span aria-hidden="true" className="me-1 font-bold opacity-80">
+        #
+      </span>
       {children}
-      <ChevronTiny className="ms-1.5" />
     </button>
-  );
-}
-
-function ChevronTiny({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className={cn("size-3.5 opacity-70", className)}
-      aria-hidden="true"
-    >
-      <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 

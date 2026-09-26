@@ -388,6 +388,84 @@ describe("TeacherDiscoveryPanel", () => {
     ).toBeInTheDocument();
   });
 
+  it("filters teachers with hashtag-style availability and native tags", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      jsonResponse({
+        teachers: [teacherA, teacherB],
+        nextCursor: null,
+      }),
+    );
+
+    const user = userEvent.setup();
+
+    render(<TeacherDiscoveryPanel showHeader={false} />);
+
+    await screen.findByText("Teacher A");
+    expect(screen.getByText("Teacher B")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /filterAvailable/,
+      }),
+    );
+
+    expect(screen.getByText("Teacher A")).toBeInTheDocument();
+    expect(screen.queryByText("Teacher B")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /filterAvailable/,
+      }),
+    );
+    expect(screen.getByText("Teacher B")).toBeInTheDocument();
+
+    // Native tags appear in first-seen order: fa (Teacher A), then tr (Teacher B).
+    const nativeTags = screen.getAllByRole("button", {
+      name: /filterNative/,
+    });
+    await user.click(nativeTags[0]!);
+
+    expect(screen.getByText("Teacher A")).toBeInTheDocument();
+    expect(screen.queryByText("Teacher B")).not.toBeInTheDocument();
+  });
+
+  it("sorts online teachers before those without an opening", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      jsonResponse({
+        teachers: [
+          {
+            ...teacherB,
+            name: "Teacher Offline",
+            nextAvailableAt: null,
+          },
+          {
+            ...teacherA,
+            name: "Teacher Online",
+            nextAvailableAt: "2026-08-20T14:30:00.000Z",
+          },
+        ],
+        nextCursor: null,
+      }),
+    );
+
+    const user = userEvent.setup();
+
+    render(<TeacherDiscoveryPanel showHeader={false} />);
+
+    await screen.findByText("Teacher Offline");
+
+    await user.selectOptions(
+      screen.getByLabelText("sortByLabel"),
+      "online",
+    );
+
+    expect(
+      screen
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(["Teacher Online", "Teacher Offline"]);
+  });
+
   it("keeps the Persian and English discovery catalogs structurally aligned", () => {
     expect(
       Object.keys(
