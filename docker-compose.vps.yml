@@ -7,24 +7,23 @@
 # command and target database.
 
 services:
+  postgres:
+    # Never publish Postgres on a public VPS interface.
+    ports: !reset []
+
   livekit:
-    # On a public host, advertise the real external IP and do not pin loopback.
+    # Prefer the existing host livekit-server on this VPS when already proven.
+    # If starting the compose LiveKit service instead, use livekit.vps.yaml and
+    # free host ports 7880/7881 first.
+    profiles: ["compose-livekit"]
     volumes:
       - ./docker/livekit.vps.yaml:/etc/livekit.yaml:ro
     ports:
-      # Prefer terminating TLS on 443 via a reverse proxy in front of 7880.
       - "7880:7880"
       - "7881:7881"
       - "50000-60000:50000-60000/udp"
-    # TURN (coturn or LiveKit's embedded TURN) must be reachable from Iran
-    # client networks. Validate with diagnostics/iran-webrtc/ before beta.
-
-  postgres:
-    # Do not publish Postgres on the public interface in production.
-    ports: []
 
   app:
     profiles: ["full"]
     environment:
-      # Set these in the VPS .env.docker — never commit real secrets.
       PRISMA_DATABASE_ADAPTER: pg

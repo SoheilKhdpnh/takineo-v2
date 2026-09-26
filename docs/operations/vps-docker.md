@@ -44,3 +44,23 @@ docker compose exec -T postgres pg_isready -U takineo
 docker compose -f docker-compose.yml -f docker-compose.vps.yml down
 # volumes retained unless you pass -v
 ```
+
+## Evidence — `takineo-livekit` (2026-09-26)
+
+Deployed to host SSH alias `takineo-livekit` under `~/takineo-docker`:
+
+- Compose files copied from `feat/local-core-integration`
+- `postgres:16-alpine` image transferred from the local workstation (Docker Hub
+  timed out from the VPS) and loaded with `docker load`
+- `docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d postgres`
+  — healthy, **not** published on the host (`5432/tcp` container-only)
+- Existing host `livekit-server` on `:7880`/`:7881` left running (compose LiveKit
+  is behind profile `compose-livekit` so it does not fight the proven binary)
+- `takineo-egress` and `livekit-redis` containers already up from prior work
+- **Not done here:** `prisma migrate deploy` (needs explicit operator approval of
+  command + target), public 80/443 TLS, Iran-path TURN proof, app process on VPS
+
+Next operator steps: approve a migrate command against this Docker Postgres only,
+point the app `DATABASE_URL` at the compose network (or an SSH tunnel for host
+Next), keep using the existing LiveKit keys from the first-test path until
+production keys are rotated.
