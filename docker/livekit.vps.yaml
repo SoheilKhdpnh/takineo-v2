@@ -1,0 +1,30 @@
+# VPS LiveKit template — copy and set node_ip / webhook URL for the host.
+# Replace PLACEHOLDER values before starting. Do not commit real secrets.
+
+port: 7880
+bind_addresses:
+  - ""
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+  # Set to the VPS public IPv4 once DNS/firewall are ready:
+  # node_ip: YOUR.PUBLIC.IP.HERE
+
+keys:
+  # Generate unique production keys; do not reuse local devkey.
+  REPLACE_API_KEY: REPLACE_WITH_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS
+
+webhook:
+  api_key: REPLACE_API_KEY
+  urls:
+    - https://YOUR_PUBLIC_APP_HOST/api/webhooks/live-session
+
+logging:
+  level: info
+
+# TURN for Iran-path media is still required for two-computer classes.
+# Prefer a dedicated TURN listener on 443/UDP+TCP after the Iran diagnostic
+# in diagnostics/iran-webrtc/ passes against this host.

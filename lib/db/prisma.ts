@@ -72,6 +72,27 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter });
   }
 
+  const databaseAdapter = (
+    process.env.PRISMA_DATABASE_ADAPTER ?? "neon"
+  )
+    .trim()
+    .toLowerCase();
+
+  if (databaseAdapter === "pg") {
+    const adapter = new PrismaPg({
+      connectionString: serverEnv.DATABASE_URL,
+      options: "-c timezone=UTC",
+    });
+
+    return new PrismaClient({ adapter });
+  }
+
+  if (databaseAdapter !== "neon") {
+    throw new Error(
+      'PRISMA_DATABASE_ADAPTER must be "pg" or "neon".',
+    );
+  }
+
   const adapter = new PrismaNeon({
     connectionString: serverEnv.DATABASE_URL,
   });

@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env.docker
+*.md
+diagnostics
+docs
+tests
+playwright-report
+test-results
+coverage
+.turbo

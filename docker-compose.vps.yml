@@ -1,0 +1,30 @@
+# Override for an international VPS after local proof succeeds.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
+#
+# Docs: docs/operations/vps-docker.md
+# Do not run production migrations until the operator approves the exact
+# command and target database.
+
+services:
+  livekit:
+    # On a public host, advertise the real external IP and do not pin loopback.
+    volumes:
+      - ./docker/livekit.vps.yaml:/etc/livekit.yaml:ro
+    ports:
+      # Prefer terminating TLS on 443 via a reverse proxy in front of 7880.
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-60000:50000-60000/udp"
+    # TURN (coturn or LiveKit's embedded TURN) must be reachable from Iran
+    # client networks. Validate with diagnostics/iran-webrtc/ before beta.
+
+  postgres:
+    # Do not publish Postgres on the public interface in production.
+    ports: []
+
+  app:
+    profiles: ["full"]
+    environment:
+      # Set these in the VPS .env.docker — never commit real secrets.
+      PRISMA_DATABASE_ADAPTER: pg

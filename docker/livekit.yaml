@@ -1,0 +1,27 @@
+# Local LiveKit config for docker compose.
+# Keys match .env.docker.example — do not use these values in production.
+
+port: 7880
+bind_addresses:
+  - ""
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  use_external_ip: false
+  # Pin loopback so a same-machine browser can complete TCP ICE without TURN.
+  node_ip: 127.0.0.1
+
+keys:
+  # LiveKit requires the secret to be long enough for JWT signing.
+  devkey: secret_must_be_at_least_32_chars_long!!
+
+webhook:
+  api_key: devkey
+  urls:
+    # Next.js on the Docker host (Windows/macOS Docker Desktop).
+    - http://host.docker.internal:3000/api/webhooks/live-session
+
+logging:
+  level: info

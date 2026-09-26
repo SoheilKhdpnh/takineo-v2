@@ -1,0 +1,75 @@
+# Local core stack: Postgres + LiveKit.
+# Default: infrastructure only (app stays on the host to save disk).
+# Full in-compose app: docker compose --profile full up -d
+#
+# Docs: docs/operations/local-docker.md
+
+name: takineo-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: takineo
+      POSTGRES_PASSWORD: takineo
+      POSTGRES_DB: takineo
+    ports:
+      - "5432:5432"
+    volumes:
+      - takineo_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U takineo -d takineo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  livekit:
+    image: livekit/livekit-server:v1.8.4
+    restart: unless-stopped
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./docker/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50100:50000-50100/udp"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:7880/ || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  app:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      livekit:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    environment:
+      PRISMA_DATABASE_ADAPTER: pg
+      DATABASE_URL: postgresql://takineo:takineo@postgres:5432/takineo
+      DIRECT_URL: postgresql://takineo:takineo@postgres:5432/takineo
+      LIVEKIT_WS_URL: ws://livekit:7880
+      LIVEKIT_HTTP_URL: http://livekit:7880
+      # Browser still connects via published host ports:
+      # set LIVEKIT_WS_URL for tokens to ws://127.0.0.1:7880 in .env.docker
+    ports:
+      - "3000:3000"
+
+volumes:
+  takineo_pg_data:
