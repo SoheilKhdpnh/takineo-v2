@@ -192,7 +192,11 @@ export function TeacherProfileEditDialog({
             description={t("editorDetailsDescription")}
           >
             {canEditDetails ? (
-              <TeacherProfileForm initialValue={initialValue} />
+              <TeacherProfileForm
+                displayName={displayName}
+                image={userImage}
+                initialValue={initialValue}
+              />
             ) : (
               <p className="rounded-xl border border-[#edddd4] bg-[#fffaf6] px-4 py-3 text-sm leading-6 text-zinc-600">
                 {t("readOnlyNotice")}

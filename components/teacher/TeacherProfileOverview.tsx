@@ -61,6 +61,20 @@ export function TeacherProfileOverview({
     timezone: ProfileTimezone;
     applicationStatus: TeacherApplicationStatus;
     introVideoStatus: keyof typeof videoStatusKeys | null;
+    certifications: Array<{
+      id: string;
+      subject: string;
+      name: string;
+    }>;
+    education: Array<{
+      id: string;
+      university: string;
+      degree: string;
+      degreeType: string;
+      specialization: string;
+      startYear: number;
+      endYear: number | null;
+    }>;
   };
 }) {
   const t = useTranslations("TeacherProfile");
@@ -327,9 +341,34 @@ export function TeacherProfileOverview({
                   <h2 className="text-lg font-semibold text-zinc-950">
                     {t("tabEducation")}
                   </h2>
-                  <p className="mt-3 text-sm leading-7 text-zinc-600">
-                    {t("educationEmpty")}
-                  </p>
+                  {profile.education.length === 0 ? (
+                    <p className="mt-3 text-sm leading-7 text-zinc-600">
+                      {t("educationEmpty")}
+                    </p>
+                  ) : (
+                    <ul className="mt-4 space-y-4">
+                      {profile.education.map((row) => (
+                        <li
+                          key={row.id}
+                          className="rounded-xl border border-[#edddd4] bg-[#fffaf6] px-4 py-3"
+                        >
+                          <p className="text-sm font-semibold text-zinc-950">
+                            {row.degree}
+                          </p>
+                          <p className="mt-1 text-sm text-zinc-600">
+                            {row.university}
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            {row.degreeType} · {row.specialization} ·{" "}
+                            <span dir="ltr">
+                              {row.startYear}
+                              {row.endYear ? `–${row.endYear}` : ""}
+                            </span>
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </>
               ) : null}
 
@@ -338,9 +377,27 @@ export function TeacherProfileOverview({
                   <h2 className="text-lg font-semibold text-zinc-950">
                     {t("tabCertifications")}
                   </h2>
-                  <p className="mt-3 text-sm leading-7 text-zinc-600">
-                    {t("certificationsEmpty")}
-                  </p>
+                  {profile.certifications.length === 0 ? (
+                    <p className="mt-3 text-sm leading-7 text-zinc-600">
+                      {t("certificationsEmpty")}
+                    </p>
+                  ) : (
+                    <ul className="mt-4 space-y-4">
+                      {profile.certifications.map((row) => (
+                        <li
+                          key={row.id}
+                          className="rounded-xl border border-[#edddd4] bg-[#fffaf6] px-4 py-3"
+                        >
+                          <p className="text-sm font-semibold text-zinc-950">
+                            {row.name}
+                          </p>
+                          <p className="mt-1 text-sm text-zinc-600">
+                            {row.subject}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </>
               ) : null}
             </div>

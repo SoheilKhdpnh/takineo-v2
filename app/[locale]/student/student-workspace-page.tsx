@@ -52,6 +52,8 @@ export async function StudentWorkspacePage({
           </p>
           <div className="mt-8">
             <StudentProfileForm
+              displayName={session.user.name ?? ""}
+              image={session.user.image ?? null}
               initialValue={{
                 englishLevel: profile.englishLevel,
                 learningGoal: profile.learningGoal ?? "",
@@ -120,6 +122,8 @@ export async function StudentWorkspacePage({
             </p>
             <div className="mt-5 max-w-xl">
               <StudentProfileForm
+                displayName={session.user.name ?? ""}
+                image={session.user.image ?? null}
                 initialValue={{
                   englishLevel: profile.englishLevel,
                   learningGoal: profile.learningGoal ?? "",

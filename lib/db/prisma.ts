@@ -72,25 +72,37 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter });
   }
 
-  const databaseAdapter = (
-    process.env.PRISMA_DATABASE_ADAPTER ?? "neon"
+  const explicitAdapter = (
+    process.env.PRISMA_DATABASE_ADAPTER ?? ""
   )
     .trim()
     .toLowerCase();
 
-  if (databaseAdapter === "pg") {
+  if (
+    explicitAdapter.length > 0 &&
+    explicitAdapter !== "pg" &&
+    explicitAdapter !== "neon"
+  ) {
+    throw new Error(
+      'PRISMA_DATABASE_ADAPTER must be "pg" or "neon".',
+    );
+  }
+
+  const databaseHost = new URL(serverEnv.DATABASE_URL).hostname;
+  const isLocalPostgres =
+    databaseHost === "127.0.0.1" ||
+    databaseHost === "localhost" ||
+    databaseHost === "postgres";
+
+  // Local Docker Postgres must use node-postgres. PrismaNeon against a
+  // normal Postgres URL fails with opaque credential errors.
+  if (isLocalPostgres || explicitAdapter === "pg") {
     const adapter = new PrismaPg({
       connectionString: serverEnv.DATABASE_URL,
       options: "-c timezone=UTC",
     });
 
     return new PrismaClient({ adapter });
-  }
-
-  if (databaseAdapter !== "neon") {
-    throw new Error(
-      'PRISMA_DATABASE_ADAPTER must be "pg" or "neon".',
-    );
   }
 
   const adapter = new PrismaNeon({

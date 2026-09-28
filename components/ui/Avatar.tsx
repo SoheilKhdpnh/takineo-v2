@@ -1,7 +1,7 @@
 import { cn } from "@/lib/ui/cn";
 
-export function initialsFor(name: string): string {
-  const parts = name
+export function initialsFor(name: string | null | undefined): string {
+  const parts = (name ?? "")
     .trim()
     .split(/\s+/)
     .filter(Boolean)
@@ -40,7 +40,7 @@ export function Avatar({
   rounded = "md",
   className,
 }: {
-  name: string;
+  name?: string | null;
   image: string | null;
   size?: AvatarSize;
   rounded?: "md" | "full";

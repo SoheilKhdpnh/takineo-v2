@@ -104,6 +104,34 @@ const teacherProfileSelect = {
         true,
     },
   },
+
+  certifications: {
+    orderBy: {
+      position: "asc",
+    },
+    select: {
+      id: true,
+      position: true,
+      subject: true,
+      name: true,
+    },
+  },
+
+  education: {
+    orderBy: {
+      position: "asc",
+    },
+    select: {
+      id: true,
+      position: true,
+      university: true,
+      degree: true,
+      degreeType: true,
+      specialization: true,
+      startYear: true,
+      endYear: true,
+    },
+  },
 } satisfies
   Prisma.TeacherProfileSelect;
 
@@ -282,6 +310,52 @@ export async function saveTeacherProfile(
           1
         ) {
           throw new TeacherApplicationLockedError();
+        }
+
+        if (input.certifications !== undefined) {
+          await tx.teacherCertification.deleteMany({
+            where: {
+              teacherProfileId: currentProfile.id,
+            },
+          });
+
+          if (input.certifications.length > 0) {
+            await tx.teacherCertification.createMany({
+              data: input.certifications.map(
+                (certification, position) => ({
+                  teacherProfileId: currentProfile.id,
+                  position,
+                  subject: certification.subject,
+                  name: certification.name,
+                }),
+              ),
+            });
+          }
+        }
+
+        if (input.education !== undefined) {
+          await tx.teacherEducation.deleteMany({
+            where: {
+              teacherProfileId: currentProfile.id,
+            },
+          });
+
+          if (input.education.length > 0) {
+            await tx.teacherEducation.createMany({
+              data: input.education.map(
+                (row, position) => ({
+                  teacherProfileId: currentProfile.id,
+                  position,
+                  university: row.university,
+                  degree: row.degree,
+                  degreeType: row.degreeType,
+                  specialization: row.specialization,
+                  startYear: row.startYear,
+                  endYear: row.endYear,
+                }),
+              ),
+            });
+          }
         }
 
         /*

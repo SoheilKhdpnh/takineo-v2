@@ -622,6 +622,8 @@ export function StudentProfileOverview({
             </header>
             <div className="p-5">
               <StudentProfileForm
+                displayName={userName}
+                image={userImage}
                 initialValue={{
                   englishLevel: profile.englishLevel,
                   learningGoal: profile.learningGoal ?? "",

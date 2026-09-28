@@ -55,6 +55,8 @@ export async function TeacherWorkspacePage({
           </p>
           <div className="mt-8">
             <TeacherProfileForm
+              displayName={session.user.name ?? ""}
+              image={session.user.image ?? null}
               initialValue={{
                 headline: profile.headline ?? "",
                 bio: profile.bio ?? "",
@@ -86,6 +88,8 @@ export async function TeacherWorkspacePage({
           timezone,
           applicationStatus: profile.applicationStatus,
           introVideoStatus: profile.introVideo?.status ?? null,
+          certifications: profile.certifications ?? [],
+          education: profile.education ?? [],
         }}
       >
         <section id="schedule" className="mt-6 scroll-mt-24">

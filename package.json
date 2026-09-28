@@ -25,7 +25,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "docker:up": "docker compose up -d postgres livekit",
     "docker:down": "docker compose down",
-    "docker:smoke": "powershell -ExecutionPolicy Bypass -File scripts/docker/smoke-local.ps1"
+    "docker:smoke": "powershell -ExecutionPolicy Bypass -File scripts/docker/smoke-local.ps1",
+    "dev:local": "powershell -ExecutionPolicy Bypass -File scripts/dev-local.ps1"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
@@ -79,6 +80,7 @@
     "@prisma/engines": true,
     "esbuild": true,
     "@parcel/watcher@2.6.0": true,
+    "fsevents@2.3.2": false,
     "fsevents@2.3.3": false,
     "@swc/core@1.15.47": true
   },
