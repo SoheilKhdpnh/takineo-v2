@@ -20,12 +20,14 @@ Smoke must print `PASS` for Postgres and LiveKit before you continue.
 
 ```powershell
 # Operator-approved local-only example — do not point at Neon/production
-$env:DATABASE_URL="postgresql://takineo:takineo@127.0.0.1:5432/takineo"
-$env:DIRECT_URL="postgresql://takineo:takineo@127.0.0.1:5432/takineo"
+$env:DATABASE_URL="postgresql://takineo:takineo@127.0.0.1:5433/takineo"
+$env:DIRECT_URL="postgresql://takineo:takineo@127.0.0.1:5433/takineo"
 npx prisma migrate deploy
 ```
 
 3. `npm run dev` then book a session and open `/{locale}/sessions/{sessionId}/join`.
+
+Local Docker Postgres is published on **host port 5433** (container 5432) so it does not collide with a Windows PostgreSQL install on `:5432`.
 
 ## Optional in-compose app
 

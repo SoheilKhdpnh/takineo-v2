@@ -533,6 +533,7 @@ model SessionReview {
   @@index([studentUserId], map: "session_review_student_idx")
   @@index([teacherUserId], map: "session_review_teacher_idx")
   @@map("session_review")
+}
 
 // ============================================================================
 // Wave 4 — AI conversation intelligence.
