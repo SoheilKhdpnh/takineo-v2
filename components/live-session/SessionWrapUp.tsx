@@ -48,6 +48,7 @@ export function SessionWrapUp({
   counterpartName,
   reason,
   onSubmitReview,
+  onRejoin,
 }: {
   brand: string;
   sessionId: string;
@@ -58,10 +59,13 @@ export function SessionWrapUp({
     rating: number;
     comment: string;
   }) => Promise<"ok" | "already" | "error">;
+  onRejoin: () => void;
 }) {
   const t = useTranslations("LiveSessionJoin");
   const dashboardHref = getRoleHome(viewerRole);
-  const canRate = viewerRole === "STUDENT" && reason !== "cancelled";
+  const disconnected = reason === "disconnected";
+  const canRate =
+    viewerRole === "STUDENT" && reason !== "cancelled" && !disconnected;
   const [reviewPhase, setReviewPhase] = useState<ReviewPhase>(
     canRate ? "prompt" : "skipped",
   );
@@ -147,18 +151,39 @@ export function SessionWrapUp({
         <TalkinuWordmark brand={brand} markClassName="size-8" />
 
         <Card className="mt-8">
-          <p className="text-sm font-medium text-primary">
-            {t("wrapUp.eyebrow")}
-          </p>
-          <h1 className="mt-2 font-display text-3xl tracking-tight text-ink">
-            {t("wrapUp.title")}
-          </h1>
-          <p className="mt-3 leading-7 text-ink-muted">
-            {t(titleKey, { name: counterpartName })}
-          </p>
-          <p className="mt-4 rounded-md bg-mint/60 px-4 py-3 text-sm leading-6 text-ink">
-            {t("wrapUp.reportSoon")}
-          </p>
+          {disconnected ? (
+            <>
+              <p className="text-sm font-medium text-danger">
+                {t("wrapUp.disconnectedEyebrow")}
+              </p>
+              <h1 className="mt-2 font-display text-3xl tracking-tight text-ink">
+                {t("wrapUp.disconnectedTitle")}
+              </h1>
+              <p className="mt-3 leading-7 text-ink-muted">
+                {t("wrapUp.disconnectedBody", { name: counterpartName })}
+              </p>
+              <ButtonRow className="mt-6">
+                <Button type="button" onClick={onRejoin}>
+                  {t("wrapUp.rejoin")}
+                </Button>
+              </ButtonRow>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-primary">
+                {t("wrapUp.eyebrow")}
+              </p>
+              <h1 className="mt-2 font-display text-3xl tracking-tight text-ink">
+                {t("wrapUp.title")}
+              </h1>
+              <p className="mt-3 leading-7 text-ink-muted">
+                {t(titleKey, { name: counterpartName })}
+              </p>
+              <p className="mt-4 rounded-md bg-mint/60 px-4 py-3 text-sm leading-6 text-ink">
+                {t("wrapUp.reportSoon")}
+              </p>
+            </>
+          )}
 
           {canRate &&
           (reviewPhase === "prompt" || reviewPhase === "submitting") ? (

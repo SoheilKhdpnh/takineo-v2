@@ -10,8 +10,12 @@ rtc:
   port_range_start: 50000
   port_range_end: 50100
   use_external_ip: false
-  # Pin loopback so a same-machine browser can complete TCP ICE without TURN.
+  # Pin loopback so a same-machine browser can reach the published ports.
   node_ip: 127.0.0.1
+  # LOCAL ONLY: Docker Desktop's UDP range forwarding drops WebRTC media after
+  # ~30s on Windows (ICE consent fails, PEER_CONNECTION_DISCONNECTED).
+  # Force ICE over TCP on 7881. Never copy this into livekit.vps.yaml.
+  force_tcp: true
 
 keys:
   # LiveKit requires the secret to be long enough for JWT signing.

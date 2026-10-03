@@ -25,10 +25,22 @@ export type ConnectionQualityLevel =
 
 export type WrapUpReason =
   | "leave"
+  | "disconnected"
   | "time"
   | "windowClosed"
   | "cancelled"
   | "completed";
+
+/**
+ * A provider-side drop is only rejoinable while the session is still running;
+ * after `endAt` it is the normal end of the session.
+ */
+export function wrapUpReasonForDisconnect(
+  endAt: string,
+  nowMs: number,
+): WrapUpReason {
+  return nowMs < new Date(endAt).getTime() ? "disconnected" : "time";
+}
 
 export function isStrugglingQuality(
   quality: ConnectionQualityLevel,

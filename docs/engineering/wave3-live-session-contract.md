@@ -760,6 +760,61 @@ Poor / Lost.
 
 The session always shows remaining time until `endAt`, not only elapsed time.
 
+### Disconnect and rejoin
+
+A provider-side disconnect before `endAt` shows a "connection lost" state with a
+rejoin action instead of the end-of-session screen, and does not prompt for a
+rating. Rejoin calls `POST /api/sessions/{sessionId}/join` again with the same
+`clientJoinAttemptId`, so the server replays the existing grant and the same
+LiveKit identity replaces the dropped participant. The server still decides:
+a closed window or cancelled session is refused as on first join. A disconnect
+at or after `endAt` is the normal end of the session.
+
+SDK automatic reconnection stays disabled (`maxRetries: 0`, no reconnect
+policy) until reconnect counting policy is decided alongside `REJOIN_GRACE`.
+
+### In-session chat (ephemeral)
+
+Teacher and student can exchange text during the call. Messages travel over
+LiveKit text streams on topic `takineo.session-chat` using the existing
+`canPublishData` grant, live only in browser memory, and are gone when the page
+closes. Nothing is written to the database, no route handles chat, and chat is
+not input to Wave 5 analysis.
+
+The counterpart's client is untrusted: incoming streams larger than the UTF-8
+bound for 500 characters are not read, longer text is clamped to 500
+characters, text renders as plain text with `dir="auto"`, and at most 200
+messages are kept per page. Persisting chat would need its own retention,
+moderation, and access decision.
+
+### Shared whiteboard (decided 2026-10-03, not yet built)
+
+- Library: Excalidraw (MIT, React 19, `langCode="fa-IR"`), loaded with a
+  client-only dynamic import only when the board is opened. tldraw was
+  rejected because production use requires a paid commercial license key.
+- Sync: element changes over a LiveKit data stream in the same room, merged
+  with Excalidraw `reconcileElements`; a full snapshot is sent to a joining or
+  rejoining participant. No new server route.
+- Persistence: none server-side. Either participant can download the board as
+  an image; nothing is stored or used as Wave 5 input.
+- Control: both participants draw. The teacher can also clear the board, lock
+  the student to view-only, and lead the viewport. These are UI controls over
+  a two-party room, not server authorization.
+- First version: standard tools, lined and grid backgrounds, tense-timeline,
+  irregular-verb-table and vocabulary-card templates, an IPA symbol palette,
+  and the teacher controls. Sentence builder, word web, and correction colors
+  follow later.
+
+### Completion scheduling
+
+`POST /api/internal/jobs/live-session-completion` performs completion only when
+invoked. Locally the compose `jobs` service calls it every 60 seconds
+(`docs/operations/local-docker.md`). The production scheduler is not chosen.
+
+Sessions without two-sided presence stay `SCHEDULED` and are reselected on every
+run, oldest first. More unsettled no-shows than the job `limit` would starve
+newer completions, so the §2 no-show decision must land before production.
+
 ### SessionReview (capture only)
 
 `SessionReview` is an additive table keyed by `SpeakingSession`. It stores:

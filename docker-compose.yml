@@ -26,7 +26,9 @@ services:
       retries: 20
 
   livekit:
-    image: livekit/livekit-server:v1.8.4
+    # Keep in step with livekit-client: 2.22+ needs a server that supports
+    # /rtc/v1 and data tracks (same version as the VPS host binary).
+    image: livekit/livekit-server:v1.13.7
     restart: unless-stopped
     command: ["--config", "/etc/livekit.yaml"]
     volumes:
@@ -47,6 +49,32 @@ services:
       timeout: 5s
       retries: 20
       start_period: 5s
+
+  # Calls internal jobs on the host-run Next.js app. Wave 3 completion only
+  # moves SCHEDULED -> COMPLETED when something invokes this route.
+  jobs:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      JOB_BASE_URL: http://host.docker.internal:3000
+      JOB_INTERVAL_SECONDS: "60"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        while true; do
+        curl -sS --max-time 30 -X POST
+        -H "content-type: application/json"
+        -H "x-takineo-job-secret: $$INTERNAL_JOB_SECRET"
+        -d '{"limit":20}'
+        "$$JOB_BASE_URL/api/internal/jobs/live-session-completion"
+        || echo "live-session-completion: app unreachable";
+        echo;
+        sleep "$$JOB_INTERVAL_SECONDS";
+        done
 
   app:
     profiles: ["full"]

@@ -17,6 +17,18 @@ if (-not (Test-Path $envFile)) {
   }
 }
 
+# Internal job routes fail closed without a secret; generate a local one once.
+$envLines = @(Get-Content $envFile)
+if (-not ($envLines | Where-Object { $_ -match '^INTERNAL_JOB_SECRET=.{32,}$' })) {
+  $bytes = New-Object byte[] 32
+  [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+  $secret = ([Convert]::ToBase64String($bytes)) -replace '[+/=]', ''
+  $envLines = @($envLines | Where-Object { $_ -notmatch '^INTERNAL_JOB_SECRET=' })
+  $envLines += "INTERNAL_JOB_SECRET=$secret"
+  Set-Content -Path $envFile -Value $envLines
+  Write-Host "Generated INTERNAL_JOB_SECRET in .env.docker"
+}
+
 Copy-Item $envFile (Join-Path $root ".env.local") -Force
 
 # Stale PowerShell exports override Next.js .env.local - clear them first.
@@ -48,6 +60,6 @@ Get-Content $envFile | ForEach-Object {
 $dbHost = ([Uri]$env:DATABASE_URL).Authority
 Write-Host "dev-local DATABASE=$dbHost adapter=$env:PRISMA_DATABASE_ADAPTER"
 
-docker compose up -d postgres livekit | Out-Host
+docker compose up -d postgres livekit jobs | Out-Host
 
 npm run dev

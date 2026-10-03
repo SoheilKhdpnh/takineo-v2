@@ -35,10 +35,18 @@ import {
   liveSessionConnectOptions,
 } from "@/components/live-session/live-session-room";
 import {
+  SESSION_CHAT_MAX_BYTES,
+  SESSION_CHAT_TOPIC,
+  appendChatMessage,
+  normalizeIncomingChatText,
+  type SessionChatMessage,
+} from "@/components/live-session/session-chat-model";
+import {
   clearJoinAttemptId,
   isStrugglingQuality,
   parseJoinSuccess,
   readOrCreateJoinAttemptId,
+  wrapUpReasonForDisconnect,
   type ConnectionQualityLevel,
   type SessionJoinContext,
   type WrapUpReason,
@@ -134,6 +142,8 @@ export function LiveSessionJoinRoom({
   const [quality, setQuality] = useState<ConnectionQualityLevel>("unknown");
   const [reconnecting, setReconnecting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [chatMessages, setChatMessages] = useState<SessionChatMessage[]>([]);
+  const [remoteChatTotal, setRemoteChatTotal] = useState(0);
 
   useEffect(() => {
     videoEnabledRef.current = videoEnabled;
@@ -269,6 +279,36 @@ export function LiveSessionJoinRoom({
       attachTrack(track);
     });
 
+    room.registerTextStreamHandler(SESSION_CHAT_TOPIC, async (reader) => {
+      if (
+        reader.info.size !== undefined &&
+        reader.info.size > SESSION_CHAT_MAX_BYTES
+      ) {
+        return;
+      }
+
+      let text: string | null = null;
+
+      try {
+        text = normalizeIncomingChatText(await reader.readAll());
+      } catch {
+        return;
+      }
+
+      if (!text) {
+        return;
+      }
+
+      const received: SessionChatMessage = {
+        id: reader.info.id,
+        author: "remote",
+        text,
+        sentAt: Date.now(),
+      };
+      setChatMessages((current) => appendChatMessage(current, received));
+      setRemoteChatTotal((current) => current + 1);
+    });
+
     room.on(RoomEvent.ParticipantConnected, () => {
       setRemotePresent(room.remoteParticipants.size > 0);
     });
@@ -315,7 +355,7 @@ export function LiveSessionJoinRoom({
         return;
       }
 
-      finishSession("leave");
+      finishSession(wrapUpReasonForDisconnect(context.endAt, Date.now()));
     });
 
     setPhase("connecting");
@@ -491,6 +531,30 @@ export function LiveSessionJoinRoom({
     }
   }
 
+  async function handleSendChat(text: string): Promise<boolean> {
+    const room = roomRef.current;
+
+    if (!room) {
+      return false;
+    }
+
+    try {
+      const info = await room.localParticipant.sendText(text, {
+        topic: SESSION_CHAT_TOPIC,
+      });
+      const sent: SessionChatMessage = {
+        id: info.id,
+        author: "self",
+        text,
+        sentAt: Date.now(),
+      };
+      setChatMessages((current) => appendChatMessage(current, sent));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function handleSubmitReview(input: {
     rating: number;
     comment: string;
@@ -552,6 +616,9 @@ export function LiveSessionJoinRoom({
           counterpartName={context.counterparty.name}
           reason={wrapReason}
           onSubmitReview={handleSubmitReview}
+          onRejoin={() => {
+            void handleJoin();
+          }}
         />
       </>
     );
@@ -589,6 +656,9 @@ export function LiveSessionJoinRoom({
           onElapsed={() => {
             finishSession("time");
           }}
+          chatMessages={chatMessages}
+          remoteChatTotal={remoteChatTotal}
+          onSendChat={handleSendChat}
         />
       </>
     );

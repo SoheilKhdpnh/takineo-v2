@@ -1292,10 +1292,26 @@
       "reconnecting": "The connection is struggling. Stay on the page — Talkinu is holding the audio path.",
       "videoPaused": "Video paused to protect the call. You can still hear each other."
     },
+    "chat": {
+      "title": "Chat",
+      "open": "Chat",
+      "openWithUnread": "Chat, {count, plural, one {# new message} other {# new messages}}",
+      "close": "Close",
+      "ephemeralNotice": "Messages disappear when the session ends.",
+      "empty": "No messages yet. Use chat to share a word or its spelling.",
+      "inputLabel": "Write a message",
+      "placeholder": "Type a message…",
+      "send": "Send",
+      "sendError": "That message was not sent. Check your connection and try again."
+    },
     "wrapUp": {
       "eyebrow": "Session complete",
       "title": "This session has ended",
       "endedByLeave": "You have left the room with {name}.",
+      "disconnectedEyebrow": "Connection lost",
+      "disconnectedTitle": "You were disconnected from the session",
+      "disconnectedBody": "Your session with {name} is still running. You can rejoin until it ends.",
+      "rejoin": "Rejoin session",
       "endedByTime": "The 15 minutes with {name} are complete.",
       "cancelled": "This session with {name} was cancelled.",
       "reportSoon": "Your session report will be ready here soon.",

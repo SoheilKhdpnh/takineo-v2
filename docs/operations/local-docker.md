@@ -29,6 +29,30 @@ npx prisma migrate deploy
 
 Local Docker Postgres is published on **host port 5433** (container 5432) so it does not collide with a Windows PostgreSQL install on `:5432`.
 
+## Live-session completion job
+
+Sessions move `SCHEDULED → COMPLETED` only when something calls
+`POST /api/internal/jobs/live-session-completion`. Locally the compose `jobs`
+service does this every 60 seconds against the host-run app at
+`http://host.docker.internal:3000`, sending `INTERNAL_JOB_SECRET` from
+`.env.docker` in the `x-takineo-job-secret` header.
+
+`npm run dev:local` generates `INTERNAL_JOB_SECRET` into `.env.docker` when it
+is blank and starts `jobs` with Postgres and LiveKit. Watch it with:
+
+```powershell
+docker compose logs -f jobs
+```
+
+Each line is `{"selected":n,"completed":n,"skipped":n,"failed":n}`. Sessions with
+no two-sided presence are skipped and stay `SCHEDULED` (no-show settlement is an
+open product decision, Wave 3 contract §2). Because the job takes the oldest
+ended sessions first, more than `limit` (20) unsettled no-shows would block newer
+completions; resolve the no-show decision before production.
+
+The production scheduler (Netlify scheduled function vs VPS cron) is not chosen
+yet.
+
 ## Optional in-compose app
 
 ```powershell

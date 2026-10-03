@@ -18,6 +18,12 @@ import {
 } from "@/components/ui/Button";
 import { cn } from "@/lib/ui/cn";
 
+import {
+  SessionChatPanel,
+} from "@/components/live-session/SessionChatPanel";
+import type {
+  SessionChatMessage,
+} from "@/components/live-session/session-chat-model";
 import type {
   ConnectionQualityLevel,
 } from "@/components/live-session/session-join-model";
@@ -175,6 +181,9 @@ export function SessionInCall({
   onToggleVideo,
   onLeave,
   onElapsed,
+  chatMessages,
+  remoteChatTotal,
+  onSendChat,
 }: {
   selfName: string;
   selfImage: string | null;
@@ -195,10 +204,22 @@ export function SessionInCall({
   onToggleVideo: () => void;
   onLeave: () => void;
   onElapsed: () => void;
+  chatMessages: readonly SessionChatMessage[];
+  /** Monotonic count of received messages; survives the in-memory cap. */
+  remoteChatTotal: number;
+  onSendChat: (text: string) => Promise<boolean>;
 }) {
   const t = useTranslations("LiveSessionJoin");
   const showLocalVideo = videoEnabled && !videoDegraded;
   const showRemoteVideo = videoEnabled && !videoDegraded && remotePresent;
+  const [chatOpen, setChatOpen] = useState(false);
+  const [seenRemoteChat, setSeenRemoteChat] = useState(0);
+  const unreadChat = chatOpen ? 0 : remoteChatTotal - seenRemoteChat;
+
+  function closeChat() {
+    setSeenRemoteChat(remoteChatTotal);
+    setChatOpen(false);
+  }
 
   return (
     <main className="flex min-h-screen flex-col bg-canvas px-4 py-6 sm:px-6">
@@ -238,26 +259,43 @@ export function SessionInCall({
           </p>
         ) : null}
 
-        <div className="mt-6 grid flex-1 gap-4 sm:grid-cols-2">
-          <ParticipantTile
-            name={counterpartName}
-            image={counterpartImage}
-            speaking={remoteSpeaking}
-            caption={
-              remotePresent ? counterpartName : t("call.waiting")
-            }
-            showVideo={showRemoteVideo}
-            videoRef={remoteVideoRef}
-          />
-          <ParticipantTile
-            name={selfName}
-            image={selfImage}
-            speaking={localSpeaking}
-            caption={t("call.you")}
-            showVideo={showLocalVideo}
-            videoRef={localVideoRef}
-            mutedPreview
-          />
+        <div
+          className={cn(
+            "mt-6 grid flex-1 gap-4",
+            chatOpen && "lg:grid-cols-[minmax(0,1fr)_22rem]",
+          )}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ParticipantTile
+              name={counterpartName}
+              image={counterpartImage}
+              speaking={remoteSpeaking}
+              caption={
+                remotePresent ? counterpartName : t("call.waiting")
+              }
+              showVideo={showRemoteVideo}
+              videoRef={remoteVideoRef}
+            />
+            <ParticipantTile
+              name={selfName}
+              image={selfImage}
+              speaking={localSpeaking}
+              caption={t("call.you")}
+              showVideo={showLocalVideo}
+              videoRef={localVideoRef}
+              mutedPreview
+            />
+          </div>
+
+          {chatOpen ? (
+            <SessionChatPanel
+              messages={chatMessages}
+              counterpartName={counterpartName}
+              onSend={onSendChat}
+              onClose={closeChat}
+              className="fixed inset-x-0 bottom-0 z-30 h-[70dvh] rounded-b-none shadow-[0_-18px_50px_-30px_rgba(20,34,31,0.45)] lg:static lg:z-auto lg:h-auto lg:max-h-[calc(100dvh-12rem)] lg:rounded-b-lg lg:shadow-none"
+            />
+          ) : null}
         </div>
 
         <div className="pointer-events-none sticky bottom-0 mt-6 flex justify-center pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -277,6 +315,33 @@ export function SessionInCall({
               {videoEnabled
                 ? t("call.disableVideo")
                 : t("call.enableVideo")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={chatOpen}
+              aria-label={
+                unreadChat > 0
+                  ? t("chat.openWithUnread", { count: unreadChat })
+                  : t("chat.open")
+              }
+              onClick={() => {
+                if (chatOpen) {
+                  closeChat();
+                } else {
+                  setChatOpen(true);
+                }
+              }}
+            >
+              {t("chat.open")}
+              {unreadChat > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="ms-2 inline-grid min-w-5 place-items-center rounded-full bg-accent px-1.5 text-xs font-semibold text-white"
+                >
+                  {unreadChat}
+                </span>
+              ) : null}
             </Button>
             <Button
               variant="primary"

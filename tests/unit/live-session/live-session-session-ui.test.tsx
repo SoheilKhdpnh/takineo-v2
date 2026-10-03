@@ -164,6 +164,7 @@ describe("session wrap-up", () => {
           counterpartName="Sasan"
           reason="leave"
           onSubmitReview={onSubmitReview}
+          onRejoin={vi.fn()}
         />
       </NextIntlClientProvider>,
     );
@@ -196,6 +197,7 @@ describe("session wrap-up", () => {
           counterpartName="Leila"
           reason="time"
           onSubmitReview={vi.fn()}
+          onRejoin={vi.fn()}
         />
       </NextIntlClientProvider>,
     );
