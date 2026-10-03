@@ -100,24 +100,52 @@ export function TeacherOnboardingWizard({ initialName }: TeacherOnboardingWizard
   };
 
   return (
-    <div className="w-full max-w-xl">
-      <ol className="mb-8 flex gap-2 overflow-x-auto pb-2 text-xs font-medium text-zinc-500">
-        {TEACHER_ONBOARDING_STEPS.map((item, index) => (
-          <li key={item} className="shrink-0">
-            <span
-              className={
-                index === stepIndex
-                  ? "rounded-full bg-[#c2410c] px-3 py-1 text-white"
-                  : index < stepIndex
-                    ? "rounded-full bg-[#edddd4] px-3 py-1 text-[#9a3412]"
-                    : "rounded-full bg-white px-3 py-1"
-              }
-            >
-              {index + 1}. {t(`steps.${item}`)}
-            </span>
-          </li>
-        ))}
-      </ol>
+    <div className="mx-auto w-full max-w-xl pb-8">
+      <nav
+        aria-label={t("stepsNavLabel")}
+        className="sticky top-0 z-20 -mx-4 mb-6 border-b border-[#edddd4] bg-[#fffaf6]/95 px-4 py-3 backdrop-blur-sm sm:-mx-0 sm:mb-8 sm:rounded-2xl sm:border sm:px-3"
+      >
+        <ol className="flex gap-1 overflow-x-auto pb-1 text-[11px] font-medium text-zinc-500 sm:gap-2 sm:text-xs [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {TEACHER_ONBOARDING_STEPS.map((item, index) => {
+            const isCurrent = index === stepIndex;
+            const isDone = index < stepIndex;
+
+            return (
+              <li key={item} className="shrink-0">
+                <span
+                  aria-current={isCurrent ? "step" : undefined}
+                  className={
+                    isCurrent
+                      ? "inline-flex items-center gap-1.5 rounded-full bg-zinc-950 px-2.5 py-1.5 text-white"
+                      : isDone
+                        ? "inline-flex items-center gap-1.5 rounded-full bg-[#edddd4] px-2.5 py-1.5 text-[#9a3412]"
+                        : "inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5 ring-1 ring-[#edddd4]"
+                  }
+                >
+                  <span
+                    className={
+                      isCurrent
+                        ? "grid size-4 place-items-center rounded-full bg-white text-[10px] font-semibold text-zinc-950"
+                        : isDone
+                          ? "grid size-4 place-items-center rounded-full bg-[#c2410c] text-[10px] font-semibold text-white"
+                          : "grid size-4 place-items-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-600"
+                    }
+                  >
+                    {isDone ? "✓" : index + 1}
+                  </span>
+                  <span className="whitespace-nowrap">{t(`steps.${item}`)}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="mt-2 text-xs text-zinc-500 sm:hidden">
+          {t("stepProgress", {
+            current: stepIndex + 1,
+            total: TEACHER_ONBOARDING_STEPS.length,
+          })}
+        </p>
+      </nav>
 
       <TeacherOnboardingProfileSteps {...panelProps} />
       <TeacherOnboardingSessionSteps {...panelProps} />
@@ -128,28 +156,30 @@ export function TeacherOnboardingWizard({ initialName }: TeacherOnboardingWizard
         </p>
       ) : null}
 
-      <div className="mt-8 flex gap-3">
-        <button
-          type="button"
-          disabled={stepIndex === 0 || isSubmitting}
-          onClick={() => {
-            setError(null);
-            setStepIndex((current) => Math.max(0, current - 1));
-          }}
-          className={`flex-1 ${authSecondaryButtonClassName}`}
-        >
-          {t("back")}
-        </button>
-        <button
-          type="button"
-          disabled={isSubmitting}
-          onClick={() => {
-            void handleContinue();
-          }}
-          className={`flex-1 ${authPrimaryButtonClassName}`}
-        >
-          {isSubmitting ? t("saving") : isLast ? t("finish") : t("saveAndContinue")}
-        </button>
+      <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-[#edddd4] bg-[#fffaf6]/95 px-4 py-3 backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            disabled={stepIndex === 0 || isSubmitting}
+            onClick={() => {
+              setError(null);
+              setStepIndex((current) => Math.max(0, current - 1));
+            }}
+            className={`flex-1 ${authSecondaryButtonClassName}`}
+          >
+            {t("back")}
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => {
+              void handleContinue();
+            }}
+            className={`flex-1 ${authPrimaryButtonClassName}`}
+          >
+            {isSubmitting ? t("saving") : isLast ? t("finish") : t("saveAndContinue")}
+          </button>
+        </div>
       </div>
     </div>
   );

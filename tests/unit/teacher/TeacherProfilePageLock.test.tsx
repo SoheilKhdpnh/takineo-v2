@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   setRequestLocale: vi.fn(),
   requireRolePage: vi.fn(),
   getTeacherProfileForUser: vi.fn(),
+  redirect: vi.fn((destination: { href: string; locale: string }) => {
+    throw Object.assign(new Error("NEXT_REDIRECT"), { destination });
+  }),
 }));
 
 vi.mock("next-intl/server", () => ({
@@ -28,6 +31,9 @@ vi.mock("@/lib/services/teacher-profile.service", () => ({
   getTeacherProfileForUser: mocks.getTeacherProfileForUser,
 }));
 
+vi.mock("@/i18n/navigation", () => ({
+  redirect: mocks.redirect,
+}));
 vi.mock("@/components/profiles/TeacherProfileForm", () => ({
   TeacherProfileForm: () => <div data-testid="teacher-profile-form" />,
 }));
@@ -103,6 +109,7 @@ beforeEach(() => {
   mocks.setRequestLocale.mockReset();
   mocks.requireRolePage.mockReset();
   mocks.getTeacherProfileForUser.mockReset();
+  mocks.redirect.mockClear();
 
   mocks.getTranslations.mockImplementation(
     async ({ namespace }: { namespace: string }) => {
@@ -160,18 +167,23 @@ describe("teacher profile lifecycle lock", () => {
     },
   );
 
-  it("shows the setup form when an editable profile is still incomplete", async () => {
-    await renderStatus("DRAFT", null);
+  it("sends incomplete draft applications to the multi-section wizard", async () => {
+    mocks.getTeacherProfileForUser.mockResolvedValue({
+      ...baseProfile,
+      applicationStatus: "DRAFT",
+      profileCompletedAt: null,
+    });
 
-    expect(screen.getByTestId("teacher-profile-form")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("teacher-profile-overview"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: teacherProfileCopy.title,
+    await expect(
+      TeacherProfilePage({
+        params: Promise.resolve({ locale: "en" }),
       }),
-    ).toBeInTheDocument();
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(mocks.redirect).toHaveBeenCalledWith({
+      href: "/onboarding/teacher",
+      locale: "en",
+    });
   });
 
   it.each([

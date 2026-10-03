@@ -6,8 +6,8 @@ import {
 } from "@/lib/domain/user-role";
 
 describe("user role destinations", () => {
-  it("sends a new teacher to the profile step instead of the dashboard hop", () => {
-    expect(getPostOnboardingHref("TEACHER")).toBe("/teacher/profile");
+  it("sends a new teacher to the multi-section application wizard", () => {
+    expect(getPostOnboardingHref("TEACHER")).toBe("/onboarding/teacher");
     expect(getRoleHome("TEACHER")).toBe("/teacher/dashboard");
   });
 

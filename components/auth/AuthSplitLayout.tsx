@@ -28,8 +28,8 @@ export function AuthSplitLayout({
   const useQuotes = aside === "quotes";
 
   return (
-    <main className="grid min-h-screen bg-[#fffaf6] lg:grid-cols-[minmax(24rem,32rem)_1fr]">
-      <div className="relative isolate h-44 overflow-hidden lg:hidden">
+    <main className="grid min-h-dvh bg-[#fffaf6] lg:grid-cols-[minmax(24rem,32rem)_1fr]">
+      <div className="relative isolate h-28 shrink-0 overflow-hidden sm:h-36 lg:hidden">
         {useQuotes ? (
           <div className="absolute inset-0 bg-gradient-to-br from-[#9a3412] via-[#c2410c] to-[#1c1410]" />
         ) : (
@@ -45,22 +45,22 @@ export function AuthSplitLayout({
         <div className="absolute inset-0 bg-gradient-to-t from-[#fffaf6] via-black/20 to-black/30" />
         <TalkinuWordmark
           brand={brand}
-          className="absolute bottom-4 start-5"
+          className="absolute bottom-3 start-5"
           markClassName="size-8"
           textClassName="text-sm font-semibold tracking-[0.12em] text-white uppercase"
         />
       </div>
 
-      <section className="relative z-10 flex min-h-0 flex-col justify-center bg-[#fffaf6] px-5 py-10 sm:px-10 lg:min-h-screen lg:py-16">
+      <section className="relative z-10 flex min-h-0 flex-col justify-start bg-[#fffaf6] px-4 py-6 sm:px-10 sm:py-10 lg:min-h-dvh lg:justify-center lg:py-16">
         <TalkinuWordmark
           brand={brand}
-          className="mb-8 hidden lg:inline-flex"
+          className="mb-6 hidden lg:inline-flex"
           textClassName="text-sm font-semibold tracking-[0.12em] text-[#c2410c] uppercase"
         />
         {children}
       </section>
 
-      <aside className="relative hidden min-h-screen overflow-hidden lg:block">
+      <aside className="relative hidden min-h-dvh overflow-hidden lg:block">
         {useQuotes ? (
           <div className="flex h-full flex-col justify-end bg-gradient-to-br from-[#7c2d12] via-[#c2410c] to-[#1c1410] p-10 text-white">
             <p className="max-w-md text-3xl font-semibold tracking-tight text-balance">

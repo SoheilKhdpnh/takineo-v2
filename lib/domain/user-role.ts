@@ -21,6 +21,6 @@ export function getPostOnboardingHref(role: UserRole): string {
       return "/student/profile";
 
     case "TEACHER":
-      return "/teacher/profile";
+      return "/onboarding/teacher";
   }
 }

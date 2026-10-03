@@ -10,6 +10,7 @@ import { UpcomingSessionsPanel } from "@/components/sessions/UpcomingSessionsPan
 import { TeacherProfileOverview } from "@/components/teacher/TeacherProfileOverview";
 import { CalendarIcon } from "@/components/ui/WorkspaceIcons";
 import { requireAppLocale } from "@/i18n/locale";
+import { redirect } from "@/i18n/navigation";
 import { requireRolePage } from "@/lib/auth/page-guards";
 import type { ProfileTimezone } from "@/lib/domain/profile";
 import { canEditTeacherApplication } from "@/lib/domain/teacher-application";
@@ -39,6 +40,19 @@ export async function TeacherWorkspacePage({
   const canEdit = canEditTeacherApplication(profile.applicationStatus);
   const profileCompleted = profile.profileCompletedAt !== null;
   const timezone = profile.timezone as ProfileTimezone;
+
+  // Incomplete draft applications must use the multi-section wizard, not the
+  // legacy single-page profile form.
+  if (
+    profile.applicationStatus === "DRAFT" &&
+    !profileCompleted &&
+    canEdit
+  ) {
+    redirect({
+      href: "/onboarding/teacher",
+      locale,
+    });
+  }
 
   if (!profileCompleted && canEdit) {
     return (

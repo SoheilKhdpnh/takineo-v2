@@ -225,6 +225,8 @@
     "brand": "Talkinu",
     "photoAsideTitle": "Teachers teach. AI assists.",
     "photoAsideSubtitle": "Complete your application in eight short steps. Approval still happens after review.",
+    "stepsNavLabel": "Teacher application steps",
+    "stepProgress": "Step {current} of {total}",
     "steps": {
       "about": "About",
       "photo": "Photo",
