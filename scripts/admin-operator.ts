@@ -1,4 +1,11 @@
-import "dotenv/config";
+import { config as loadEnv } from "dotenv";
+import { resolve } from "node:path";
+
+// Local Docker / Next use .env.local (and .env.docker). Default dotenv only
+ // loads `.env`, which this repo intentionally does not commit.
+for (const file of [".env.local", ".env.docker", ".env"] as const) {
+  loadEnv({ path: resolve(process.cwd(), file), override: false });
+}
 
 import {
   AdminReviewConflictError,
