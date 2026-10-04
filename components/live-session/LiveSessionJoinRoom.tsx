@@ -55,6 +55,9 @@ import {
   useMediaPreview,
 } from "@/components/live-session/use-media-preview";
 import {
+  WhiteboardHub,
+} from "@/components/live-session/whiteboard/whiteboard-hub";
+import {
   useRouter,
 } from "@/i18n/navigation";
 
@@ -144,6 +147,9 @@ export function LiveSessionJoinRoom({
   const [now, setNow] = useState(() => Date.now());
   const [chatMessages, setChatMessages] = useState<SessionChatMessage[]>([]);
   const [remoteChatTotal, setRemoteChatTotal] = useState(0);
+  const [whiteboardHub] = useState(
+    () => new WhiteboardHub(context.viewerRole),
+  );
 
   useEffect(() => {
     videoEnabledRef.current = videoEnabled;
@@ -358,8 +364,11 @@ export function LiveSessionJoinRoom({
       finishSession(wrapUpReasonForDisconnect(context.endAt, Date.now()));
     });
 
+    whiteboardHub.attach(room);
+
     setPhase("connecting");
     await room.connect(url, credential, liveSessionConnectOptions);
+    void whiteboardHub.announceJoin();
 
     try {
       if (media.audioDeviceId) {
@@ -659,6 +668,8 @@ export function LiveSessionJoinRoom({
           chatMessages={chatMessages}
           remoteChatTotal={remoteChatTotal}
           onSendChat={handleSendChat}
+          whiteboardHub={whiteboardHub}
+          viewerRole={context.viewerRole}
         />
       </>
     );

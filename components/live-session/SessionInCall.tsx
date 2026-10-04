@@ -4,9 +4,12 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type RefObject,
 } from "react";
+import dynamic from "next/dynamic";
 import {
+  useLocale,
   useTranslations,
 } from "next-intl";
 
@@ -25,7 +28,29 @@ import type {
   SessionChatMessage,
 } from "@/components/live-session/session-chat-model";
 import type {
+  WhiteboardHub,
+} from "@/components/live-session/whiteboard/whiteboard-hub";
+
+function WhiteboardLoading() {
+  const t = useTranslations("LiveSessionJoin");
+
+  return (
+    <p className="grid size-full place-items-center text-sm text-ink-muted" role="status">
+      {t("board.loading")}
+    </p>
+  );
+}
+
+const SessionWhiteboard = dynamic(
+  () =>
+    import("@/components/live-session/whiteboard/SessionWhiteboard").then(
+      (module) => module.SessionWhiteboard,
+    ),
+  { ssr: false, loading: WhiteboardLoading },
+);
+import type {
   ConnectionQualityLevel,
+  SessionViewerRole,
 } from "@/components/live-session/session-join-model";
 
 function remainingLabel(endAt: string, now: number): string {
@@ -110,6 +135,7 @@ function ParticipantTile({
   showVideo,
   videoRef,
   mutedPreview,
+  compact = false,
 }: {
   name: string;
   image: string | null;
@@ -118,17 +144,26 @@ function ParticipantTile({
   showVideo: boolean;
   videoRef?: RefObject<HTMLVideoElement | null>;
   mutedPreview?: boolean;
+  compact?: boolean;
 }) {
   return (
-    <article className="flex flex-col items-center justify-center rounded-lg border border-line bg-surface px-4 py-8 sm:px-6">
+    <article
+      className={cn(
+        "flex items-center rounded-lg border border-line bg-surface",
+        compact
+          ? "flex-row gap-3 px-3 py-2"
+          : "flex-col justify-center px-4 py-8 sm:px-6",
+      )}
+    >
       <div
-        className="session-speak-ring relative rounded-full"
+        className="session-speak-ring relative shrink-0 rounded-full"
         data-speaking={speaking ? "true" : "false"}
       >
         <video
           ref={videoRef}
           className={cn(
-            "size-32 rounded-full bg-ink object-cover",
+            "rounded-full bg-ink object-cover",
+            compact ? "size-11" : "size-32",
             showVideo ? "block" : "hidden",
           )}
           autoPlay
@@ -139,12 +174,12 @@ function ParticipantTile({
           <Avatar
             name={name}
             image={image}
-            size="xl"
+            size={compact ? "sm" : "xl"}
             rounded="full"
           />
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-2">
+      <div className={cn("flex items-center gap-2", compact ? "min-w-0" : "mt-4")}>
         <p className="font-semibold text-ink">{name}</p>
         <span
           className="session-wave"
@@ -156,7 +191,9 @@ function ParticipantTile({
           <i />
         </span>
       </div>
-      <p className="mt-1 text-sm text-ink-muted">{caption}</p>
+      {compact ? null : (
+        <p className="mt-1 text-sm text-ink-muted">{caption}</p>
+      )}
     </article>
   );
 }
@@ -184,6 +221,8 @@ export function SessionInCall({
   chatMessages,
   remoteChatTotal,
   onSendChat,
+  whiteboardHub,
+  viewerRole,
 }: {
   selfName: string;
   selfImage: string | null;
@@ -208,8 +247,19 @@ export function SessionInCall({
   /** Monotonic count of received messages; survives the in-memory cap. */
   remoteChatTotal: number;
   onSendChat: (text: string) => Promise<boolean>;
+  whiteboardHub: WhiteboardHub;
+  viewerRole: SessionViewerRole;
 }) {
   const t = useTranslations("LiveSessionJoin");
+  const locale = useLocale();
+  const [boardOpen, setBoardOpen] = useState(false);
+  const isTeacher = viewerRole === "TEACHER";
+  const studentCanDraw = useSyncExternalStore(
+    whiteboardHub.subscribePermission,
+    whiteboardHub.isStudentDrawingAllowed,
+    () => false,
+  );
+  const canDraw = isTeacher || studentCanDraw;
   const showLocalVideo = videoEnabled && !videoDegraded;
   const showRemoteVideo = videoEnabled && !videoDegraded && remotePresent;
   const [chatOpen, setChatOpen] = useState(false);
@@ -265,26 +315,76 @@ export function SessionInCall({
             chatOpen && "lg:grid-cols-[minmax(0,1fr)_22rem]",
           )}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ParticipantTile
-              name={counterpartName}
-              image={counterpartImage}
-              speaking={remoteSpeaking}
-              caption={
-                remotePresent ? counterpartName : t("call.waiting")
-              }
-              showVideo={showRemoteVideo}
-              videoRef={remoteVideoRef}
-            />
-            <ParticipantTile
-              name={selfName}
-              image={selfImage}
-              speaking={localSpeaking}
-              caption={t("call.you")}
-              showVideo={showLocalVideo}
-              videoRef={localVideoRef}
-              mutedPreview
-            />
+          <div className="flex min-w-0 flex-col gap-4">
+            <div
+              className={cn(
+                "grid gap-4",
+                boardOpen ? "grid-cols-2 gap-2" : "sm:grid-cols-2",
+              )}
+            >
+              <ParticipantTile
+                name={counterpartName}
+                image={counterpartImage}
+                speaking={remoteSpeaking}
+                caption={
+                  remotePresent ? counterpartName : t("call.waiting")
+                }
+                showVideo={showRemoteVideo}
+                videoRef={remoteVideoRef}
+                compact={boardOpen}
+              />
+              <ParticipantTile
+                name={selfName}
+                image={selfImage}
+                speaking={localSpeaking}
+                caption={t("call.you")}
+                showVideo={showLocalVideo}
+                videoRef={localVideoRef}
+                mutedPreview
+                compact={boardOpen}
+              />
+            </div>
+
+            {boardOpen ? (
+              <section
+                aria-label={t("board.title")}
+                className="flex h-[62dvh] min-h-80 flex-col overflow-hidden rounded-lg border border-line bg-white lg:h-[calc(100dvh-15rem)]"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface px-3 py-2">
+                  <p className="text-sm text-ink-muted" role="status">
+                    {isTeacher
+                      ? studentCanDraw
+                        ? t("board.teacherStudentCanDraw")
+                        : t("board.teacherOnlyYou")
+                      : studentCanDraw
+                        ? t("board.studentCanDraw")
+                        : t("board.studentViewOnly")}
+                  </p>
+                  {isTeacher ? (
+                    <Button
+                      variant={studentCanDraw ? "secondary" : "primary"}
+                      size="sm"
+                      aria-pressed={studentCanDraw}
+                      onClick={() => {
+                        void whiteboardHub.setStudentCanDraw(!studentCanDraw);
+                      }}
+                    >
+                      {studentCanDraw
+                        ? t("board.revokeStudent")
+                        : t("board.allowStudent")}
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="min-h-0 flex-1">
+                  <SessionWhiteboard
+                    hub={whiteboardHub}
+                    locale={locale}
+                    canDraw={canDraw}
+                    canClear={isTeacher}
+                  />
+                </div>
+              </section>
+            ) : null}
           </div>
 
           {chatOpen ? (
@@ -315,6 +415,16 @@ export function SessionInCall({
               {videoEnabled
                 ? t("call.disableVideo")
                 : t("call.enableVideo")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={boardOpen}
+              onClick={() => {
+                setBoardOpen((open) => !open);
+              }}
+            >
+              {boardOpen ? t("board.close") : t("board.open")}
             </Button>
             <Button
               variant="ghost"

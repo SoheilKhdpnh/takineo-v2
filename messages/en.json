@@ -1304,6 +1304,18 @@
       "send": "Send",
       "sendError": "That message was not sent. Check your connection and try again."
     },
+    "board": {
+      "title": "Whiteboard",
+      "open": "Board",
+      "close": "Close board",
+      "loading": "Loading the whiteboard…",
+      "teacherOnlyYou": "Only you can draw. The student is watching.",
+      "teacherStudentCanDraw": "The student can draw on the board.",
+      "allowStudent": "Let the student draw",
+      "revokeStudent": "Stop student drawing",
+      "studentViewOnly": "Your teacher controls the board. You can draw when they give you access.",
+      "studentCanDraw": "Your teacher gave you access. You can draw on the board."
+    },
     "wrapUp": {
       "eyebrow": "Session complete",
       "title": "This session has ended",

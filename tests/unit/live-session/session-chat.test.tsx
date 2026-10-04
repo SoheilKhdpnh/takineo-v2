@@ -8,6 +8,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SessionChatPanel } from "@/components/live-session/SessionChatPanel";
+import { WhiteboardHub } from "@/components/live-session/whiteboard/whiteboard-hub";
 import { SessionInCall } from "@/components/live-session/SessionInCall";
 import {
   SESSION_CHAT_MAX_LENGTH,
@@ -164,6 +165,8 @@ describe("SessionInCall chat entry point", () => {
       chatMessages: messages,
       remoteChatTotal,
       onSendChat: vi.fn().mockResolvedValue(true),
+      whiteboardHub: new WhiteboardHub("STUDENT"),
+      viewerRole: "STUDENT" as const,
     };
 
     const view = render(

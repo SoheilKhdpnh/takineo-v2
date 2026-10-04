@@ -787,7 +787,17 @@ characters, text renders as plain text with `dir="auto"`, and at most 200
 messages are kept per page. Persisting chat would need its own retention,
 moderation, and access decision.
 
-### Shared whiteboard (decided 2026-10-03, not yet built)
+### Shared whiteboard (decided 2026-10-03; sync built, tools pending)
+
+Built: `components/live-session/whiteboard/`. A page-lifetime `WhiteboardHub`
+keeps the board in memory across board open/close and rejoin, registers the
+receiver on topic `takineo.session-board` before connect, and requests a
+snapshot after connect. Incoming messages are size-capped, element-capped,
+shape-checked, and passed through Excalidraw `restoreElements` before
+`reconcileElements`. Image upload is disabled. Teacher-granted student
+drawing, teacher-only clear, and image download (Excalidraw "save as image")
+are built. Leading the student's viewport, backgrounds, templates, and the IPA
+palette are still pending.
 
 - Library: Excalidraw (MIT, React 19, `langCode="fa-IR"`), loaded with a
   client-only dynamic import only when the board is opened. tldraw was
@@ -797,9 +807,14 @@ moderation, and access decision.
   rejoining participant. No new server route.
 - Persistence: none server-side. Either participant can download the board as
   an image; nothing is stored or used as Wave 5 input.
-- Control: both participants draw. The teacher can also clear the board, lock
-  the student to view-only, and lead the viewport. These are UI controls over
-  a two-party room, not server authorization.
+- Control (revised 2026-10-04): the teacher controls the board. The student
+  is view-only until the teacher grants drawing, and the teacher can revoke it
+  at any time; only the teacher can clear the board. The teacher's client
+  discards student board updates while drawing is not granted, ignores
+  permission messages from the student, and accepts a student snapshot only
+  within 10 seconds of its own (re)join. This is enforcement at the
+  counterpart in a two-party room, not server authorization; the LiveKit grant
+  still lets either participant publish data.
 - First version: standard tools, lined and grid backgrounds, tense-timeline,
   irregular-verb-table and vocabulary-card templates, an IPA symbol palette,
   and the teacher controls. Sentence builder, word web, and correction colors

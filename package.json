@@ -29,6 +29,7 @@
     "dev:local": "powershell -ExecutionPolicy Bypass -File scripts/dev-local.ps1"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/vazirmatn": "^5.3.0",
     "@parcel/watcher": "^2.6.0",
