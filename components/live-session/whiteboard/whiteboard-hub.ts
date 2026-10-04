@@ -11,9 +11,13 @@ import {
   mergeBoardElements,
   parseWhiteboardMessage,
   type BoardElement,
+  type BoardSettings,
+  type BoardViewport,
 } from "@/components/live-session/whiteboard/whiteboard-sync-model";
 
 type Listener = (changed: readonly BoardElement[]) => void;
+
+type ViewportListener = (viewport: BoardViewport) => void;
 
 type BoardTransport = {
   send: (payload: string) => Promise<void>;
@@ -39,11 +43,17 @@ export class WhiteboardHub {
 
   private listeners = new Set<Listener>();
 
-  private permissionListeners = new Set<() => void>();
+  private controlListeners = new Set<() => void>();
+
+  private viewportListeners = new Set<ViewportListener>();
 
   private transport: BoardTransport | null = null;
 
   private studentCanDraw = false;
+
+  private settings: BoardSettings = { grid: false, leading: false };
+
+  private lastViewport: BoardViewport | null = null;
 
   private snapshotAcceptedUntil = 0;
 
@@ -62,6 +72,9 @@ export class WhiteboardHub {
 
   readonly isStudentDrawingAllowed = (): boolean => this.studentCanDraw;
 
+  /** Returns the same object until settings change, for `useSyncExternalStore`. */
+  readonly getSettings = (): BoardSettings => this.settings;
+
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
 
@@ -70,14 +83,23 @@ export class WhiteboardHub {
     };
   }
 
-  /** Stable identity so it can back `useSyncExternalStore`. */
-  readonly subscribePermission = (listener: () => void): (() => void) => {
-    this.permissionListeners.add(listener);
+  /** Permission and settings changes; stable identity for `useSyncExternalStore`. */
+  readonly subscribeControls = (listener: () => void): (() => void) => {
+    this.controlListeners.add(listener);
 
     return () => {
-      this.permissionListeners.delete(listener);
+      this.controlListeners.delete(listener);
     };
   };
+
+  /** Student only: the teacher's view while the teacher is leading. */
+  subscribeViewport(listener: ViewportListener): () => void {
+    this.viewportListeners.add(listener);
+
+    return () => {
+      this.viewportListeners.delete(listener);
+    };
+  }
 
   /** Registers the receiver; call before `room.connect` so nothing is missed. */
   attach(room: Room) {
@@ -120,7 +142,7 @@ export class WhiteboardHub {
     await this.sendRaw(JSON.stringify({ kind: "snapshot-request" }));
 
     if (this.role === "TEACHER") {
-      await this.sendPermission();
+      await this.sendControls();
     }
   }
 
@@ -131,8 +153,42 @@ export class WhiteboardHub {
     }
 
     this.studentCanDraw = allowed;
-    this.notifyPermission();
+    this.notifyControls();
     await this.sendPermission();
+  }
+
+  /** Teacher only: change the grid or start/stop leading the student's view. */
+  async setSettings(patch: Partial<BoardSettings>) {
+    if (this.role !== "TEACHER") {
+      return;
+    }
+
+    const next = { ...this.settings, ...patch };
+
+    if (next.grid === this.settings.grid && next.leading === this.settings.leading) {
+      return;
+    }
+
+    this.settings = next;
+    this.notifyControls();
+    await this.sendSettings();
+
+    if (next.leading && this.lastViewport) {
+      await this.sendViewport(this.lastViewport);
+    }
+  }
+
+  /** Teacher only: share the current view; sent only while leading. */
+  async publishViewport(viewport: BoardViewport) {
+    if (this.role !== "TEACHER") {
+      return;
+    }
+
+    this.lastViewport = viewport;
+
+    if (this.settings.leading) {
+      await this.sendViewport(viewport);
+    }
   }
 
   /** Publishes local edits; unchanged and already-received versions are skipped. */
@@ -170,7 +226,7 @@ export class WhiteboardHub {
         }
 
         if (this.role === "TEACHER") {
-          void this.sendPermission();
+          void this.sendControls();
         }
         return;
       }
@@ -179,7 +235,36 @@ export class WhiteboardHub {
         // Only the teacher grants drawing; a student cannot grant itself.
         if (this.role === "STUDENT" && this.studentCanDraw !== message.studentCanDraw) {
           this.studentCanDraw = message.studentCanDraw;
-          this.notifyPermission();
+          this.notifyControls();
+        }
+        return;
+      }
+
+      case "settings": {
+        if (
+          this.role === "STUDENT" &&
+          (this.settings.grid !== message.grid ||
+            this.settings.leading !== message.leading)
+        ) {
+          this.settings = { grid: message.grid, leading: message.leading };
+          this.notifyControls();
+        }
+        return;
+      }
+
+      case "viewport": {
+        if (this.role !== "STUDENT" || !this.settings.leading) {
+          return;
+        }
+
+        const viewport = {
+          centerX: message.centerX,
+          centerY: message.centerY,
+          zoom: message.zoom,
+        };
+
+        for (const listener of this.viewportListeners) {
+          listener(viewport);
         }
         return;
       }
@@ -220,14 +305,31 @@ export class WhiteboardHub {
     }
   }
 
+  private async sendControls() {
+    await this.sendPermission();
+    await this.sendSettings();
+
+    if (this.settings.leading && this.lastViewport) {
+      await this.sendViewport(this.lastViewport);
+    }
+  }
+
   private async sendPermission() {
     await this.sendRaw(
       JSON.stringify({ kind: "permission", studentCanDraw: this.studentCanDraw }),
     );
   }
 
-  private notifyPermission() {
-    for (const listener of this.permissionListeners) {
+  private async sendSettings() {
+    await this.sendRaw(JSON.stringify({ kind: "settings", ...this.settings }));
+  }
+
+  private async sendViewport(viewport: BoardViewport) {
+    await this.sendRaw(JSON.stringify({ kind: "viewport", ...viewport }));
+  }
+
+  private notifyControls() {
+    for (const listener of this.controlListeners) {
       listener();
     }
   }

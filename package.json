@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
+    "dev": "npm run assets:excalidraw && next dev",
+    "build": "prisma generate && npm run assets:excalidraw && next build",
+    "assets:excalidraw": "node scripts/copy-excalidraw-fonts.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",

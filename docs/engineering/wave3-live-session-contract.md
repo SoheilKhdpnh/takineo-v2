@@ -794,10 +794,20 @@ keeps the board in memory across board open/close and rejoin, registers the
 receiver on topic `takineo.session-board` before connect, and requests a
 snapshot after connect. Incoming messages are size-capped, element-capped,
 shape-checked, and passed through Excalidraw `restoreElements` before
-`reconcileElements`. Image upload is disabled. Teacher-granted student
-drawing, teacher-only clear, and image download (Excalidraw "save as image")
-are built. Leading the student's viewport, backgrounds, templates, and the IPA
-palette are still pending.
+`reconcileElements`. Image upload is disabled. Built: teacher-granted student
+drawing, teacher-only clear, image download (Excalidraw "save as image"),
+teacher-controlled grid and "lead the view" (the scene point at the centre of
+the teacher's screen plus zoom, so screen sizes may differ), lined paper as
+locked line elements, tense-timeline / irregular-verb-table / vocabulary-card
+templates, and an IPA palette. Template text is English lesson content in both
+locales. `settings` and `viewport` messages are accepted only by the student
+and only from the teacher's side of the room.
+
+Fonts: `scripts/copy-excalidraw-fonts.mjs` (run by `npm run dev` and
+`npm run build`) copies Excalidraw's bundled fonts, except the CJK Xiaolai
+font, into the gitignored `public/excalidraw-assets/`, and
+`window.EXCALIDRAW_ASSET_PATH` points there. Excalidraw falls back to its
+public CDN only for files that are not copied.
 
 - Library: Excalidraw (MIT, React 19, `langCode="fa-IR"`), loaded with a
   client-only dynamic import only when the board is opened. tldraw was

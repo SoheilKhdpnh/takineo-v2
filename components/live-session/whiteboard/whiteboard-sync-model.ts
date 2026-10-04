@@ -27,11 +27,33 @@ export type BoardElement = {
   isDeleted?: boolean;
 } & Record<string, unknown>;
 
+/** Teacher-controlled board settings mirrored to the student. */
+export type BoardSettings = {
+  grid: boolean;
+  leading: boolean;
+};
+
+/** Scene point at the centre of the teacher's screen, so screen sizes can differ. */
+export type BoardViewport = {
+  centerX: number;
+  centerY: number;
+  zoom: number;
+};
+
+export const MIN_BOARD_ZOOM = 0.1;
+export const MAX_BOARD_ZOOM = 30;
+
 export type WhiteboardMessage =
   | { kind: "update"; elements: BoardElement[] }
   | { kind: "snapshot"; elements: BoardElement[] }
   | { kind: "snapshot-request" }
-  | { kind: "permission"; studentCanDraw: boolean };
+  | { kind: "permission"; studentCanDraw: boolean }
+  | ({ kind: "settings" } & BoardSettings)
+  | ({ kind: "viewport" } & BoardViewport);
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
 
 function isBoardElement(value: unknown): value is BoardElement {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -78,6 +100,25 @@ export function parseWhiteboardMessage(raw: string): WhiteboardMessage | null {
   if (message.kind === "permission") {
     return typeof message.studentCanDraw === "boolean"
       ? { kind: "permission", studentCanDraw: message.studentCanDraw }
+      : null;
+  }
+
+  if (message.kind === "settings") {
+    return typeof message.grid === "boolean" &&
+      typeof message.leading === "boolean"
+      ? { kind: "settings", grid: message.grid, leading: message.leading }
+      : null;
+  }
+
+  if (message.kind === "viewport") {
+    const { centerX, centerY, zoom } = message;
+
+    return isFiniteNumber(centerX) &&
+      isFiniteNumber(centerY) &&
+      isFiniteNumber(zoom) &&
+      zoom >= MIN_BOARD_ZOOM &&
+      zoom <= MAX_BOARD_ZOOM
+      ? { kind: "viewport", centerX, centerY, zoom }
       : null;
   }
 

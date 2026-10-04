@@ -38,6 +38,9 @@ yarn-error.log*
 # Generated Prisma Client
 /lib/generated/prisma/
 
+# Excalidraw fonts copied by scripts/copy-excalidraw-fonts.mjs
+/public/excalidraw-assets/
+
 # vercel
 .vercel
 

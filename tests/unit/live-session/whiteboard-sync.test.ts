@@ -66,6 +66,25 @@ describe("parseWhiteboardMessage", () => {
   });
 });
 
+describe("parseWhiteboardMessage controls", () => {
+  it("accepts well-formed settings and viewport messages", () => {
+    expect(
+      parseWhiteboardMessage('{"kind":"settings","grid":true,"leading":false}'),
+    ).toEqual({ kind: "settings", grid: true, leading: false });
+    expect(
+      parseWhiteboardMessage('{"kind":"viewport","centerX":1.5,"centerY":-3,"zoom":2}'),
+    ).toEqual({ kind: "viewport", centerX: 1.5, centerY: -3, zoom: 2 });
+  });
+
+  it("rejects settings and viewports with the wrong shape or an extreme zoom", () => {
+    expect(parseWhiteboardMessage('{"kind":"settings","grid":"yes","leading":false}')).toBeNull();
+    expect(parseWhiteboardMessage('{"kind":"viewport","centerX":"1","centerY":0,"zoom":1}')).toBeNull();
+    expect(parseWhiteboardMessage('{"kind":"viewport","centerX":0,"centerY":0,"zoom":0}')).toBeNull();
+    expect(parseWhiteboardMessage('{"kind":"viewport","centerX":0,"centerY":0,"zoom":500}')).toBeNull();
+    expect(parseWhiteboardMessage('{"kind":"permission","studentCanDraw":"true"}')).toBeNull();
+  });
+});
+
 describe("mergeBoardElements", () => {
   it("keeps the higher version and breaks ties with the lower nonce", () => {
     const current = new Map([
@@ -191,7 +210,7 @@ describe("WhiteboardHub", () => {
   it("lets the student draw after the teacher grants access and stops after revoke", async () => {
     const { teacher, student } = linkedHubs();
     const onPermission = vi.fn();
-    student.subscribePermission(onPermission);
+    student.subscribeControls(onPermission);
 
     await teacher.setStudentCanDraw(true);
 
@@ -281,6 +300,73 @@ describe("WhiteboardHub", () => {
       JSON.stringify({ kind: "snapshot", elements: [element("late", 1)] }),
     );
     expect(teacher.getElements().map((item) => item.id)).toEqual(["kept"]);
+  });
+
+  it("mirrors the teacher's grid and lead settings to the student only", async () => {
+    const { teacher, student } = linkedHubs();
+    const onControls = vi.fn();
+    student.subscribeControls(onControls);
+
+    await teacher.setSettings({ grid: true });
+
+    expect(student.getSettings()).toEqual({ grid: true, leading: false });
+    expect(onControls).toHaveBeenCalledTimes(1);
+
+    await student.setSettings({ grid: false, leading: true });
+    teacher.receive(JSON.stringify({ kind: "settings", grid: false, leading: true }));
+
+    expect(teacher.getSettings()).toEqual({ grid: true, leading: false });
+    expect(student.getSettings()).toEqual({ grid: true, leading: false });
+  });
+
+  it("moves the student's view only while the teacher is leading", async () => {
+    const { teacher, student } = linkedHubs();
+    const onViewport = vi.fn();
+    student.subscribeViewport(onViewport);
+    const view = { centerX: 120, centerY: -40, zoom: 1.5 };
+
+    await teacher.publishViewport(view);
+    expect(onViewport).not.toHaveBeenCalled();
+
+    await teacher.setSettings({ leading: true });
+    expect(onViewport).toHaveBeenLastCalledWith(view);
+
+    await teacher.publishViewport({ ...view, centerX: 300 });
+    expect(onViewport).toHaveBeenLastCalledWith({ ...view, centerX: 300 });
+
+    await teacher.setSettings({ leading: false });
+    onViewport.mockClear();
+    await teacher.publishViewport({ ...view, centerX: 999 });
+    expect(onViewport).not.toHaveBeenCalled();
+  });
+
+  it("ignores view and settings messages arriving at the teacher", () => {
+    const teacher = new WhiteboardHub("TEACHER");
+    const onViewport = vi.fn();
+    teacher.subscribeViewport(onViewport);
+
+    teacher.receive(JSON.stringify({ kind: "viewport", centerX: 1, centerY: 1, zoom: 1 }));
+
+    expect(onViewport).not.toHaveBeenCalled();
+  });
+
+  it("restates settings and the led view to a rejoining student", async () => {
+    const { teacher } = linkedHubs();
+    await teacher.setSettings({ grid: true, leading: true });
+    await teacher.publishViewport({ centerX: 10, centerY: 20, zoom: 2 });
+
+    const rejoined = new WhiteboardHub("STUDENT");
+    const onViewport = vi.fn();
+    rejoined.subscribeViewport(onViewport);
+    rejoined.attachTransport({ send: async (payload) => teacher.receive(payload) });
+    teacher.attachTransport({ send: async (payload) => rejoined.receive(payload) });
+
+    await rejoined.announceJoin();
+
+    await vi.waitFor(() => {
+      expect(onViewport).toHaveBeenCalledWith({ centerX: 10, centerY: 20, zoom: 2 });
+    });
+    expect(rejoined.getSettings()).toEqual({ grid: true, leading: true });
   });
 
   it("keeps the board in memory when sending fails while disconnected", async () => {

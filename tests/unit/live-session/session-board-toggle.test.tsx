@@ -14,17 +14,17 @@ vi.mock("@/components/live-session/whiteboard/SessionWhiteboard", () => ({
   SessionWhiteboard: ({
     locale,
     canDraw,
-    canClear,
+    isTeacher,
   }: {
     locale: string;
     canDraw: boolean;
-    canClear: boolean;
+    isTeacher: boolean;
   }) => (
     <div
       data-testid="whiteboard"
       data-locale={locale}
       data-can-draw={String(canDraw)}
-      data-can-clear={String(canClear)}
+      data-is-teacher={String(isTeacher)}
     />
   ),
 }));
@@ -115,7 +115,7 @@ describe("SessionInCall whiteboard entry point", () => {
     const canvas = await screen.findByTestId("whiteboard");
 
     expect(canvas).toHaveAttribute("data-can-draw", "true");
-    expect(canvas).toHaveAttribute("data-can-clear", "true");
+    expect(canvas).toHaveAttribute("data-is-teacher", "true");
     expect(screen.getByText(board.teacherOnlyYou)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: board.allowStudent }));
@@ -136,7 +136,7 @@ describe("SessionInCall whiteboard entry point", () => {
     const canvas = await screen.findByTestId("whiteboard");
 
     expect(canvas).toHaveAttribute("data-can-draw", "false");
-    expect(canvas).toHaveAttribute("data-can-clear", "false");
+    expect(canvas).toHaveAttribute("data-is-teacher", "false");
     expect(screen.getByText(board.studentViewOnly)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: board.allowStudent }),

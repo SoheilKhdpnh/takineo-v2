@@ -255,7 +255,7 @@ export function SessionInCall({
   const [boardOpen, setBoardOpen] = useState(false);
   const isTeacher = viewerRole === "TEACHER";
   const studentCanDraw = useSyncExternalStore(
-    whiteboardHub.subscribePermission,
+    whiteboardHub.subscribeControls,
     whiteboardHub.isStudentDrawingAllowed,
     () => false,
   );
@@ -380,7 +380,7 @@ export function SessionInCall({
                     hub={whiteboardHub}
                     locale={locale}
                     canDraw={canDraw}
-                    canClear={isTeacher}
+                    isTeacher={isTeacher}
                   />
                 </div>
               </section>

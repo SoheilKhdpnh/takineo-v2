@@ -1314,7 +1314,29 @@
       "allowStudent": "اجازه نوشتن به زبان‌آموز",
       "revokeStudent": "قطع دسترسی زبان‌آموز",
       "studentViewOnly": "تخته در اختیار مدرس است. وقتی مدرس اجازه دهد، می‌توانید بنویسید.",
-      "studentCanDraw": "مدرس به شما اجازه داد. اکنون می‌توانید روی تخته بنویسید."
+      "studentCanDraw": "مدرس به شما اجازه داد. اکنون می‌توانید روی تخته بنویسید.",
+      "tools": {
+        "templates": "افزودن الگو…",
+        "template": {
+          "linedPaper": "کاغذ خط‌دار",
+          "tenseTimeline": "خط زمانی زمان‌ها",
+          "irregularVerbTable": "جدول فعل‌های بی‌قاعده",
+          "vocabularyCard": "کارت واژه"
+        },
+        "ipa": "نمادهای آوانگاری (IPA)",
+        "closeIpa": "بستن",
+        "insertSymbol": "افزودن {symbol}",
+        "ipaGroup": {
+          "shortVowels": "واکه‌های کوتاه",
+          "longVowels": "واکه‌های بلند",
+          "diphthongs": "واکه‌های مرکب",
+          "consonants": "همخوان‌ها",
+          "marks": "تکیه و کشش"
+        },
+        "grid": "شبکه",
+        "lead": "هدایت نما",
+        "following": "در حال دنبال کردن نمای مدرس"
+      }
     },
     "wrapUp": {
       "eyebrow": "پایان جلسه",

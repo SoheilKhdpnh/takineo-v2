@@ -1314,7 +1314,29 @@
       "allowStudent": "Let the student draw",
       "revokeStudent": "Stop student drawing",
       "studentViewOnly": "Your teacher controls the board. You can draw when they give you access.",
-      "studentCanDraw": "Your teacher gave you access. You can draw on the board."
+      "studentCanDraw": "Your teacher gave you access. You can draw on the board.",
+      "tools": {
+        "templates": "Insert a template…",
+        "template": {
+          "linedPaper": "Lined paper",
+          "tenseTimeline": "Tense timeline",
+          "irregularVerbTable": "Irregular verb table",
+          "vocabularyCard": "Vocabulary card"
+        },
+        "ipa": "IPA symbols",
+        "closeIpa": "Close",
+        "insertSymbol": "Insert {symbol}",
+        "ipaGroup": {
+          "shortVowels": "Short vowels",
+          "longVowels": "Long vowels",
+          "diphthongs": "Diphthongs",
+          "consonants": "Consonants",
+          "marks": "Stress and length"
+        },
+        "grid": "Grid",
+        "lead": "Lead the view",
+        "following": "Following your teacher's view"
+      }
     },
     "wrapUp": {
       "eyebrow": "Session complete",
