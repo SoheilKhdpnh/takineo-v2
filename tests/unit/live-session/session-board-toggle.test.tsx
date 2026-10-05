@@ -73,6 +73,8 @@ function renderCall(
         onSendChat={vi.fn().mockResolvedValue(true)}
         whiteboardHub={hub}
         viewerRole={viewerRole}
+        extensionPrompt={null}
+        onExtensionDecision={vi.fn()}
       />
     </NextIntlClientProvider>,
   );

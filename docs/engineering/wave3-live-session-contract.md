@@ -760,6 +760,17 @@ Poor / Lost.
 
 The session always shows remaining time until `endAt`, not only elapsed time.
 
+### Booked length and teacher continuation
+
+The booked `SpeakingSession` stays exactly 15 minutes. The database check is
+unchanged, so a continuation cannot move the next booking. When that booked end
+is reached, the call stays open and the teacher chooses 5 more minutes, 10 more
+minutes, or end now. The choice is sent to the student over LiveKit topic
+`takineo.session-extension` and is not persisted. The student cannot choose.
+After the chosen extra time, the call ends. Local rejoin stays open until 10
+minutes after the booked end, and evidence completion waits 12 minutes, so a
+continuation is not cut off by the join window or the completion job.
+
 ### Disconnect and rejoin
 
 A provider-side disconnect before `endAt` shows a "connection lost" state with a

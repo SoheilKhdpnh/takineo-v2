@@ -1290,7 +1290,15 @@
       "qualityLost": "Connection lost",
       "qualityUnknown": "Checking connection",
       "reconnecting": "The connection is struggling. Stay on the page — Talkinu is holding the audio path.",
-      "videoPaused": "Video paused to protect the call. You can still hear each other."
+      "videoPaused": "Video paused to protect the call. You can still hear each other.",
+      "extension": {
+        "title": "The booked 15 minutes are over",
+        "teacherBody": "You can keep this class going a little longer, or end it now. This does not move the next booking.",
+        "studentWaiting": "Waiting for your teacher to continue or end the class.",
+        "fiveMore": "5 more minutes",
+        "tenMore": "10 more minutes",
+        "endNow": "End the session now"
+      }
     },
     "chat": {
       "title": "Chat",

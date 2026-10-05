@@ -58,6 +58,13 @@ import {
   WhiteboardHub,
 } from "@/components/live-session/whiteboard/whiteboard-hub";
 import {
+  SESSION_EXTENSION_TOPIC,
+  extensionEndAt,
+  parseSessionExtensionDecision,
+  type SessionExtensionDecision,
+  type SessionExtensionMinutes,
+} from "@/components/live-session/session-extension-model";
+import {
   useRouter,
 } from "@/i18n/navigation";
 
@@ -150,6 +157,13 @@ export function LiveSessionJoinRoom({
   const [whiteboardHub] = useState(
     () => new WhiteboardHub(context.viewerRole),
   );
+  const [extensionMinutes, setExtensionMinutes] =
+    useState<SessionExtensionMinutes | null>(null);
+  const [bookedTimeElapsed, setBookedTimeElapsed] = useState(false);
+  const extensionRef = useRef<SessionExtensionMinutes | null>(null);
+  const effectiveEndAt = extensionMinutes
+    ? extensionEndAt(context.endAt, extensionMinutes)
+    : context.endAt;
 
   useEffect(() => {
     videoEnabledRef.current = videoEnabled;
@@ -361,7 +375,39 @@ export function LiveSessionJoinRoom({
         return;
       }
 
-      finishSession(wrapUpReasonForDisconnect(context.endAt, Date.now()));
+      const extensionMs = (extensionRef.current ?? 0) * 60_000;
+      const openUntil =
+        new Date(context.endAt).getTime() + extensionMs;
+      finishSession(
+        Date.now() < openUntil ? "disconnected" : "time",
+      );
+    });
+
+    room.registerTextStreamHandler(SESSION_EXTENSION_TOPIC, async (reader) => {
+      if (context.viewerRole !== "STUDENT") {
+        return;
+      }
+
+      let decision: SessionExtensionDecision | null = null;
+
+      try {
+        decision = parseSessionExtensionDecision(await reader.readAll());
+      } catch {
+        return;
+      }
+
+      if (!decision) {
+        return;
+      }
+
+      if (decision === "end") {
+        finishSession("time");
+        return;
+      }
+
+      extensionRef.current = decision;
+      setExtensionMinutes(decision);
+      setBookedTimeElapsed(true);
     });
 
     whiteboardHub.attach(room);
@@ -540,6 +586,32 @@ export function LiveSessionJoinRoom({
     }
   }
 
+  async function handleExtensionDecision(decision: SessionExtensionDecision) {
+    if (context.viewerRole !== "TEACHER" || extensionRef.current !== null) {
+      return;
+    }
+
+    const room = roomRef.current;
+
+    if (room) {
+      try {
+        await room.localParticipant.sendText(JSON.stringify({ decision }), {
+          topic: SESSION_EXTENSION_TOPIC,
+        });
+      } catch {
+        // The teacher's own screen still follows the choice.
+      }
+    }
+
+    if (decision === "end") {
+      finishSession("time");
+      return;
+    }
+
+    extensionRef.current = decision;
+    setExtensionMinutes(decision);
+  }
+
   async function handleSendChat(text: string): Promise<boolean> {
     const room = roomRef.current;
 
@@ -650,7 +722,17 @@ export function LiveSessionJoinRoom({
           muted={muted}
           videoEnabled={videoEnabled}
           videoDegraded={videoDegraded}
-          endAt={context.endAt}
+          endAt={effectiveEndAt}
+          extensionPrompt={
+            bookedTimeElapsed && extensionMinutes === null
+              ? context.viewerRole === "TEACHER"
+                ? "teacher"
+                : "student"
+              : null
+          }
+          onExtensionDecision={(decision) => {
+            void handleExtensionDecision(decision);
+          }}
           localVideoRef={localVideoRef}
           remoteVideoRef={remoteVideoRef}
           onToggleMute={() => {
@@ -663,6 +745,11 @@ export function LiveSessionJoinRoom({
             finishSession("leave");
           }}
           onElapsed={() => {
+            if (extensionRef.current === null) {
+              setBookedTimeElapsed(true);
+              return;
+            }
+
             finishSession("time");
           }}
           chatMessages={chatMessages}

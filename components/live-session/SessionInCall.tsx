@@ -49,6 +49,9 @@ const SessionWhiteboard = dynamic(
   { ssr: false, loading: WhiteboardLoading },
 );
 import type {
+  SessionExtensionDecision,
+} from "@/components/live-session/session-extension-model";
+import type {
   ConnectionQualityLevel,
   SessionViewerRole,
 } from "@/components/live-session/session-join-model";
@@ -81,6 +84,10 @@ function SessionCountdown({
       window.clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    elapsedRef.current = false;
+  }, [endAt]);
 
   useEffect(() => {
     if (elapsedRef.current) {
@@ -223,6 +230,8 @@ export function SessionInCall({
   onSendChat,
   whiteboardHub,
   viewerRole,
+  extensionPrompt,
+  onExtensionDecision,
 }: {
   selfName: string;
   selfImage: string | null;
@@ -249,6 +258,8 @@ export function SessionInCall({
   onSendChat: (text: string) => Promise<boolean>;
   whiteboardHub: WhiteboardHub;
   viewerRole: SessionViewerRole;
+  extensionPrompt: "teacher" | "student" | null;
+  onExtensionDecision: (decision: SessionExtensionDecision) => void;
 }) {
   const t = useTranslations("LiveSessionJoin");
   const locale = useLocale();
@@ -293,6 +304,53 @@ export function SessionInCall({
             {t(qualityLabelKey(quality))}
           </p>
         </header>
+
+        {extensionPrompt ? (
+          <section
+            className="mt-4 rounded-lg border border-line bg-surface p-4"
+            role="dialog"
+            aria-labelledby="session-extension-title"
+          >
+            <h2 id="session-extension-title" className="font-semibold text-ink">
+              {t("call.extension.title")}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
+              {extensionPrompt === "teacher"
+                ? t("call.extension.teacherBody")
+                : t("call.extension.studentWaiting")}
+            </p>
+            {extensionPrompt === "teacher" ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onExtensionDecision(5);
+                  }}
+                >
+                  {t("call.extension.fiveMore")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    onExtensionDecision(10);
+                  }}
+                >
+                  {t("call.extension.tenMore")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    onExtensionDecision("end");
+                  }}
+                >
+                  {t("call.extension.endNow")}
+                </Button>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
         {reconnecting ? (
           <p

@@ -165,8 +165,10 @@ describe("SessionInCall chat entry point", () => {
       chatMessages: messages,
       remoteChatTotal,
       onSendChat: vi.fn().mockResolvedValue(true),
-      whiteboardHub: new WhiteboardHub("STUDENT"),
-      viewerRole: "STUDENT" as const,
+        whiteboardHub: new WhiteboardHub("STUDENT"),
+        viewerRole: "STUDENT" as const,
+        extensionPrompt: null,
+        onExtensionDecision: vi.fn(),
     };
 
     const view = render(
