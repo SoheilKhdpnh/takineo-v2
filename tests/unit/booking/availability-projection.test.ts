@@ -335,6 +335,7 @@ describe(
               slot.startMinute,
           ),
         ).toEqual([
+          555,
           570,
           585,
           600,

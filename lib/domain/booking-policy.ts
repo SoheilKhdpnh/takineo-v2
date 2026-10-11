@@ -11,7 +11,7 @@ export const BOOKING_SESSION_MINUTES =
   15;
 
 export const BOOKING_MIN_LEAD_MINUTES =
-  30;
+  15;
 
 export const BOOKING_MAX_HORIZON_DAYS =
   30;
