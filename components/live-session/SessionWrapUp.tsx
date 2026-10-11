@@ -49,6 +49,7 @@ export function SessionWrapUp({
   reason,
   onSubmitReview,
   onRejoin,
+  recording = null,
 }: {
   brand: string;
   sessionId: string;
@@ -60,6 +61,10 @@ export function SessionWrapUp({
     comment: string;
   }) => Promise<"ok" | "already" | "error">;
   onRejoin: () => void;
+  recording?: {
+    url: string;
+    fileName: string;
+  } | null;
 }) {
   const t = useTranslations("LiveSessionJoin");
   const dashboardHref = getRoleHome(viewerRole);
@@ -272,6 +277,21 @@ export function SessionWrapUp({
             <p className="mt-6 text-sm font-medium text-primary" role="status">
               {t("wrapUp.thanks")}
             </p>
+          ) : null}
+
+          {recording ? (
+            <div className="mt-6">
+              <a
+                href={recording.url}
+                download={recording.fileName}
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-white"
+              >
+                {t("wrapUp.downloadRecording")}
+              </a>
+              <p className="mt-2 text-sm leading-6 text-ink-muted">
+                {t("wrapUp.recordingLocalOnly")}
+              </p>
+            </div>
           ) : null}
 
           <div className="mt-8">

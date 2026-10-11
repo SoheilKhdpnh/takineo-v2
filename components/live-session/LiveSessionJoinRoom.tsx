@@ -58,6 +58,10 @@ import {
   WhiteboardHub,
 } from "@/components/live-session/whiteboard/whiteboard-hub";
 import {
+  BrowserSessionRecorder,
+  sessionRecordingFileName,
+} from "@/components/live-session/session-recording";
+import {
   SESSION_EXTENSION_TOPIC,
   extensionEndAt,
   parseSessionExtensionDecision,
@@ -161,6 +165,13 @@ export function LiveSessionJoinRoom({
     useState<SessionExtensionMinutes | null>(null);
   const [bookedTimeElapsed, setBookedTimeElapsed] = useState(false);
   const extensionRef = useRef<SessionExtensionMinutes | null>(null);
+  const recorderRef = useRef<BrowserSessionRecorder | null>(null);
+  const [recording, setRecording] = useState<{
+    url: string;
+    fileName: string;
+  } | null>(null);
+  const [recordingLocally, setRecordingLocally] = useState(false);
+  const [micBlocked, setMicBlocked] = useState(false);
   const effectiveEndAt = extensionMinutes
     ? extensionEndAt(context.endAt, extensionMinutes)
     : context.endAt;
@@ -230,13 +241,40 @@ export function LiveSessionJoinRoom({
     const room = roomRef.current;
     roomRef.current = null;
     void room?.disconnect();
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    setRecordingLocally(false);
+
+    if (recorder) {
+      void recorder.stop().then((captured) => {
+        if (!captured) {
+          return;
+        }
+
+        const url = URL.createObjectURL(captured.blob);
+        setRecording((current) => {
+          if (current) {
+            URL.revokeObjectURL(current.url);
+          }
+
+          return {
+            url,
+            fileName: sessionRecordingFileName(
+              context.sessionId,
+              context.viewerRole,
+              captured.mimeType,
+            ),
+          };
+        });
+      });
+    }
     setWrapReason(reason);
     setPhase("wrap-up");
     setRemotePresent(false);
     setLocalSpeaking(false);
     setRemoteSpeaking(false);
     setReconnecting(false);
-  }, []);
+  }, [context.sessionId, context.viewerRole]);
 
   async function applyVideoState(
     room: Room,
@@ -272,7 +310,31 @@ export function LiveSessionJoinRoom({
     roomRef.current = room;
     leavingRef.current = false;
 
+    const rememberAudio = (track: {
+      kind: Track.Kind;
+      mediaStreamTrack: MediaStreamTrack;
+    }) => {
+      if (track.kind !== Track.Kind.Audio) {
+        return;
+      }
+
+      if (!recorderRef.current) {
+        const recorder = new BrowserSessionRecorder();
+
+        if (!recorder.start()) {
+          return;
+        }
+
+        recorderRef.current = recorder;
+        setRecordingLocally(true);
+      }
+
+      recorderRef.current.addTrack(track.mediaStreamTrack);
+    };
+
     const attachTrack = (track: RemoteTrack) => {
+      rememberAudio(track);
+
       if (track.kind === Track.Kind.Audio) {
         const host = remoteAudioRef.current;
 
@@ -422,8 +484,17 @@ export function LiveSessionJoinRoom({
       }
       await room.localParticipant.setMicrophoneEnabled(true);
       setMuted(false);
+      setMicBlocked(false);
+      const microphone = room.localParticipant.getTrackPublication(
+        Track.Source.Microphone,
+      );
+
+      if (microphone?.track) {
+        rememberAudio(microphone.track);
+      }
     } catch {
       setMuted(true);
+      setMicBlocked(true);
     }
 
     if (videoEnabledRef.current) {
@@ -554,8 +625,15 @@ export function LiveSessionJoinRoom({
     }
 
     const nextMuted = !muted;
-    await room.localParticipant.setMicrophoneEnabled(!nextMuted);
-    setMuted(nextMuted);
+
+    try {
+      await room.localParticipant.setMicrophoneEnabled(!nextMuted);
+      setMuted(nextMuted);
+      setMicBlocked(false);
+    } catch {
+      setMuted(true);
+      setMicBlocked(true);
+    }
   }
 
   async function handleToggleVideo() {
@@ -700,6 +778,7 @@ export function LiveSessionJoinRoom({
           onRejoin={() => {
             void handleJoin();
           }}
+          recording={recording}
         />
       </>
     );
@@ -757,6 +836,8 @@ export function LiveSessionJoinRoom({
           onSendChat={handleSendChat}
           whiteboardHub={whiteboardHub}
           viewerRole={context.viewerRole}
+          recordingLocally={recordingLocally}
+          micBlocked={micBlocked}
         />
       </>
     );

@@ -1291,6 +1291,8 @@
       "qualityUnknown": "Checking connection",
       "reconnecting": "The connection is struggling. Stay on the page — Talkinu is holding the audio path.",
       "videoPaused": "Video paused to protect the call. You can still hear each other.",
+      "recordingOnDevice": "This device is recording the conversation. Download it when the class ends.",
+      "micBlocked": "The browser blocked the microphone. Allow the microphone for this site, then choose Unmute.",
       "extension": {
         "title": "The booked 15 minutes are over",
         "teacherBody": "You can keep this class going a little longer, or end it now. This does not move the next booking.",
@@ -1367,7 +1369,9 @@
       "skip": "Skip",
       "thanks": "Thank you. Your rating was saved.",
       "submitError": "Talkinu could not save that rating. You can try again or skip.",
-      "backToDashboard": "Back to dashboard"
+      "backToDashboard": "Back to dashboard",
+      "downloadRecording": "Download recording",
+      "recordingLocalOnly": "This file stays on this device. Talkinu does not store it."
     },
     "errors": {
       "notParticipant": "You are not a participant of this speaking session.",

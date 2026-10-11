@@ -232,6 +232,8 @@ export function SessionInCall({
   viewerRole,
   extensionPrompt,
   onExtensionDecision,
+  recordingLocally = false,
+  micBlocked = false,
 }: {
   selfName: string;
   selfImage: string | null;
@@ -260,6 +262,8 @@ export function SessionInCall({
   viewerRole: SessionViewerRole;
   extensionPrompt: "teacher" | "student" | null;
   onExtensionDecision: (decision: SessionExtensionDecision) => void;
+  recordingLocally?: boolean;
+  micBlocked?: boolean;
 }) {
   const t = useTranslations("LiveSessionJoin");
   const locale = useLocale();
@@ -291,6 +295,16 @@ export function SessionInCall({
               {t("call.timeLeft")}
             </p>
             <SessionCountdown endAt={endAt} onElapsed={onElapsed} />
+            {recordingLocally ? (
+              <p className="mt-1 text-xs text-ink-muted" role="status">
+                {t("call.recordingOnDevice")}
+              </p>
+            ) : null}
+            {micBlocked ? (
+              <p className="mt-1 text-xs text-danger" role="alert">
+                {t("call.micBlocked")}
+              </p>
+            ) : null}
           </div>
           <p
             className={cn(
