@@ -2,6 +2,9 @@
   command = "npm run build"
   publish = ".next"
 
+  [build.environment]
+    BETTER_AUTH_URL = "https://talkinu.com"
+
 [context.production]
   command = "npm run db:migrate:deploy && npm run build"
 
